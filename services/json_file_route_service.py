@@ -4,6 +4,9 @@ import re
 from urllib.parse import unquote
 
 
+DEFAULT_PROJECT_FILENAME = "default_v2_project.json"
+
+
 class JsonFileRouteService:
     def __init__(
         self,
@@ -81,6 +84,25 @@ class JsonFileRouteService:
         with open(path, "w", encoding="utf-8") as file:
             json.dump(data, file, ensure_ascii=False, indent=2)
 
+    @staticmethod
+    def _build_empty_project_payload():
+        return {
+            "canvases": [
+                {
+                    "id": "canvas_1",
+                    "name": "默认画布",
+                    "nodes": [],
+                    "edges": [],
+                    "viewport": {
+                        "x": 0,
+                        "y": 0,
+                        "zoom": 1.1,
+                    },
+                }
+            ],
+            "activeCanvasId": "canvas_1",
+        }
+
     def _list_projects(self):
         canvas_dir = self._get_canvas_dir()
         files = []
@@ -104,6 +126,8 @@ class JsonFileRouteService:
             return None
         project_path = os.path.join(self._get_canvas_dir(), filename)
         if not os.path.exists(project_path):
+            if filename == DEFAULT_PROJECT_FILENAME:
+                return self._json_ok(self._build_empty_project_payload())
             return self._json_err(404, "Project not found")
         with open(project_path, "r", encoding="utf-8-sig") as file:
             return self._json_ok(json.load(file))

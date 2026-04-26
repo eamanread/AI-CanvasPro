@@ -3,6 +3,7 @@ import json
 import os
 import re
 import socket
+import ssl
 import time
 import urllib.error
 import urllib.parse
@@ -548,8 +549,9 @@ class MediaFileRouteService:
 
         request = urllib.request.Request(url, method="GET")
         request.add_header("User-Agent", "AI-Canvas/1.0")
-        try:
-            with urllib.request.urlopen(request, timeout=120) as resp:
+
+        def _download_to_file(ssl_context=None):
+            with urllib.request.urlopen(request, timeout=120, context=ssl_context) as resp:
                 content_type = resp.headers.get("Content-Type") or ""
                 ext = (data.get("ext") or "").strip().lower()
                 if not re.match(r"^[a-z0-9]{1,5}$", ext):
@@ -571,8 +573,45 @@ class MediaFileRouteService:
                                 os.remove(fpath)
                             except Exception:
                                 pass
-                            return self._json_err(413, "File too large")
+                            return None, self._json_err(413, "File too large")
                         file.write(chunk)
+            return (filename, fpath), None
+
+        def _should_retry_without_ssl_verify(exc):
+            reason = getattr(exc, "reason", exc)
+            if isinstance(reason, ssl.SSLCertVerificationError):
+                return True
+            return isinstance(exc, ssl.SSLCertVerificationError)
+
+        try:
+            download_result, download_error = _download_to_file()
+            if download_error is not None:
+                return download_error
+            filename, fpath = download_result
+        except urllib.error.URLError as exc:
+            if not _should_retry_without_ssl_verify(exc):
+                return self._json_err(502, f"Download failed: {str(exc)}")
+            try:
+                insecure_context = ssl.create_default_context()
+                insecure_context.check_hostname = False
+                insecure_context.verify_mode = ssl.CERT_NONE
+                download_result, download_error = _download_to_file(insecure_context)
+                if download_error is not None:
+                    return download_error
+                filename, fpath = download_result
+            except Exception as retry_exc:
+                return self._json_err(502, f"Download failed: {str(retry_exc)}")
+        except ssl.SSLCertVerificationError:
+            try:
+                insecure_context = ssl.create_default_context()
+                insecure_context.check_hostname = False
+                insecure_context.verify_mode = ssl.CERT_NONE
+                download_result, download_error = _download_to_file(insecure_context)
+                if download_error is not None:
+                    return download_error
+                filename, fpath = download_result
+            except Exception as retry_exc:
+                return self._json_err(502, f"Download failed: {str(retry_exc)}")
         except urllib.error.HTTPError as exc:
             return self._json_err(502, f"Download HTTPError: {exc.code}")
         except Exception as exc:

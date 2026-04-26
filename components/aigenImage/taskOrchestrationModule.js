@@ -1,1 +1,185 @@
-function a69_0x2ada(){var _0x16fe9e=['18945084DJkROS','3352vrzOCJ','12634410DHCHzd','2066362fXSeVs','14aPvgrI','6099135XgBcgD','24iyjIXs','276KMWUgL','1YZKfwN','477318TduYTO','11QirVio','3146733CGzlcY'];a69_0x2ada=function(){return _0x16fe9e;};return a69_0x2ada();}function a69_0x158a(_0x3482c5,_0x1a6358){_0x3482c5=_0x3482c5-0x146;var _0x2adaab=a69_0x2ada();var _0x158ab0=_0x2adaab[_0x3482c5];return _0x158ab0;}(function(_0x4e8fa4,_0x23666e){var _0x1c69a5=a69_0x158a,_0x23deb9=_0x4e8fa4();while(!![]){try{var _0x3d7c9b=-parseInt(_0x1c69a5(0x14f))/0x1*(-parseInt(_0x1c69a5(0x14a))/0x2)+-parseInt(_0x1c69a5(0x14e))/0x3*(parseInt(_0x1c69a5(0x148))/0x4)+parseInt(_0x1c69a5(0x14c))/0x5+-parseInt(_0x1c69a5(0x150))/0x6*(parseInt(_0x1c69a5(0x14b))/0x7)+parseInt(_0x1c69a5(0x14d))/0x8*(-parseInt(_0x1c69a5(0x146))/0x9)+-parseInt(_0x1c69a5(0x149))/0xa*(-parseInt(_0x1c69a5(0x151))/0xb)+-parseInt(_0x1c69a5(0x147))/0xc;if(_0x3d7c9b===_0x23666e)break;else _0x23deb9['push'](_0x23deb9['shift']());}catch(_0x37c43e){_0x23deb9['push'](_0x23deb9['shift']());}}}(a69_0x2ada,0x9f523));export{createAIGenerateNodeTaskOrchestrationModule}from'./taskOrchestrationModule.impl.js';
+import { createAIGenerateNodeTaskOrchestrationModule as createLegacyTaskOrchestrationModule } from "./taskOrchestrationModule.impl.js";
+import {
+  applyImageNodeSelectionPatch,
+  buildRegistryImagePayload,
+  generateImageWithRegistryModel,
+  isRegistryImageNodeData,
+  REGISTRY_IMAGE_PROVIDER,
+  resolveImageNodeModelState,
+} from "./modelRegistryRuntime.js";
+
+function trimText(value) {
+  return String(value ?? "").trim();
+}
+
+function showToast(message, level = "error") {
+  window.showToast?.(message, level);
+}
+
+const REMOTE_RESULT_URL_EXPIRED_RE = /resource\s+is\s+valid\s+for\s+\d+\s*hours?/i;
+
+function normalizeRegistryGenerationErrorMessage(value) {
+  const message = trimText(value);
+  if (!message) {
+    return "图片生成失败";
+  }
+  if (REMOTE_RESULT_URL_EXPIRED_RE.test(message)) {
+    return "结果图片临时链接已过期，请重新生成";
+  }
+  return message;
+}
+
+function setGeneratingState(node, isGenerating) {
+  node._isGenerating = isGenerating;
+  if (!node.btnEl) {
+    return;
+  }
+
+  node.btnEl.disabled = isGenerating;
+  node.btnEl.textContent = isGenerating ? "生成中" : "生成";
+  if (!isGenerating && typeof node._updateSubmitButtonState === "function") {
+    node._updateSubmitButtonState();
+  }
+}
+
+function normalizeImages(result) {
+  if (Array.isArray(result?.images)) {
+    return result.images.filter(Boolean);
+  }
+  if (result && typeof result === "object") {
+    return [result];
+  }
+  return [];
+}
+
+function buildRegistrySuccessPatch(result, startedAt) {
+  const images = normalizeImages(result);
+  const firstImage = images[0] || {};
+
+  return {
+    images,
+    mainImageIndex: 0,
+    sourceUrl: trimText(firstImage.sourceUrl),
+    thumbUrl: trimText(firstImage.thumbUrl || firstImage.imageUrl || firstImage.sourceUrl),
+    imageUrl: trimText(firstImage.imageUrl || firstImage.thumbUrl || firstImage.sourceUrl),
+    localPath: trimText(firstImage.localPath),
+    originalLocalPath: trimText(firstImage.originalLocalPath),
+    displayLocalPath: trimText(firstImage.displayLocalPath),
+    thumbLocalPath: trimText(firstImage.thumbLocalPath),
+    isGenerating: false,
+    jobStatus: "success",
+    error: null,
+    generationDuration: Date.now() - startedAt,
+    asyncTaskStatus: "success",
+  };
+}
+
+function createWrappedModule(legacyModule, overrides) {
+  const wrappedModule = {};
+  Object.defineProperties(wrappedModule, Object.getOwnPropertyDescriptors(legacyModule));
+  Object.defineProperties(wrappedModule, Object.getOwnPropertyDescriptors(overrides));
+  return wrappedModule;
+}
+
+export function createAIGenerateNodeTaskOrchestrationModule(deps) {
+  const legacyModule = createLegacyTaskOrchestrationModule(deps);
+  const originalBuildPayload = legacyModule._buildPayload;
+
+  return createWrappedModule(legacyModule, {
+    async _buildPayload(userInput = null) {
+      if (!isRegistryImageNodeData(this._data)) {
+        return originalBuildPayload.call(this, userInput);
+      }
+
+      const runtimeState = resolveImageNodeModelState(this._data);
+      applyImageNodeSelectionPatch(this, deps.store, runtimeState.patch);
+
+      if (runtimeState.state === "deleted") {
+        showToast("模型已删除，请重新选择");
+        return null;
+      }
+
+      if (runtimeState.state === "unconfigured" || !runtimeState.model) {
+        showToast("该模型未配置", "warn");
+        return null;
+      }
+
+      const originalData = this._data;
+      const safeData = {
+        ...originalData,
+        model: runtimeState.model.modelId || runtimeState.model.modelName || "nano-banana-2",
+        provider: "grsai",
+      };
+
+      let basePayload = null;
+      try {
+        this._data = safeData;
+        basePayload = await originalBuildPayload.call(this, userInput);
+      } finally {
+        this._data = originalData;
+      }
+
+      if (!basePayload) {
+        return null;
+      }
+
+      return buildRegistryImagePayload(basePayload, runtimeState.model);
+    },
+
+    async _onGenerate(userInput = null) {
+      if (!isRegistryImageNodeData(this._data)) {
+        return legacyModule._onGenerate.call(this, userInput);
+      }
+
+      if (this._isGenerating) {
+        return;
+      }
+
+      const payload = await this._buildPayload(userInput);
+      if (!payload) {
+        return;
+      }
+
+      if (
+        payload.provider !== REGISTRY_IMAGE_PROVIDER ||
+        !trimText(payload.apiUrl) ||
+        !trimText(payload.apiKey)
+      ) {
+        return legacyModule._onGenerate.call(this, userInput);
+      }
+
+      const generationStartTime = Date.now();
+      setGeneratingState(this, true);
+      deps.startLoading?.(this.previewEl);
+      deps.store.updateNodeData(this.nodeId, {
+        isGenerating: true,
+        jobStatus: "generating",
+        error: null,
+        generationStartTime,
+        generationDuration: null,
+        asyncTaskStatus: "running",
+      });
+
+      try {
+        const result = await generateImageWithRegistryModel(payload);
+        deps.store.updateNodeData(
+          this.nodeId,
+          buildRegistrySuccessPatch(result, generationStartTime)
+        );
+      } catch (error) {
+        const message = normalizeRegistryGenerationErrorMessage(error?.message || error);
+        showToast(`图片生成失败: ${message}`);
+        deps.store.updateNodeData(this.nodeId, {
+          isGenerating: false,
+          jobStatus: "error",
+          error: message,
+          generationDuration: Date.now() - generationStartTime,
+          asyncTaskStatus: "failed",
+        });
+      } finally {
+        setGeneratingState(this, false);
+        deps.stopLoading?.(this.previewEl);
+      }
+    },
+  });
+}
