@@ -38,9 +38,18 @@ import hmac
 import ipaddress
 import shutil
 
-CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-if CURRENT_DIR not in sys.path:
-    sys.path.insert(0, CURRENT_DIR)
+SOURCE_DIR = os.path.abspath(os.path.dirname(__file__))
+IMPORT_ROOT = os.path.abspath(getattr(sys, "_MEIPASS", SOURCE_DIR))
+APP_ROOT = (
+    os.path.abspath(os.path.dirname(sys.executable))
+    if getattr(sys, "frozen", False)
+    else SOURCE_DIR
+)
+
+if IMPORT_ROOT not in sys.path:
+    sys.path.insert(0, IMPORT_ROOT)
+
+CURRENT_DIR = APP_ROOT
 
 from services.hot_update_service import HotUpdateService
 from services.http_route_dispatcher import HttpRouteDispatcher
@@ -110,7 +119,7 @@ ALLOWED_ORIGINS = tuple(
     origin for origin in (_normalize_origin(item) for item in _split_env_list("AIC_ALLOWED_ORIGINS")) if origin
 )
 LOCAL_ACCESS_TOKEN = str(os.environ.get("AIC_LOCAL_TOKEN", "") or "").strip()
-DIRECTORY = os.path.abspath(os.path.dirname(__file__))   # v2/ 绝对路径
+DIRECTORY = APP_ROOT   # v2/ 绝对路径
 # --- ???? ---
 # ? index.html ????
 import re
