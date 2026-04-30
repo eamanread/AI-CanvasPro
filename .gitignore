@@ -27,7 +27,11 @@ dev-helper.js
 .agentsrules/
 .trae/
 .dev
-/dev
+/dev/*
+!/dev/
+!/dev/preset-manager.html
+!/dev/preset-manager.css
+!/dev/preset-manager.js
 .codex/
 .vscode/
 
@@ -44,3 +48,4 @@ dreamina-login-qr.png
 
 # Ignore Advanced directory only
 .Advanced/
+.gstack/

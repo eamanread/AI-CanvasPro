@@ -283,7 +283,7 @@ class JsonFileRouteService:
         if path == "/api/v2/workflows/save":
             return self._save_workflow(body)
 
-        if path.startswith("/api/v2/user/"):
+        if path.startswith("/api/v2/user/") and not path.startswith("/api/v2/user/presets"):
             return self._save_user_json(path, body)
 
         return None

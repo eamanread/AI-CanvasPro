@@ -5,6 +5,26 @@ import urllib.request
 
 
 class RemoteProxyRouteService:
+    _INTERNAL_CONTROL_FIELDS = {
+        "installId",
+        "provider",
+        "activationSource",
+        "activation_source",
+        "generationScope",
+        "generation_scope",
+        "entitledNodeTypes",
+        "entitled_node_types",
+        "entitledProviders",
+        "entitled_providers",
+        "entitledModelIds",
+        "entitled_model_ids",
+        "entitledModelKeys",
+        "entitled_model_keys",
+        "requireCdkeySource",
+        "require_cdkey_source",
+        "rhInstanceType",
+    }
+
     def __init__(
         self,
         *,
@@ -71,6 +91,15 @@ class RemoteProxyRouteService:
         return "default"
 
     @staticmethod
+    def _strip_internal_control_fields(payload):
+        if not isinstance(payload, dict):
+            return {}
+        forwarded = dict(payload)
+        for field in RemoteProxyRouteService._INTERNAL_CONTROL_FIELDS:
+            forwarded.pop(field, None)
+        return forwarded
+
+    @staticmethod
     def _requests_module():
         import requests
 
@@ -79,12 +108,22 @@ class RemoteProxyRouteService:
     def _read_json_request(self, handler):
         return self._parse_json_object(self._read_body(handler))
 
-    def _vip_gate_denial_response(self, handler, payload, *, required_model_id):
+    def _generation_gate_denial_response(
+        self,
+        handler,
+        payload,
+        *,
+        required_model_id="",
+        provider="",
+        node_type="",
+    ):
         gate_service = self._get_subscription_gate_service()
-        decision = gate_service.check_vip_subscription_gate(
+        decision = gate_service.check_generation_access(
             handler,
             payload,
             required_model_id=required_model_id,
+            provider=provider,
+            node_type=node_type,
         )
         if bool(decision.get("allowed")):
             return None
@@ -174,22 +213,23 @@ class RemoteProxyRouteService:
         if error is not None:
             return error
 
-        api_key = (data.get("apiKey") or "").strip()
+        api_key = str(data.get("apiKey") or "").strip()
         workflow_id = str(data.get("workflowId") or "").strip()
         node_info_list = data.get("nodeInfoList")
         if not api_key or not workflow_id or not isinstance(node_info_list, list):
             return self._json_err(400, "Missing apiKey or workflowId or nodeInfoList")
 
-        if workflow_id in self._video_vip_workflow_ids:
-            denial = self._vip_gate_denial_response(
-                handler,
-                data,
-                required_model_id=f"runninghub/{workflow_id}",
-            )
-            if denial is not None:
-                return denial
+        denial = self._generation_gate_denial_response(
+            handler,
+            data,
+            required_model_id=f"runninghub/{workflow_id}",
+            provider="runninghubwf",
+            node_type="video" if workflow_id in self._video_vip_workflow_ids else "",
+        )
+        if denial is not None:
+            return denial
 
-        payload = dict(data)
+        payload = self._strip_internal_control_fields(data)
         payload["instanceType"] = self._normalize_runninghub_instance_type(
             data.get("instanceType") or data.get("rhInstanceType") or ""
         )
@@ -205,7 +245,7 @@ class RemoteProxyRouteService:
         if error is not None:
             return error
 
-        api_key = (data.get("apiKey") or "").strip()
+        api_key = str(data.get("apiKey") or "").strip()
         task_id = str(data.get("taskId") or "").strip()
         if not api_key or not task_id:
             return self._json_err(400, "Missing apiKey or taskId")

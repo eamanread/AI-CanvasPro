@@ -548,7 +548,7 @@ class MediaFileRouteService:
             max_bytes = 1024 * 1024 * 300
 
         request = urllib.request.Request(url, method="GET")
-        request.add_header("User-Agent", "AI-Canvas/1.0")
+        request.add_header("User-Agent", "Huanying/1.0")
 
         def _download_to_file(ssl_context=None):
             with urllib.request.urlopen(request, timeout=120, context=ssl_context) as resp:

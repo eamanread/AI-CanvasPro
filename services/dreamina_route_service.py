@@ -153,11 +153,20 @@ class DreaminaRouteService:
         except Exception as exc:
             return self._json_ok({"success": False, "message": str(exc)})
 
-    def _video_gate_denial_response(self, handler, data):
-        decision = self.subscription_gate_service.check_vip_subscription_gate(
+    def _generation_gate_denial_response(
+        self,
+        handler,
+        data,
+        *,
+        required_model_id="",
+        node_type="",
+    ):
+        decision = self.subscription_gate_service.check_generation_access(
             handler,
             data,
-            required_model_id=self.video_required_model_id,
+            required_model_id=required_model_id,
+            provider="dreamina",
+            node_type=node_type,
         )
         if bool(decision.get("allowed")):
             return None
@@ -260,31 +269,38 @@ class DreaminaRouteService:
         submit_routes = {
             "/api/v2/dreamina/text2image": (
                 self.cli_service.submit_text2image,
-                False,
+                "",
+                "image",
             ),
             "/api/v2/dreamina/image2image": (
                 self.cli_service.submit_image2image,
-                False,
+                "",
+                "image",
             ),
             "/api/v2/dreamina/text2video": (
                 self.cli_service.submit_text2video,
-                True,
+                self.video_required_model_id,
+                "video",
             ),
             "/api/v2/dreamina/image2video": (
                 self.cli_service.submit_image2video,
-                True,
+                self.video_required_model_id,
+                "video",
             ),
             "/api/v2/dreamina/frames2video": (
                 self.cli_service.submit_frames2video,
-                True,
+                self.video_required_model_id,
+                "video",
             ),
             "/api/v2/dreamina/multiframe2video": (
                 self.cli_service.submit_multiframe2video,
-                True,
+                self.video_required_model_id,
+                "video",
             ),
             "/api/v2/dreamina/multimodal2video": (
                 self.cli_service.submit_multimodal2video,
-                True,
+                self.video_required_model_id,
+                "video",
             ),
         }
         route = submit_routes.get(path)
@@ -294,9 +310,13 @@ class DreaminaRouteService:
         data, error = self._parse_json_object(body)
         if error:
             return error
-        submitter, requires_video_gate = route
-        if requires_video_gate:
-            denial = self._video_gate_denial_response(handler, data)
-            if denial is not None:
-                return denial
+        submitter, required_model_id, node_type = route
+        denial = self._generation_gate_denial_response(
+            handler,
+            data,
+            required_model_id=required_model_id,
+            node_type=node_type,
+        )
+        if denial is not None:
+            return denial
         return self._submit_response(data, submitter)

@@ -1,5 +1,4 @@
 import json
-import os
 import re
 import urllib.error
 import urllib.parse
@@ -17,6 +16,7 @@ class SubscriptionRemoteClient:
         required_message,
         contact_text,
         contact_url,
+        local_install_id_resolver=None,
     ):
         self.api_base_url = str(api_base_url or "").strip().rstrip("/")
         self.timeout_seconds = max(1, int(timeout_seconds or 5))
@@ -25,6 +25,9 @@ class SubscriptionRemoteClient:
         self.required_message = str(required_message or "该模型为 VIP，请先激活 CDKEY/订阅")
         self.contact_text = str(contact_text or "").strip()
         self.contact_url = str(contact_url or "").strip()
+        self.local_install_id_resolver = (
+            local_install_id_resolver if callable(local_install_id_resolver) else None
+        )
         self.status_none = "none"
         self.status_expired = "expired"
 
@@ -48,7 +51,15 @@ class SubscriptionRemoteClient:
         parsed = urllib.parse.urlparse(handler.path)
         qs = urllib.parse.parse_qs(parsed.query, keep_blank_values=True, max_num_fields=20)
         install_qs = (qs.get("installId") or [""])[0]
-        return self.normalize_install_id(install_qs)
+        install = self.normalize_install_id(install_qs)
+        if install:
+            return install
+        if self.local_install_id_resolver is None:
+            return ""
+        try:
+            return self.normalize_install_id(self.local_install_id_resolver())
+        except Exception:
+            return ""
 
     def subscription_required_payload(self, reason=None):
         message = self.required_message
@@ -57,6 +68,7 @@ class SubscriptionRemoteClient:
         return {
             "success": False,
             "code": self.err_required,
+            "errorCode": self.err_required,
             "message": message,
             "contactText": self.contact_text,
             "contactUrl": self.contact_url,
@@ -107,6 +119,31 @@ class SubscriptionRemoteClient:
             return nested
         return data
 
+    def _extract_value(self, data, *names, default=None):
+        payload = self._extract_payload_dict(data)
+        for name in names:
+            if not name or not isinstance(payload, dict):
+                continue
+            value = payload.get(name)
+            if value is not None:
+                return value
+        return default
+
+    def _extract_string(self, data, *names, default=""):
+        value = self._extract_value(data, *names, default=default)
+        return str(value or default).strip()
+
+    def _extract_string_list(self, data, *names):
+        raw = self._extract_value(data, *names, default=[])
+        if not isinstance(raw, list):
+            return []
+        items = []
+        for item in raw:
+            text = str(item or "").strip()
+            if text and text not in items:
+                items.append(text)
+        return items
+
     def _normalize_status(self, status_value):
         status = str(status_value or "").strip().lower()
         if status == str(self.status_active).strip().lower():
@@ -116,6 +153,22 @@ class SubscriptionRemoteClient:
         if status == self.status_none:
             return self.status_none
         return self.status_none
+
+    def extract_status(self, data):
+        status_value = self._extract_value(data, "status", "subscriptionStatus", "state", default="")
+        return self._normalize_status(status_value)
+
+    def extract_activation_source(self, data):
+        return self._extract_string(data, "activationSource", "activation_source", default="")
+
+    def extract_generation_scope(self, data):
+        return self._extract_string(data, "generationScope", "generation_scope", default="")
+
+    def extract_entitled_node_types(self, data):
+        return self._extract_string_list(data, "entitledNodeTypes", "entitled_node_types", "nodeTypes")
+
+    def extract_entitled_providers(self, data):
+        return self._extract_string_list(data, "entitledProviders", "entitled_providers", "providers")
 
     def fetch_subscription_status(self, install_id):
         install = self.normalize_install_id(install_id)
@@ -147,6 +200,10 @@ class SubscriptionRemoteClient:
                 "status": self.status_none,
                 "reasonCode": "MISSING_INSTALL_ID",
                 "reasonMessage": "缺少 installId",
+                "activationSource": "",
+                "generationScope": "",
+                "entitledNodeTypes": [],
+                "entitledProviders": [],
                 "payload": None,
             }
         data = self.fetch_subscription_status(install)
@@ -157,16 +214,19 @@ class SubscriptionRemoteClient:
                 "status": self.status_none,
                 "reasonCode": "SERVICE_UNAVAILABLE",
                 "reasonMessage": "授权服务不可用",
+                "activationSource": "",
+                "generationScope": "",
+                "entitledNodeTypes": [],
+                "entitledProviders": [],
                 "payload": None,
             }
-        payload = self._extract_payload_dict(data)
-        status_value = (
-            payload.get("status")
-            or payload.get("subscriptionStatus")
-            or payload.get("state")
-            or ""
-        )
-        status = self._normalize_status(status_value)
+
+        status = self.extract_status(data)
+        activation_source = self.extract_activation_source(data)
+        generation_scope = self.extract_generation_scope(data)
+        entitled_node_types = self.extract_entitled_node_types(data)
+        entitled_providers = self.extract_entitled_providers(data)
+
         if status == self.status_active:
             return {
                 "allowed": True,
@@ -174,20 +234,30 @@ class SubscriptionRemoteClient:
                 "status": status,
                 "reasonCode": "ACTIVE",
                 "reasonMessage": "",
+                "activationSource": activation_source,
+                "generationScope": generation_scope,
+                "entitledNodeTypes": entitled_node_types,
+                "entitledProviders": entitled_providers,
                 "payload": data,
             }
+
         if status == self.status_expired:
             reason_code = "SUBSCRIPTION_EXPIRED"
             reason_message = "订阅已过期"
         else:
             reason_code = "NOT_ACTIVE"
             reason_message = "未激活"
+
         return {
             "allowed": False,
             "installId": install,
             "status": status,
             "reasonCode": reason_code,
             "reasonMessage": reason_message,
+            "activationSource": activation_source,
+            "generationScope": generation_scope,
+            "entitledNodeTypes": entitled_node_types,
+            "entitledProviders": entitled_providers,
             "payload": data,
         }
 
@@ -201,18 +271,9 @@ class SubscriptionRemoteClient:
         data = self._fetch_status_payload(install)
         if not isinstance(data, dict):
             return False
-        payload = self._extract_payload_dict(data)
-        status_value = (
-            payload.get("status")
-            or payload.get("subscriptionStatus")
-            or payload.get("state")
-            or ""
-        )
-        if self._normalize_status(status_value) != self.status_active:
+        if self.extract_status(data) != self.status_active:
             return False
-        entitled = payload.get("entitledModelIds")
-        if not isinstance(entitled, list):
-            entitled = payload.get("entitled_model_ids")
+        entitled = self._extract_value(data, "entitledModelIds", "entitled_model_ids")
         if not isinstance(entitled, list):
             return False
         model = str(model_id or "").strip()

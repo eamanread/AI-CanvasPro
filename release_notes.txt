@@ -14,7 +14,7 @@
 - 修复生视频节点 有文本入参时没响应的问题
 - 修复生音频节点 有文本入参时没响应的问题
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 注：Mac 版本为机器人自动生成并没有测试
 BUG问题或要新增功能反馈文档：https://i1etb6xynr.feishu.cn/wiki/N2C3wD6SgisOpek11mfcfJCinkr?from=from_copylink
 
@@ -34,7 +34,7 @@ BUG问题或要新增功能反馈文档：https://i1etb6xynr.feishu.cn/wiki/N2C3
 - /预设时 @图片功能不生效的问题
 - 优化画布性能
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 注：Mac 版本为机器人自动生成并没有测试
 BUG问题或要新增功能反馈文档：https://i1etb6xynr.feishu.cn/wiki/N2C3wD6SgisOpek11mfcfJCinkr?from=from_copylink
 
@@ -51,7 +51,7 @@ BUG问题或要新增功能反馈文档：https://i1etb6xynr.feishu.cn/wiki/N2C3
 - 优化标注功能 的文字
 - 修复入参有时候图片排序不对 导致生成效果不理想的问题
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 注：Mac 版本为机器人自动生成并没有测试
 
 ---
@@ -67,7 +67,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - 即梦手动登陆时闪退的问题
 
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 注：Mac 版本为机器人自动生成并没有测试
 
 ---
@@ -91,7 +91,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - 当小地图挡住“设置”按钮时点不到“设置”按钮的问题
 
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 注：Mac 版本为机器人自动生成并没有测试
 
 ---
@@ -104,7 +104,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 🐛 修复与优化：
 - 修复各种错误
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 注：Mac 版本为机器人自动生成并没有测试
 
 ---
@@ -121,7 +121,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - GRSAI改回国内API  .cn 这次应该不会这么多任务丢失了
 - 动作栏的功能创建出来的节点不跟随源节点的比例的问题
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 注：Mac 版本为机器人自动生成并没有测试
 
 ---
@@ -135,7 +135,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 🐛 修复与优化：
 - 修复视频节点抠像功能的设置选择丢失
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 
 ---
 
@@ -158,7 +158,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - 优化画布节点载入现在更加轻量了
 - 双击启动.bat会优先用power shell 解压ffpmeg 7z作为兜底的解压
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 
 ---
 
@@ -190,7 +190,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - 订阅状态与 VIP 校验更稳：视频编辑 V5.4 等会员模型会给出更明确提示，状态同步更顺畅
 - 遮罩与橡皮擦渲染优化：Alpha 预览、擦除棋盘格和笔刷覆盖显示更准确，细节边缘更干净
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 
 ---
 🎉 V0.1.1 版本更新啦！
@@ -203,7 +203,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - 修复“右侧加号引用生成”创建同类型节点时：连线会正确写入 refSlot（固定入参槽位），确保「自适应比例」优先按节点规则（如 人物替换图片编辑V3 优先跟随“被替换图”）
 - 修复视频生成节点通过“右侧加号引用生成”创建同类型节点时，错误继承上一节点的 RunningHub 返回信息（rhStatusMessage/rhStatusCode）
 
-AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
+幻映！ windows 和 Mac 版本已发布，欢迎体验！
 
 🎉 V0.1.0 版本更新啦！
 
@@ -237,7 +237,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - 抠图功能去掉了不必要的toast提示，操作更清爽
 - R键垃圾桶现在可以清除画布所有内容（包括打点）
 
-感谢大家使用 AI-CanvasPro！
+感谢大家使用幻映！
 ---
 🎉 V0.0.9 版本更新啦！
 
@@ -256,7 +256,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - 视频节点生成态下的上传按钮逻辑优化
 - 视频编辑V5.2 入参提示更清晰：将“视频遮罩”调整为“遮罩视频”
 -
-感谢大家使用 AI-CanvasPro！
+感谢大家使用幻映！
 ---
 🎉 V0.0.8 版本更新啦！
 
@@ -272,7 +272,7 @@ AI-CanvasPro！ windows 和 Mac 版本已发布，欢迎体验！
 - 将文生文节点的删除按钮改为红色，并添加悬停效果（鼠标悬停时字体大小变为 20px）
 - 后端会把显卡选择写入 instanceType（24G=default / 48G=plus），确保走正确队列与显存规格
 
-感谢大家使用 AI-CanvasPro！
+感谢大家使用幻映！
 Mac版本没有测过 不一定能行
 ---
 
@@ -289,7 +289,7 @@ Mac版本没有测过 不一定能行
 - 视频资产首帧缩略图回写优化：减少列表频繁刷新带来的抖动
 - 删除按钮在亮色封面上可见性增强，避免"看不见点不到"
 
-感谢大家使用 AI-CanvasPro！
+感谢大家使用幻映！
 
 ---
 
@@ -305,6 +305,6 @@ Mac版本没有测过 不一定能行
 - 修复了部分问题
 - 宫格合成十字大小优化，仅在空宫格显示十字
 
-感谢大家使用 AI-CanvasPro！
+感谢大家使用幻映！
 
 ---

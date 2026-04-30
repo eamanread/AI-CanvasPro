@@ -2,7 +2,7 @@
 
 ## 1. 文档目的
 
-这份文档是 `AI-CanvasPro` 的全局架构说明，目标是让新的 AI 会话或新加入的开发者在最短时间内理解项目的运行形态、目录边界、扩展方式和开发约束。
+这份文档是 `幻映工作台（AI-CanvasPro）` 的全局架构说明，目标是让新的 AI 会话或新加入的开发者在最短时间内理解项目的运行形态、目录边界、扩展方式和开发约束。
 
 适用场景：
 
@@ -14,7 +14,7 @@
 
 ## 2. 项目一句话概括
 
-`AI-CanvasPro` 是一个基于无限画布的 AI 多模态节点编辑器，采用“原生前端单页应用 + Python 本地服务”的架构：
+`幻映工作台（AI-CanvasPro）` 是一个基于无限画布的 AI 多模态节点编辑器，采用“原生前端单页应用 + Python 本地服务”的架构：
 
 - 前端使用原生 `HTML / CSS / JavaScript ES Modules`
 - 后端使用 Python `http.server + ThreadingTCPServer`
@@ -1029,4 +1029,3 @@
 - [services/http_route_dispatcher.py](/private/tmp/AI-CanvasPro/services/http_route_dispatcher.py)
 - [services/json_file_route_service.py](/private/tmp/AI-CanvasPro/services/json_file_route_service.py)
 - [services/media_file_route_service.py](/private/tmp/AI-CanvasPro/services/media_file_route_service.py)
-

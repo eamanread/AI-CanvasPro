@@ -1,5 +1,5 @@
 r"""
-./server.py - AI Canvas V2 ????
+./server.py - 幻映 V2 ????
 
 ????:
   cd v2
@@ -51,7 +51,7 @@ from services.media_file_route_service import MediaFileRouteService
 from services.local_media_processing_route_service import LocalMediaProcessingRouteService
 from services.remote_proxy_route_service import RemoteProxyRouteService
 from services.subscription_gate_service import SubscriptionGateService
-from services.subscription_client import SubscriptionRemoteClient
+from services.local_subscription_client import LocalSubscriptionClient
 from services.dreamina_cli_service import DreaminaCliService
 from services.dreamina_route_service import DreaminaRouteService
 from services.sam3_service import Sam3Service
@@ -60,6 +60,10 @@ from services.sam3_route_service import Sam3RouteService
 mimetypes.add_type("text/javascript; charset=utf-8", ".js")
 mimetypes.add_type("text/javascript; charset=utf-8", ".mjs")
 mimetypes.add_type("text/css; charset=utf-8", ".css")
+
+
+class ReusableThreadingTCPServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
 
 def _get_int_env(name, default, min_value=None):
     try:
@@ -165,6 +169,14 @@ VIDEO_VIP_WORKFLOW_IDS = set(
     for mid in VIDEO_VIP_MODEL_IDS
     if mid.startswith("runninghub/") and "/" in mid
 )
+RUNNINGHUB_WORKFLOW_NODE_TYPE_MAP = {
+    "1991510999935172610": "audio",
+    "2013613374315171841": "audio",
+    **{
+        workflow_id: "video"
+        for workflow_id in VIDEO_VIP_WORKFLOW_IDS
+    },
+}
 VIDEO_VIP_MODEL_NAME_MAP = {
     "runninghub/2041741496667348994": "视频编辑V5.4",
     "dreamina/video_vip": "即梦视频",
@@ -177,7 +189,9 @@ SUB_ERROR_INVALID_CDKEY = "INVALID_CDKEY"
 SUB_ERROR_CDKEY_ALREADY_USED = "CDKEY_ALREADY_USED"
 SUB_ERROR_REQUIRED = "SUBSCRIPTION_REQUIRED"
 SUB_ERROR_MODEL_NOT_ENTITLED = "SUBSCRIPTION_MODEL_NOT_ENTITLED"
-SUB_MESSAGE_V54_REQUIRED = "该模型为 VIP 模型，请先激活 CDKEY/订阅"
+SUB_MESSAGE_V54_REQUIRED = "请先完成授权激活后再继续生成"
+LOCAL_FIXED_CDKEY = "fcyh0012"
+LOCAL_FIXED_SUBSCRIPTION_ENABLED = True
 DEFAULT_SUB_CONTACT_TEXT = os.environ.get(
     "AIC_SUB_CONTACT_TEXT",
     "联系管理员获取授权码",
@@ -395,15 +409,50 @@ try:
     )
 except Exception:
     SUBSCRIPTION_TIMEOUT_SECONDS = 5
+ENFORCE_GENERATION_SUBSCRIPTION = (
+    True if LOCAL_FIXED_SUBSCRIPTION_ENABLED else _is_enabled_env("AIC_ENFORCE_GENERATION_SUBSCRIPTION")
+)
+REQUIRE_CDKEY_SOURCE = (
+    True if LOCAL_FIXED_SUBSCRIPTION_ENABLED else _is_enabled_env("AIC_REQUIRE_CDKEY_SOURCE")
+)
+INTERNAL_PROXY_CONTROL_FIELDS = {
+    "installId",
+    "provider",
+    "activationSource",
+    "activation_source",
+    "generationScope",
+    "generation_scope",
+    "entitledNodeTypes",
+    "entitled_node_types",
+    "entitledProviders",
+    "entitled_providers",
+    "entitledModelIds",
+    "entitled_model_ids",
+    "entitledModelKeys",
+    "entitled_model_keys",
+    "requireCdkeySource",
+    "require_cdkey_source",
+    "rhInstanceType",
+}
 
-SUBSCRIPTION_CLIENT = SubscriptionRemoteClient(
-    api_base_url=SUBSCRIPTION_API_BASE,
-    timeout_seconds=SUBSCRIPTION_TIMEOUT_SECONDS,
+def _read_persisted_install_id():
+    system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
+    system_install_id = str(system_settings.get("installId") or "").strip()
+    if system_install_id:
+        return system_install_id
+    legacy_settings = _read_json_file(os.path.join(DEFAULT_USER_DIR, "settings.json"), {})
+    return str(legacy_settings.get("installId") or "").strip()
+
+SUBSCRIPTION_CLIENT = LocalSubscriptionClient(
+    state_dir=SYSTEM_STATE_DIR,
+    fixed_cdkey=LOCAL_FIXED_CDKEY,
     status_active=SUB_STATUS_ACTIVE,
     err_required=SUB_ERROR_REQUIRED,
     required_message=SUB_MESSAGE_V54_REQUIRED,
     contact_text=DEFAULT_SUB_CONTACT_TEXT,
     contact_url=DEFAULT_SUB_CONTACT_URL,
+    invalid_cdkey_error_code=SUB_ERROR_INVALID_CDKEY,
+    local_install_id_resolver=_read_persisted_install_id,
 )
 SUBSCRIPTION_GATE_SERVICE = SubscriptionGateService(
     client=SUBSCRIPTION_CLIENT,
@@ -411,7 +460,11 @@ SUBSCRIPTION_GATE_SERVICE = SubscriptionGateService(
     status_none=SUB_STATUS_NONE,
     error_model_not_entitled=SUB_ERROR_MODEL_NOT_ENTITLED,
     model_name_map=VIDEO_VIP_MODEL_NAME_MAP,
-    success_logger=lambda decision: print("[subscription][vip_gate] first VIP verification passed"),
+    success_logger=lambda decision: print(
+        "[subscription][generation_gate] first generation access verification passed"
+    ),
+    enforce_generation_subscription=ENFORCE_GENERATION_SUBSCRIPTION,
+    require_cdkey_source=REQUIRE_CDKEY_SOURCE,
 )
 os.makedirs(SYSTEM_STATE_DIR, exist_ok=True)
 _startup_system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
@@ -646,16 +699,74 @@ def _extract_install_id_from_request(handler, payload=None):
     return SUBSCRIPTION_GATE_SERVICE.extract_install_id_from_request(handler, payload)
 
 
-def _enforce_vip_subscription_gate(handler, payload=None, required_model_id=""):
-    decision = SUBSCRIPTION_GATE_SERVICE.check_vip_subscription_gate(
+def _strip_internal_control_fields(payload, extra_fields=None):
+    if not isinstance(payload, dict):
+        return {}
+    forwarded = dict(payload)
+    fields = set(INTERNAL_PROXY_CONTROL_FIELDS)
+    if isinstance(extra_fields, (set, list, tuple)):
+        fields.update(str(item or "").strip() for item in extra_fields if str(item or "").strip())
+    for field in fields:
+        forwarded.pop(field, None)
+    return forwarded
+
+
+def _enforce_generation_subscription_gate(
+    handler,
+    payload=None,
+    required_model_id="",
+    provider="",
+    node_type="",
+):
+    decision = SUBSCRIPTION_GATE_SERVICE.check_generation_access(
         handler,
         payload,
         required_model_id=required_model_id,
+        provider=provider,
+        node_type=node_type,
     )
     if bool(decision.get("allowed")):
         return True
     _json_ok(handler, SUBSCRIPTION_GATE_SERVICE.build_subscription_denial_payload(decision))
     return False
+
+
+def _infer_proxy_image_generation_metadata(api_url, payload=None):
+    api_url_value = str(api_url or "").strip()
+    source = payload if isinstance(payload, dict) else {}
+    provider = str(source.get("provider") or "").strip()
+    workflow_match = re.search(
+        r"/openapi/v2/run/ai-app/(\d+)$",
+        api_url_value,
+        flags=re.IGNORECASE,
+    )
+    workflow_id = workflow_match.group(1) if workflow_match else ""
+    is_runninghub_query_endpoint = bool(
+        re.search(r"/openapi/v2/query(?:$|[/?])", api_url_value, flags=re.IGNORECASE)
+    )
+    is_grsai_query_endpoint = bool(
+        re.search(r"/v1/draw/(?:result|query)(?:$|[/?])", api_url_value, flags=re.IGNORECASE)
+    )
+    required_model_id = f"runninghub/{workflow_id}" if workflow_id else ""
+    node_type = ""
+
+    if workflow_id:
+        provider = provider or "runninghubwf"
+        node_type = RUNNINGHUB_WORKFLOW_NODE_TYPE_MAP.get(workflow_id, "")
+    else:
+        provider = provider or "proxy"
+
+    return {
+        "workflow_id": workflow_id,
+        "provider": provider,
+        "node_type": node_type,
+        "required_model_id": required_model_id,
+        # 仅在“提交任务”类端点启用 task_id 快速探测；
+        # 查询类端点必须透传完整响应，否则前端无法拿到最终出图 URL。
+        "allow_task_probe_short_circuit": not (
+            is_runninghub_query_endpoint or is_grsai_query_endpoint
+        ),
+    }
 
 
 def _json_ok(handler, data):
@@ -1889,6 +2000,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             body = _read_body(self)
             try:
                 data = json.loads(body)
+                if not isinstance(data, dict):
+                    raise json.JSONDecodeError("Invalid JSON", str(body), 0)
                 api_url = data.pop("apiUrl", "").strip().rstrip("/")
                 api_key = data.pop("apiKey", "").strip()
             except json.JSONDecodeError:
@@ -1914,30 +2027,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         if value:
                             return value
                 return ""
-            workflow_match = re.search(
-                r"/openapi/v2/run/ai-app/(\d+)$",
-                api_url,
-                flags=re.IGNORECASE,
-            )
-            workflow_id = workflow_match.group(1) if workflow_match else ""
-            is_runninghub_query_endpoint = bool(
-                re.search(r"/openapi/v2/query(?:$|[/?])", api_url, flags=re.IGNORECASE)
-            )
-            # 仅在“提交任务”类端点启用 task_id 快速探测；
-            # 查询类端点必须透传完整响应，否则前端无法拿到最终出图 URL。
-            is_grsai_query_endpoint = bool(
-                re.search(r"/v1/draw/(?:result|query)(?:$|[/?])", api_url, flags=re.IGNORECASE)
-            )
-            allow_task_probe_short_circuit = not (
-                is_runninghub_query_endpoint or is_grsai_query_endpoint
-            )
-            if workflow_id in VIDEO_VIP_WORKFLOW_IDS:
-                if not _enforce_vip_subscription_gate(
+            generation_meta = _infer_proxy_image_generation_metadata(api_url, data)
+            allow_task_probe_short_circuit = generation_meta["allow_task_probe_short_circuit"]
+            if allow_task_probe_short_circuit:
+                if not _enforce_generation_subscription_gate(
                     self,
                     data,
-                    required_model_id=f"runninghub/{workflow_id}",
+                    required_model_id=generation_meta["required_model_id"],
+                    provider=generation_meta["provider"],
+                    node_type=generation_meta["node_type"],
                 ):
                     return
+            forward_data = _strip_internal_control_fields(data)
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -1960,7 +2061,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     try:
                         resp = _req.post(
                             api_url,
-                            json=data,
+                            json=forward_data,
                             headers=headers,
                             timeout=900,
                             stream=True,
@@ -2046,7 +2147,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         raise
             except ImportError:
                 import urllib.request, urllib.error
-                req_body = json.dumps(data).encode("utf-8")
+                req_body = json.dumps(forward_data).encode("utf-8")
                 req = urllib.request.Request(api_url, data=req_body, headers=headers, method="POST")
                 retry_delays = (0.0, 0.3, 0.9)
                 proxy_error_markers = (
@@ -2093,6 +2194,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             body = _read_body(self)
             try:
                 data = json.loads(body)
+                if not isinstance(data, dict):
+                    raise json.JSONDecodeError("Invalid JSON", str(body), 0)
                 api_url = data.pop("apiUrl", "").strip().rstrip("/")
                 api_key = data.pop("apiKey", "").strip()
             except json.JSONDecodeError:
@@ -2105,6 +2208,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if not api_url or not api_key:
                 _json_err(self, 400, "Missing apiUrl or apiKey"); return
+
+            if not _enforce_generation_subscription_gate(
+                self,
+                data,
+                required_model_id=str(data.get("model") or "").strip(),
+                provider=str(data.get("provider") or "").strip() or "text",
+                node_type="text",
+            ):
+                return
+            forward_data = _strip_internal_control_fields(data)
             
             # ?? Gemini ???????????
             if ":generateContent" in api_url or "/v1beta/models" in api_url or api_url.endswith("/chat/completions"):
@@ -2121,7 +2234,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             
             try:
                 import requests
-                req_body = json.dumps(data)
+                req_body = json.dumps(forward_data)
                 try:
                     # ??????? 300 ???? aiTextApi.js ??????
                     resp = requests.post(endpoint, data=req_body, headers=headers, timeout=300)
@@ -2169,7 +2282,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             except ImportError:
                 # Fallback to urllib if requests is not installed
                 import urllib.request
-                req_body = json.dumps(data).encode("utf-8")
+                req_body = json.dumps(forward_data).encode("utf-8")
                 req = urllib.request.Request(endpoint, data=req_body, headers=headers, method="POST")
                 try:
                     with urllib.request.urlopen(req, timeout=120) as resp:
@@ -2336,10 +2449,12 @@ if __name__ == "__main__":
     SAM3_SERVICE.start_background_workers()
     port, requested_bind_host, lan_mode = _parse_server_args(sys.argv[1:])
     bind_host, bind_host_was_restricted = _resolve_bind_host(requested_bind_host, lan_mode)
-    with socketserver.ThreadingTCPServer((bind_host, port), Handler) as httpd:
-        httpd.allow_reuse_address = True
+    with ReusableThreadingTCPServer((bind_host, port), Handler) as httpd:
         print("=" * 56)
-        if SUBSCRIPTION_API_BASE_OVERRIDDEN:
+        if LOCAL_FIXED_SUBSCRIPTION_ENABLED:
+            print("[subscription] mode = local-fixed-cdkey + mac-binding")
+            print(f"[subscription] license state dir = {SYSTEM_STATE_DIR}")
+        elif SUBSCRIPTION_API_BASE_OVERRIDDEN:
             print(f"[subscription] api base override enabled: {SUBSCRIPTION_API_BASE}")
         else:
             print("[subscription] api base = official")
@@ -2347,7 +2462,7 @@ if __name__ == "__main__":
             print("[security] 0.0.0.0 需要显式局域网模式，已回退到 127.0.0.1")
         if lan_mode:
             print("[security] 局域网模式已开启，请通过 AIC_ALLOWED_ORIGINS 配置可信 Origin")
-        print("AI Canvas 服务已启动")
+        print("幻映服务已启动")
         for url in _display_urls(bind_host, port):
             print(url)
         print("按 Ctrl+C 停止服务")

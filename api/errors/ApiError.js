@@ -1,1 +1,250 @@
-const a28_0x3475ea=a28_0x3fb0;(function(_0x1781af,_0xedf8cc){const _0x31807d=a28_0x3fb0,_0x382fb0=_0x1781af();while(!![]){try{const _0x5c6a76=-parseInt(_0x31807d(0x14a))/0x1+parseInt(_0x31807d(0x143))/0x2*(-parseInt(_0x31807d(0x140))/0x3)+parseInt(_0x31807d(0x165))/0x4*(-parseInt(_0x31807d(0x154))/0x5)+parseInt(_0x31807d(0x161))/0x6+-parseInt(_0x31807d(0x13f))/0x7*(parseInt(_0x31807d(0x128))/0x8)+parseInt(_0x31807d(0x136))/0x9*(parseInt(_0x31807d(0x164))/0xa)+parseInt(_0x31807d(0x139))/0xb*(parseInt(_0x31807d(0x120))/0xc);if(_0x5c6a76===_0xedf8cc)break;else _0x382fb0['push'](_0x382fb0['shift']());}catch(_0x417a34){_0x382fb0['push'](_0x382fb0['shift']());}}}(a28_0x110c,0xde6a5));function a28_0x110c(){const _0x98fb46=['taskFailed','6661112XUHcgp','INVALID_PARAMS','PPIO','AUTH_ERROR','账户余额不足，请充值','code','网络请求失败:\x20','TASK_FAILED','NETWORK_ERROR','生成任务执行失败','当前模型不可用，请更换模型或稍后再试','TASK_TIMEOUT','_isRetryable','INSUFFICIENT_BALANCE','5189031BaWWfz','raw','请求参数错误，请检查输入','341zXJTTt','发生未知错误，请稍后重试','RATE_LIMIT','未知原因','请求超时，请稍后重试','type','7qKhoeT','6achxYb','message','MODEL_UNAVAILABLE','1202634Nfbfce','SERVER_ERROR','权限不足，无法访问该资源','includes','N/A','insufficientBalance','RunningHUB','957102aRknpU','APIMart','rateLimit','timeout','生成任务失败:\x20','OpenAI','authError','请求超时（','UNKNOWN','CONTENT_FILTERED','5hQuxzv','），请检查网络连接或稍后重试','networkError','DNS_ERROR','captureStackTrace','服务器内部错误，请稍后再试','生成内容被安全过滤，请修改提示词后重试','):\x20','请求过于频繁，请稍后再试','API\x20Key\x20无效或已过期，请检查配置','任务处理超时，请稍后查询结果','未知网络错误','status','8917326uiOVUF','provider','name','30eJyUcE','3880816loxTHx','FORBIDDEN','\x20(错误码:\x20','641688XRmHqu','无法解析服务器地址，请检查网络配置','taskTimeout','ApiError','SERVICE_UNAVAILABLE','TIMEOUT','unknown'];a28_0x110c=function(){return _0x98fb46;};return a28_0x110c();}export const ErrorType={'NETWORK_ERROR':a28_0x3475ea(0x130),'TIMEOUT':a28_0x3475ea(0x125),'DNS_ERROR':a28_0x3475ea(0x157),'AUTH_ERROR':a28_0x3475ea(0x12b),'FORBIDDEN':a28_0x3475ea(0x166),'RATE_LIMIT':a28_0x3475ea(0x13b),'INSUFFICIENT_BALANCE':a28_0x3475ea(0x135),'INVALID_PARAMS':a28_0x3475ea(0x129),'CONTENT_FILTERED':a28_0x3475ea(0x153),'MODEL_UNAVAILABLE':a28_0x3475ea(0x142),'SERVER_ERROR':a28_0x3475ea(0x144),'SERVICE_UNAVAILABLE':a28_0x3475ea(0x124),'TASK_FAILED':'TASK_FAILED','TASK_TIMEOUT':a28_0x3475ea(0x133),'UNKNOWN':a28_0x3475ea(0x152)};const ERROR_MESSAGES={[ErrorType[a28_0x3475ea(0x130)]]:'网络连接失败，请检查网络或代理设置',[ErrorType[a28_0x3475ea(0x125)]]:a28_0x3475ea(0x13d),[ErrorType[a28_0x3475ea(0x157)]]:a28_0x3475ea(0x121),[ErrorType[a28_0x3475ea(0x12b)]]:a28_0x3475ea(0x15d),[ErrorType[a28_0x3475ea(0x166)]]:a28_0x3475ea(0x145),[ErrorType[a28_0x3475ea(0x13b)]]:a28_0x3475ea(0x15c),[ErrorType[a28_0x3475ea(0x135)]]:a28_0x3475ea(0x12c),[ErrorType[a28_0x3475ea(0x129)]]:a28_0x3475ea(0x138),[ErrorType[a28_0x3475ea(0x153)]]:'生成内容被安全过滤，请修改提示词',[ErrorType['MODEL_UNAVAILABLE']]:a28_0x3475ea(0x132),[ErrorType['SERVER_ERROR']]:a28_0x3475ea(0x159),[ErrorType[a28_0x3475ea(0x124)]]:'服务暂时不可用，请稍后再试',[ErrorType[a28_0x3475ea(0x12f)]]:a28_0x3475ea(0x131),[ErrorType[a28_0x3475ea(0x133)]]:'任务处理超时，请稍后查询结果',[ErrorType[a28_0x3475ea(0x152)]]:a28_0x3475ea(0x13a)};function a28_0x3fb0(_0x1aade9,_0x348b4a){_0x1aade9=_0x1aade9-0x11f;const _0x110c9b=a28_0x110c();let _0x3fb005=_0x110c9b[_0x1aade9];return _0x3fb005;}export class ApiError extends Error{constructor(_0x5f09ad){const _0x3ca051=a28_0x3475ea,{type:_0x4dad79,message:_0x49433d,provider:_0x128731,code:_0x1679e1,retryable:_0x5dcc23,raw:_0x3057d5,status:_0x5bb991}=_0x5f09ad;super(_0x49433d||ERROR_MESSAGES[_0x4dad79]||ERROR_MESSAGES[ErrorType['UNKNOWN']]),this[_0x3ca051(0x163)]=_0x3ca051(0x123),this[_0x3ca051(0x13e)]=_0x4dad79||ErrorType[_0x3ca051(0x152)],this[_0x3ca051(0x162)]=_0x128731||_0x3ca051(0x126),this[_0x3ca051(0x12d)]=_0x1679e1,this['retryable']=_0x5dcc23??this[_0x3ca051(0x134)](_0x4dad79),this[_0x3ca051(0x137)]=_0x3057d5,this[_0x3ca051(0x160)]=_0x5bb991,Error[_0x3ca051(0x158)]&&Error[_0x3ca051(0x158)](this,ApiError);}[a28_0x3475ea(0x134)](_0x59eb09){const _0x19c7c6=a28_0x3475ea,_0x5419fa=[ErrorType[_0x19c7c6(0x125)],ErrorType[_0x19c7c6(0x13b)],ErrorType[_0x19c7c6(0x144)],ErrorType['SERVICE_UNAVAILABLE'],ErrorType[_0x19c7c6(0x130)]];return _0x5419fa[_0x19c7c6(0x146)](_0x59eb09);}['getUserMessage'](_0x3246ed=!![]){const _0x26e6a6=a28_0x3475ea;let _0x1028ec=this['message'];if(_0x3246ed&&this[_0x26e6a6(0x162)]&&this[_0x26e6a6(0x162)]!==_0x26e6a6(0x126)){const _0x394a87={'grsai':'GRSAI','ppio':_0x26e6a6(0x12a),'apimart':_0x26e6a6(0x14b),'runninghub':_0x26e6a6(0x149),'gemini':'Gemini','openai':_0x26e6a6(0x14f)},_0x3b6bde=_0x394a87[this[_0x26e6a6(0x162)]]||this['provider'];_0x1028ec='['+_0x3b6bde+']\x20'+_0x1028ec;}return this[_0x26e6a6(0x12d)]&&(_0x1028ec+=_0x26e6a6(0x11f)+this[_0x26e6a6(0x12d)]+')'),_0x1028ec;}['toLogString'](){const _0x4080ae=a28_0x3475ea;return'['+this['provider']+']\x20'+this[_0x4080ae(0x13e)]+'('+(this[_0x4080ae(0x12d)]||_0x4080ae(0x147))+_0x4080ae(0x15b)+this['message'];}static[a28_0x3475ea(0x156)](_0x321039,_0x1ae701){const _0x2c2ffb=a28_0x3475ea;return new ApiError({'type':ErrorType['NETWORK_ERROR'],'provider':_0x321039,'message':_0x2c2ffb(0x12e)+(_0x1ae701?.[_0x2c2ffb(0x141)]||_0x2c2ffb(0x15f)),'raw':_0x1ae701,'retryable':!![]});}static[a28_0x3475ea(0x14d)](_0x255c29,_0x294ecf){const _0x3b5747=a28_0x3475ea;return new ApiError({'type':ErrorType['TIMEOUT'],'provider':_0x255c29,'message':_0x3b5747(0x151)+(_0x294ecf?Math['round'](_0x294ecf/0x3e8)+'秒':'未知')+_0x3b5747(0x155),'retryable':!![]});}static[a28_0x3475ea(0x148)](_0x3a0ae5,_0x383b82){const _0x58ad45=a28_0x3475ea;return new ApiError({'type':ErrorType[_0x58ad45(0x135)],'provider':_0x3a0ae5,'code':_0x383b82,'message':'账户余额不足，请充值或更换\x20API\x20Key','retryable':![]});}static[a28_0x3475ea(0x150)](_0x2b55d1,_0x498248,_0x56f083){return new ApiError({'type':ErrorType['AUTH_ERROR'],'provider':_0x2b55d1,'code':_0x498248,'message':_0x56f083||'API\x20Key\x20无效或已过期','retryable':![]});}static[a28_0x3475ea(0x14c)](_0xe9e4cf,_0xebd49b){const _0x3527f1=a28_0x3475ea;return new ApiError({'type':ErrorType[_0x3527f1(0x13b)],'provider':_0xe9e4cf,'code':_0xebd49b,'message':_0x3527f1(0x15c),'retryable':!![]});}static['contentFiltered'](_0x175274,_0x5c9355){const _0x4fe6b8=a28_0x3475ea;return new ApiError({'type':ErrorType[_0x4fe6b8(0x153)],'provider':_0x175274,'message':_0x5c9355||_0x4fe6b8(0x15a),'retryable':![]});}static[a28_0x3475ea(0x127)](_0x49db79,_0x2355fb){const _0x285793=a28_0x3475ea;return new ApiError({'type':ErrorType[_0x285793(0x12f)],'provider':_0x49db79,'message':_0x285793(0x14e)+(_0x2355fb||_0x285793(0x13c)),'retryable':![]});}static[a28_0x3475ea(0x122)](_0x5e5b97){const _0xc19fce=a28_0x3475ea;return new ApiError({'type':ErrorType[_0xc19fce(0x133)],'provider':_0x5e5b97,'message':_0xc19fce(0x15e),'retryable':![]});}static['fromHttpStatus'](_0x10bd07,_0x244c26,_0x1104c5){const _0x551297=a28_0x3475ea;let _0x54971d=ErrorType[_0x551297(0x152)];switch(_0x10bd07){case 0x190:_0x54971d=ErrorType[_0x551297(0x129)];break;case 0x191:_0x54971d=ErrorType[_0x551297(0x12b)];break;case 0x193:_0x54971d=ErrorType[_0x551297(0x166)];break;case 0x1ad:_0x54971d=ErrorType[_0x551297(0x13b)];break;case 0x1f4:_0x54971d=ErrorType[_0x551297(0x144)];break;case 0x1f7:_0x54971d=ErrorType[_0x551297(0x124)];break;}return new ApiError({'type':_0x54971d,'provider':_0x244c26,'status':_0x10bd07,'message':_0x1104c5||ERROR_MESSAGES[_0x54971d],'retryable':_0x10bd07>=0x1f4||_0x10bd07===0x1ad});}}export default ApiError;
+export const ErrorType = {
+  NETWORK_ERROR: "NETWORK_ERROR",
+  TIMEOUT: "TIMEOUT",
+  DNS_ERROR: "DNS_ERROR",
+  AUTH_ERROR: "AUTH_ERROR",
+  FORBIDDEN: "FORBIDDEN",
+  RATE_LIMIT: "RATE_LIMIT",
+  INSUFFICIENT_BALANCE: "INSUFFICIENT_BALANCE",
+  INVALID_PARAMS: "INVALID_PARAMS",
+  CONTENT_FILTERED: "CONTENT_FILTERED",
+  MODEL_UNAVAILABLE: "MODEL_UNAVAILABLE",
+  SERVER_ERROR: "SERVER_ERROR",
+  SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
+  TASK_FAILED: "TASK_FAILED",
+  TASK_TIMEOUT: "TASK_TIMEOUT",
+  SUBSCRIPTION_REQUIRED: "SUBSCRIPTION_REQUIRED",
+  UNKNOWN: "UNKNOWN",
+};
+
+const ERROR_MESSAGES = {
+  [ErrorType.NETWORK_ERROR]: "网络连接失败，请检查网络或代理设置",
+  [ErrorType.TIMEOUT]: "请求超时，请稍后重试",
+  [ErrorType.DNS_ERROR]: "无法解析服务器地址，请检查网络配置",
+  [ErrorType.AUTH_ERROR]: "API Key 无效或已过期，请检查配置",
+  [ErrorType.FORBIDDEN]: "权限不足，无法访问该资源",
+  [ErrorType.RATE_LIMIT]: "请求过于频繁，请稍后再试",
+  [ErrorType.INSUFFICIENT_BALANCE]: "账户余额不足，请充值",
+  [ErrorType.INVALID_PARAMS]: "请求参数错误，请检查输入",
+  [ErrorType.CONTENT_FILTERED]: "生成内容被安全过滤，请修改提示词",
+  [ErrorType.MODEL_UNAVAILABLE]: "当前模型不可用，请更换模型或稍后再试",
+  [ErrorType.SERVER_ERROR]: "服务器内部错误，请稍后再试",
+  [ErrorType.SERVICE_UNAVAILABLE]: "服务暂时不可用，请稍后再试",
+  [ErrorType.TASK_FAILED]: "生成任务执行失败",
+  [ErrorType.TASK_TIMEOUT]: "任务处理超时，请稍后查询结果",
+  [ErrorType.SUBSCRIPTION_REQUIRED]: "请先完成授权激活后再继续生成",
+  [ErrorType.UNKNOWN]: "发生未知错误，请稍后重试",
+};
+
+const PROVIDER_LABELS = {
+  grsai: "GRSAI",
+  ppio: "PPIO",
+  apimart: "APIMart",
+  runninghub: "RunningHUB",
+  runninghubwf: "RunningHUB",
+  gemini: "Gemini",
+  openai: "OpenAI",
+};
+
+export class ApiError extends Error {
+  constructor(options = {}) {
+    const {
+      type,
+      message,
+      provider,
+      code,
+      retryable,
+      raw,
+      status,
+      requiredModelId,
+      reasonCode,
+      contactText,
+      contactUrl,
+      subscriptionStatus,
+      activationSource,
+      generationScope,
+      nodeType,
+    } = options;
+    super(message || ERROR_MESSAGES[type] || ERROR_MESSAGES[ErrorType.UNKNOWN]);
+    this.name = "ApiError";
+    this.type = type || ErrorType.UNKNOWN;
+    this.provider = provider || "unknown";
+    this.code = code;
+    this.retryable = retryable ?? this._isRetryable(this.type);
+    this.raw = raw;
+    this.status = status;
+    this.requiredModelId = requiredModelId || "";
+    this.reasonCode = reasonCode || "";
+    this.contactText = contactText || "";
+    this.contactUrl = contactUrl || "";
+    this.subscriptionStatus = subscriptionStatus || "";
+    this.activationSource = activationSource || "";
+    this.generationScope = generationScope || "";
+    this.nodeType = nodeType || "";
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ApiError);
+    }
+  }
+
+  _isRetryable(type) {
+    return [
+      ErrorType.TIMEOUT,
+      ErrorType.RATE_LIMIT,
+      ErrorType.SERVER_ERROR,
+      ErrorType.SERVICE_UNAVAILABLE,
+      ErrorType.NETWORK_ERROR,
+    ].includes(type);
+  }
+
+  getUserMessage(includeProvider = true) {
+    let userMessage = this.message;
+    if (includeProvider && this.provider && this.provider !== "unknown") {
+      const label = PROVIDER_LABELS[this.provider] || this.provider;
+      userMessage = `[${label}] ${userMessage}`;
+    }
+    if (this.code) {
+      userMessage += ` (错误码: ${this.code})`;
+    }
+    return userMessage;
+  }
+
+  toLogString() {
+    return `[${this.provider}] ${this.type}(${this.code || "N/A"}): ${this.message}`;
+  }
+
+  static networkError(provider, error) {
+    return new ApiError({
+      type: ErrorType.NETWORK_ERROR,
+      provider,
+      message: `网络请求失败: ${error?.message || "未知网络错误"}`,
+      raw: error,
+      retryable: true,
+    });
+  }
+
+  static timeout(provider, timeoutMs) {
+    const timeoutLabel = timeoutMs ? `${Math.round(timeoutMs / 1000)}秒` : "未知";
+    return new ApiError({
+      type: ErrorType.TIMEOUT,
+      provider,
+      message: `请求超时（${timeoutLabel}），请检查网络连接或稍后重试`,
+      retryable: true,
+    });
+  }
+
+  static insufficientBalance(provider, code) {
+    return new ApiError({
+      type: ErrorType.INSUFFICIENT_BALANCE,
+      provider,
+      code,
+      message: "账户余额不足，请充值或更换 API Key",
+      retryable: false,
+    });
+  }
+
+  static authError(provider, code, message) {
+    return new ApiError({
+      type: ErrorType.AUTH_ERROR,
+      provider,
+      code,
+      message: message || "API Key 无效或已过期",
+      retryable: false,
+    });
+  }
+
+  static rateLimit(provider, code) {
+    return new ApiError({
+      type: ErrorType.RATE_LIMIT,
+      provider,
+      code,
+      message: "请求过于频繁，请稍后再试",
+      retryable: true,
+    });
+  }
+
+  static contentFiltered(provider, message) {
+    return new ApiError({
+      type: ErrorType.CONTENT_FILTERED,
+      provider,
+      message: message || "生成内容被安全过滤，请修改提示词后重试",
+      retryable: false,
+    });
+  }
+
+  static taskFailed(provider, message) {
+    return new ApiError({
+      type: ErrorType.TASK_FAILED,
+      provider,
+      message: `生成任务失败: ${message || "未知原因"}`,
+      retryable: false,
+    });
+  }
+
+  static taskTimeout(provider) {
+    return new ApiError({
+      type: ErrorType.TASK_TIMEOUT,
+      provider,
+      message: "任务处理超时，请稍后查询结果",
+      retryable: false,
+    });
+  }
+
+  // This error represents unified generation access denial, not a legacy VIP-model-only failure.
+  static subscriptionRequired(provider, payload = {}, status = 200) {
+    const data = payload && typeof payload === "object" ? payload : {};
+    const resolvedProvider = String(data.provider || "").trim() || String(provider || "").trim();
+    return new ApiError({
+      type: ErrorType.SUBSCRIPTION_REQUIRED,
+      provider: resolvedProvider,
+      code: String(data.code || data.errorCode || "SUBSCRIPTION_REQUIRED"),
+      message: String(data.message || ERROR_MESSAGES[ErrorType.SUBSCRIPTION_REQUIRED]),
+      status,
+      raw: payload,
+      retryable: false,
+      requiredModelId: String(data.requiredModelId || ""),
+      reasonCode: String(data.reasonCode || ""),
+      contactText: String(data.contactText || data.contact_text || ""),
+      contactUrl: String(data.contactUrl || data.contact_url || ""),
+      subscriptionStatus: String(data.subscriptionStatus || data.status || ""),
+      activationSource: String(data.activationSource || data.activation_source || ""),
+      generationScope: String(data.generationScope || data.generation_scope || ""),
+      nodeType: String(data.nodeType || data.node_type || ""),
+    });
+  }
+
+  static fromHttpStatus(status, provider, message) {
+    let type = ErrorType.UNKNOWN;
+    switch (status) {
+      case 400:
+        type = ErrorType.INVALID_PARAMS;
+        break;
+      case 401:
+        type = ErrorType.AUTH_ERROR;
+        break;
+      case 403:
+        type = ErrorType.FORBIDDEN;
+        break;
+      case 429:
+        type = ErrorType.RATE_LIMIT;
+        break;
+      case 500:
+        type = ErrorType.SERVER_ERROR;
+        break;
+      case 503:
+        type = ErrorType.SERVICE_UNAVAILABLE;
+        break;
+      default:
+        type = ErrorType.UNKNOWN;
+        break;
+    }
+    return new ApiError({
+      type,
+      provider,
+      status,
+      message: message || ERROR_MESSAGES[type],
+      retryable: status >= 500 || status === 429,
+    });
+  }
+}
+
+export default ApiError;

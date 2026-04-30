@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>幻映 · 预设管理器</title>
+    <link rel="stylesheet" href="./preset-manager.css" />
+  </head>
+  <body>
+    <div class="preset-shell">
+      <header class="hero">
+        <div>
+          <p class="hero-eyebrow">Developer Tool</p>
+          <h1>外部 Web 预设管理器</h1>
+          <p class="hero-copy">
+            这里会同步展示系统预设树和自定义 TXT 预设。系统预设支持原始两层
+            <code>subItems</code>
+            结构，自定义预设仍然沿用
+            <code>user/prompt/&lt;nodeType&gt;/*.txt</code>
+            的原流程。
+          </p>
+        </div>
+        <div class="hero-badge">
+          <span>系统预设树</span>
+          <strong>config/prompt-presets.json</strong>
+          <span>自定义 TXT 目录</span>
+          <strong id="preset-root-hint">user/prompt/ai-image</strong>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <label class="toolbar-field">
+          <span>节点类型</span>
+          <select id="node-type-select"></select>
+        </label>
+        <div class="toolbar-actions">
+          <button id="refresh-button" class="ghost-button" type="button">重新读取</button>
+          <button id="new-system-button" class="ghost-button" type="button">新建系统叶子</button>
+          <button id="new-custom-button" class="primary-button" type="button">新建 TXT 预设</button>
+        </div>
+      </div>
+
+      <div class="workspace">
+        <aside class="preset-list-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-eyebrow">Preset Sources</p>
+              <h2>当前预设</h2>
+            </div>
+            <span id="preset-count" class="count-pill">系统 0 · 自定义 0</span>
+          </div>
+          <div id="preset-list" class="preset-list"></div>
+        </aside>
+
+        <main class="editor-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-eyebrow">Editor</p>
+              <h2 id="editor-title">系统预设</h2>
+              <p id="editor-meta" class="editor-meta">选择左侧预设或新建一个条目。</p>
+            </div>
+            <div class="editor-heading-actions">
+              <span id="source-chip" class="source-chip">系统预设</span>
+              <span id="status-chip" class="status-chip">已同步</span>
+            </div>
+          </div>
+
+          <label class="editor-field">
+            <span>预设标题</span>
+            <input id="preset-title-input" type="text" placeholder="例如：多宫格 / 电影海报" />
+          </label>
+
+          <div id="system-fields" class="system-fields">
+            <label class="editor-field">
+              <span>图标或 SVG</span>
+              <input
+                id="preset-icon-input"
+                type="text"
+                placeholder="可以填 emoji，也可以填内联 SVG 字符串"
+              />
+            </label>
+
+            <label class="editor-field">
+              <span>描述</span>
+              <input
+                id="preset-desc-input"
+                type="text"
+                placeholder="例如：一键生成剧情连续的多宫格图片"
+              />
+            </label>
+          </div>
+
+          <label id="template-field" class="editor-field editor-field-large">
+            <span>提示词模板</span>
+            <textarea
+              id="preset-template-input"
+              placeholder="叶子预设或自定义 TXT 预设需要填写完整提示词模板"
+            ></textarea>
+          </label>
+
+          <div class="editor-footnote">
+            <span id="file-hint">会写入：config/prompt-presets.json</span>
+            <span id="secondary-hint">系统分组会保留原始两层 subItems 结构。</span>
+          </div>
+
+          <div class="editor-actions">
+            <button id="new-subitem-button" class="ghost-button" type="button" disabled>
+              为当前分组新增子预设
+            </button>
+            <button id="delete-button" class="danger-button" type="button" disabled>删除</button>
+            <button id="save-button" class="primary-button" type="button">保存并同步</button>
+          </div>
+        </main>
+      </div>
+
+      <div id="page-message" class="page-message" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="./preset-manager.js"></script>
+  </body>
+</html>

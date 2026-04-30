@@ -1,1 +1,503 @@
-const a198_0x559d15=a198_0x43fa;(function(_0x3b76a5,_0x2b8b9e){const _0x25f281=a198_0x43fa,_0xd62838=_0x3b76a5();while(!![]){try{const _0x122e0a=parseInt(_0x25f281(0x20d))/0x1+-parseInt(_0x25f281(0x207))/0x2+parseInt(_0x25f281(0x200))/0x3+parseInt(_0x25f281(0x1d3))/0x4*(parseInt(_0x25f281(0x1f3))/0x5)+parseInt(_0x25f281(0x1ee))/0x6+-parseInt(_0x25f281(0x1f5))/0x7+-parseInt(_0x25f281(0x1fe))/0x8;if(_0x122e0a===_0x2b8b9e)break;else _0xd62838['push'](_0xd62838['shift']());}catch(_0x13d186){_0xd62838['push'](_0xd62838['shift']());}}}(a198_0x1f14,0x7a21d));function a198_0x43fa(_0x32f7d7,_0x2e670a){_0x32f7d7=_0x32f7d7-0x1cf;const _0x1f149d=a198_0x1f14();let _0x43fae0=_0x1f149d[_0x32f7d7];return _0x43fae0;}import{fetchUserSettingsFromServer,saveUserSettingsToServer,fetchSubscriptionStatus,activateCdkey}from'../api/index.js';export const V54_VIP_MODEL_ID=a198_0x559d15(0x215);export const DREAMINA_VIDEO_VIP_MODEL_ID=a198_0x559d15(0x1dd);export const VIDEO_VIP_MODEL_IDS=['runninghub/2041741496667348994',a198_0x559d15(0x1dd)];const SUBSCRIPTION_CONTACT_TEXT_FALLBACK=a198_0x559d15(0x1e3),VIDEO_VIP_MODEL_ID_SET=new Set(VIDEO_VIP_MODEL_IDS),VIP_MODEL_KEY_ALIASES={'runninghub/2041741496667348994':[a198_0x559d15(0x1e9),'video_edit.pro'],'dreamina/video_vip':[a198_0x559d15(0x213),a198_0x559d15(0x205),'dreamina/video_vip']},VIP_MODEL_DISPLAY_NAMES={'runninghub/2041741496667348994':a198_0x559d15(0x1fa),'dreamina/video_vip':a198_0x559d15(0x1de)},INSTALL_ID_KEY=a198_0x559d15(0x1fc),V54_LOCAL_UNLOCK_KEY='aic-v54-vip-unlocked';let _fetchSubscriptionStatusImpl=fetchSubscriptionStatus,_activateCdkeyImpl=activateCdkey;export function createDefaultSubscriptionState(){const _0x4ee8f9=a198_0x559d15;return{'loading':![],'status':_0x4ee8f9(0x201),'expiresAt':null,'entitledModelKeys':[],'entitledModelIds':[],'error':null,'lastSyncAt':0x0,'contactText':SUBSCRIPTION_CONTACT_TEXT_FALLBACK,'contactUrl':''};}function _normalizeStatus(_0x77c2ae){const _0x212fcd=a198_0x559d15,_0x2e2b75=String(_0x77c2ae||'')[_0x212fcd(0x1d4)]()[_0x212fcd(0x1ec)]();if(_0x2e2b75===_0x212fcd(0x1f4))return'active';if(_0x2e2b75===_0x212fcd(0x1ef))return _0x212fcd(0x1ef);return _0x212fcd(0x201);}export function isActivationRequestAccepted(_0x45ad94){const _0x49fd3c=a198_0x559d15,_0x39bc07=_0x45ad94&&typeof _0x45ad94==='object'?_0x45ad94:{};return _0x39bc07?.[_0x49fd3c(0x1da)]===!![]||Number(_0x39bc07?.[_0x49fd3c(0x1eb)])===0x0||String(_0x39bc07?.[_0x49fd3c(0x1f7)]||'')[_0x49fd3c(0x1d4)]()[_0x49fd3c(0x1ec)]()===_0x49fd3c(0x1f4);}export function isActivationConfirmed(_0x55598b,_0x10f69d){return isActivationRequestAccepted(_0x55598b)&&isSubscriptionActive(_0x10f69d||{});}function _toExpirySeconds(_0x21de28){const _0x4f0b10=a198_0x559d15;if(_0x21de28==null||_0x21de28==='')return null;const _0x19696d=Number(_0x21de28);if(Number[_0x4f0b10(0x1f8)](_0x19696d)&&_0x19696d>0x0)return _0x19696d>0x174876e800?Math[_0x4f0b10(0x208)](_0x19696d/0x3e8):Math['floor'](_0x19696d);const _0x1b0341=Date[_0x4f0b10(0x1f9)](String(_0x21de28));if(!Number[_0x4f0b10(0x1f8)](_0x1b0341)||_0x1b0341<=0x0)return null;return Math['floor'](_0x1b0341/0x3e8);}export function extractSubscriptionExpiresAt(_0x3fce65){const _0xfce190=a198_0x559d15,_0x254707=_0x3fce65&&typeof _0x3fce65===_0xfce190(0x1e1)?_0x3fce65:{},_0x305908=_0x254707[_0xfce190(0x20f)]&&typeof _0x254707[_0xfce190(0x20f)]===_0xfce190(0x1e1)?_0x254707[_0xfce190(0x20f)]:_0x254707,_0x133b8c=_0x305908?.['expiresAt']??_0x305908?.[_0xfce190(0x1d8)]??_0x305908?.[_0xfce190(0x1f0)]??_0x305908?.[_0xfce190(0x203)]??_0x305908?.[_0xfce190(0x1f1)]??_0x305908?.[_0xfce190(0x206)]??_0x305908?.[_0xfce190(0x1db)]??_0x305908?.['expiredAt']??_0x305908?.[_0xfce190(0x1e7)]??_0x305908?.[_0xfce190(0x216)]??_0x305908?.[_0xfce190(0x1e4)]??_0x305908?.[_0xfce190(0x20c)]??_0x305908?.[_0xfce190(0x1cf)]??_0x305908?.[_0xfce190(0x20e)]??_0x305908?.['deadline_at']??_0x305908?.[_0xfce190(0x1d0)]??null;return _toExpirySeconds(_0x133b8c);}export function isSubscriptionActive(_0x4dc465){const _0x2e4c88=a198_0x559d15;return _normalizeStatus(_0x4dc465?.[_0x2e4c88(0x1f7)])===_0x2e4c88(0x1f4);}export function resolveVipGateModelId(_0x3d5830,_0x5279af=''){const _0x44c8d7=a198_0x559d15,_0x8c838f=String(_0x3d5830||'')[_0x44c8d7(0x1d4)](),_0x5c179b=String(_0x5279af||'')[_0x44c8d7(0x1d4)]()[_0x44c8d7(0x1ec)]();if(_0x5c179b==='dreamina'||_0x8c838f[_0x44c8d7(0x1e8)]('dreamina/'))return DREAMINA_VIDEO_VIP_MODEL_ID;return _0x8c838f;}export function getVipModelDisplayName(_0x4fad1a,_0x522249=''){const _0x1311ea=a198_0x559d15,_0x557b8f=resolveVipGateModelId(_0x4fad1a,_0x522249);return VIP_MODEL_DISPLAY_NAMES[_0x557b8f]||_0x557b8f||_0x1311ea(0x202);}function a198_0x1f14(){const _0x3c7514=['dreamina_video_vip','filter','runninghub/2041741496667348994','endAt','valid_until','deadline','localStorage','installId','4jGKtsF','trim','state','isArray','removeItem','expires_at','has','success','expiry','length','dreamina/video_vip','即梦视频','modelIds','function','object','entitledModelKeys','联系管理员获取授权码','end_at','subscriptionStatus','contact_text','expired_at','startsWith','video_edit_v54','contactText','code','toLowerCase','entitledModelIds','4847370oPnvZB','expired','expireAt','expiryAt','random','1034260okkPIx','active','1352547PlQODf','setItem','status','isFinite','parse','视频编辑V5.4','toString','aic-install-id','entitled_model_ids','4403264ABSczh','getItem','482415ZOwdap','none','该模型','expire_at','__aicInstallId','dreamina.video_vip','expiry_at','103962icuHee','floor','includes','contact_url','map','validUntil','120311hUCeRD','deadlineAt','data','modelKeys','aic-','now'];a198_0x1f14=function(){return _0x3c7514;};return a198_0x1f14();}export function isVipModel(_0x50f7d9,_0x4626cf=''){const _0x102d72=a198_0x559d15,_0x439c96=resolveVipGateModelId(_0x50f7d9,_0x4626cf);return VIDEO_VIP_MODEL_ID_SET[_0x102d72(0x1d9)](_0x439c96);}export function setLocalVipUnlocked(_0x131c6f){const _0x525e26=a198_0x559d15;try{_0x131c6f?globalThis[_0x525e26(0x1d1)]?.[_0x525e26(0x1f6)](V54_LOCAL_UNLOCK_KEY,'1'):globalThis[_0x525e26(0x1d1)]?.[_0x525e26(0x1d7)](V54_LOCAL_UNLOCK_KEY);}catch{}}export function isModelAllowed(_0x33b6b9,_0x294a09,_0x423420=''){const _0x2d6cb3=a198_0x559d15,_0x626dc3=String(_0x33b6b9||'')[_0x2d6cb3(0x1d4)](),_0x1406b8=resolveVipGateModelId(_0x626dc3,_0x423420);if(!isVipModel(_0x1406b8))return!![];if(!isSubscriptionActive(_0x294a09||{}))return![];const _0x47c29d=_0x294a09&&typeof _0x294a09==='object'?_0x294a09:{},_0x455ee4=Array[_0x2d6cb3(0x1d6)](_0x47c29d['entitledModelIds'])?_0x47c29d[_0x2d6cb3(0x1ed)][_0x2d6cb3(0x20b)](_0x1967dc=>String(_0x1967dc||'')[_0x2d6cb3(0x1d4)]())[_0x2d6cb3(0x214)](Boolean):[];if(_0x455ee4[_0x2d6cb3(0x1dc)]>0x0)return _0x455ee4[_0x2d6cb3(0x209)](_0x1406b8);const _0x365d03=Array['isArray'](_0x47c29d[_0x2d6cb3(0x1e2)])?_0x47c29d['entitledModelKeys'][_0x2d6cb3(0x20b)](_0x346bc1=>String(_0x346bc1||'')[_0x2d6cb3(0x1d4)]()['toLowerCase']())[_0x2d6cb3(0x214)](Boolean):[];if(_0x365d03['length']>0x0){const _0x2c66f3=VIP_MODEL_KEY_ALIASES[_0x1406b8]||[];if(_0x2c66f3['length']===0x0)return![];return _0x2c66f3['some'](_0x589a94=>_0x365d03[_0x2d6cb3(0x209)](String(_0x589a94)['toLowerCase']()));}return!![];}function _generateInstallId(){const _0x4428e4=a198_0x559d15,_0x2a8506=Date[_0x4428e4(0x212)]()+'-'+Math[_0x4428e4(0x1f2)]();let _0x541d82=0x0;for(let _0x382cd1=0x0;_0x382cd1<_0x2a8506['length'];_0x382cd1+=0x1){_0x541d82=_0x541d82*0x1f+_0x2a8506['charCodeAt'](_0x382cd1)>>>0x0;}return _0x4428e4(0x211)+Date[_0x4428e4(0x212)]()['toString'](0x24)+'-'+_0x541d82[_0x4428e4(0x1fb)](0x24);}export async function ensureInstallId(){const _0x5a9f2d=a198_0x559d15;try{const _0x503486=String(localStorage[_0x5a9f2d(0x1ff)](INSTALL_ID_KEY)||'')['trim']();if(_0x503486)return window[_0x5a9f2d(0x204)]=_0x503486,_0x503486;}catch{}let _0x22122a={};try{_0x22122a=await fetchUserSettingsFromServer()||{};}catch{_0x22122a={};}const _0x3970ae=String(_0x22122a[_0x5a9f2d(0x1d2)]||'')['trim']();if(_0x3970ae){try{localStorage[_0x5a9f2d(0x1f6)](INSTALL_ID_KEY,_0x3970ae);}catch{}return window[_0x5a9f2d(0x204)]=_0x3970ae,_0x3970ae;}const _0x31056b=_generateInstallId();try{localStorage['setItem'](INSTALL_ID_KEY,_0x31056b);}catch{}try{await saveUserSettingsToServer({..._0x22122a,'installId':_0x31056b});}catch{}return window['__aicInstallId']=_0x31056b,_0x31056b;}export function normalizeSubscriptionPayload(_0x155f48){const _0x21eefb=a198_0x559d15,_0x5b624b=createDefaultSubscriptionState(),_0x2e8c4c=_0x155f48&&typeof _0x155f48==='object'?_0x155f48:{},_0x32717a=_0x2e8c4c[_0x21eefb(0x20f)]&&typeof _0x2e8c4c['data']===_0x21eefb(0x1e1)?_0x2e8c4c[_0x21eefb(0x20f)]:_0x2e8c4c,_0x46ce3d=String(_0x32717a?.[_0x21eefb(0x1f7)]||_0x32717a?.[_0x21eefb(0x1e5)]||_0x32717a?.[_0x21eefb(0x1d5)]||'')['trim']()[_0x21eefb(0x1ec)](),_0x4d5c21=_normalizeStatus(_0x46ce3d),_0x3a122c=extractSubscriptionExpiresAt(_0x32717a),_0x37fcea=Array['isArray'](_0x32717a?.[_0x21eefb(0x1ed)])?_0x32717a[_0x21eefb(0x1ed)]:Array['isArray'](_0x32717a?.[_0x21eefb(0x1fd)])?_0x32717a[_0x21eefb(0x1fd)]:Array[_0x21eefb(0x1d6)](_0x32717a?.[_0x21eefb(0x1df)])?_0x32717a['modelIds']:[],_0x26e584=_0x37fcea[_0x21eefb(0x20b)](_0x1634ff=>String(_0x1634ff||'')[_0x21eefb(0x1d4)]())['filter'](Boolean),_0x996a3=Array['isArray'](_0x32717a?.['entitledModelKeys'])?_0x32717a[_0x21eefb(0x1e2)]:Array[_0x21eefb(0x1d6)](_0x32717a?.['entitled_model_keys'])?_0x32717a['entitled_model_keys']:Array[_0x21eefb(0x1d6)](_0x32717a?.[_0x21eefb(0x210)])?_0x32717a['modelKeys']:[],_0x3c4c9f=_0x996a3[_0x21eefb(0x20b)](_0x371598=>String(_0x371598||'')['trim']())[_0x21eefb(0x214)](Boolean),_0x5e0165=_0x32717a?.[_0x21eefb(0x1ea)]??_0x32717a?.[_0x21eefb(0x1e6)]??_0x5b624b[_0x21eefb(0x1ea)],_0x3348b4=_0x32717a?.['contactUrl']??_0x32717a?.[_0x21eefb(0x20a)]??'';return{..._0x5b624b,'status':_0x4d5c21,'expiresAt':_0x3a122c,'entitledModelKeys':_0x3c4c9f,'entitledModelIds':_0x26e584,'contactText':String(_0x5e0165||_0x5b624b[_0x21eefb(0x1ea)]),'contactUrl':String(_0x3348b4||'')};}export async function pullSubscriptionState(_0x1efb1a){const _0x30e048=await _fetchSubscriptionStatusImpl(_0x1efb1a),_0x2215c5=normalizeSubscriptionPayload(_0x30e048||{});return setLocalVipUnlocked(isSubscriptionActive(_0x2215c5)),_0x2215c5;}export async function submitCdkey(_0x3da2d5,_0x380477){const _0x3e5baf=a198_0x559d15,_0x2a570e=await _activateCdkeyImpl({'installId':_0x3da2d5,'cdkey':_0x380477});return _0x2a570e&&typeof _0x2a570e===_0x3e5baf(0x1e1)?_0x2a570e:{};}export function __setSubscriptionApiForTest({fetchSubscriptionStatusImpl:_0x2c4fa4,activateCdkeyImpl:_0x3649f8}={}){const _0x44e541=a198_0x559d15;_fetchSubscriptionStatusImpl=typeof _0x2c4fa4===_0x44e541(0x1e0)?_0x2c4fa4:fetchSubscriptionStatus,_activateCdkeyImpl=typeof _0x3649f8==='function'?_0x3649f8:activateCdkey;}
+import {
+  fetchUserSettingsFromServer,
+  saveUserSettingsToServer,
+  fetchSubscriptionStatus,
+  activateCdkey,
+} from "../api/index.js";
+
+export const V54_VIP_MODEL_ID = "runninghub/2041741496667348994";
+export const DREAMINA_VIDEO_VIP_MODEL_ID = "dreamina/video_vip";
+export const VIDEO_VIP_MODEL_IDS = [
+  V54_VIP_MODEL_ID,
+  DREAMINA_VIDEO_VIP_MODEL_ID,
+];
+
+const SUBSCRIPTION_CONTACT_TEXT_FALLBACK = "联系管理员获取授权码";
+const GENERATION_SCOPE_BLOCKED_VALUES = new Set(["none", "disabled", "inactive", "forbidden"]);
+const VIDEO_VIP_MODEL_ID_SET = new Set(VIDEO_VIP_MODEL_IDS);
+const VIP_MODEL_KEY_ALIASES = {
+  [V54_VIP_MODEL_ID]: ["video_edit_v54", "video_edit.pro"],
+  [DREAMINA_VIDEO_VIP_MODEL_ID]: [
+    "dreamina_video_vip",
+    "dreamina.video_vip",
+    DREAMINA_VIDEO_VIP_MODEL_ID,
+  ],
+};
+const VIP_MODEL_DISPLAY_NAMES = {
+  [V54_VIP_MODEL_ID]: "视频编辑V5.4",
+  [DREAMINA_VIDEO_VIP_MODEL_ID]: "即梦视频",
+};
+const NODE_TYPE_DISPLAY_NAMES = {
+  text: "文本生成",
+  image: "图像生成",
+  video: "视频生成",
+  audio: "音频生成",
+};
+const INSTALL_ID_KEY = "aic-install-id";
+const V54_LOCAL_UNLOCK_KEY = "aic-v54-vip-unlocked";
+
+let fetchSubscriptionStatusImpl = fetchSubscriptionStatus;
+let activateCdkeyImpl = activateCdkey;
+
+function normalizeStatus(value) {
+  const status = String(value || "").trim().toLowerCase();
+  if (status === "active") {
+    return "active";
+  }
+  if (status === "expired") {
+    return "expired";
+  }
+  return "none";
+}
+
+function toExpirySeconds(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric > 10 ** 11 ? Math.floor(numeric / 1000) : Math.floor(numeric);
+  }
+  const timestamp = Date.parse(String(value));
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return null;
+  }
+  return Math.floor(timestamp / 1000);
+}
+
+function getPayloadRoot(payload) {
+  if (payload && typeof payload === "object" && payload.data && typeof payload.data === "object") {
+    return payload.data;
+  }
+  return payload && typeof payload === "object" ? payload : {};
+}
+
+function readFirstValue(payload, keys, defaultValue = undefined) {
+  const source = getPayloadRoot(payload);
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null) {
+      return source[key];
+    }
+  }
+  return defaultValue;
+}
+
+function readStringList(payload, keys) {
+  const raw = readFirstValue(payload, keys, []);
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .filter((item, index, list) => list.indexOf(item) === index);
+}
+
+function normalizeProviderValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizeNodeTypeValue(value) {
+  const normalized = normalizeProviderValue(value);
+  if (!normalized) {
+    return "";
+  }
+  if (normalized.startsWith("ai-")) {
+    return normalized.slice(3);
+  }
+  if (normalized === "test-video") {
+    return "video";
+  }
+  return normalized;
+}
+
+function hasGenerationAccessMetadata(subscriptionState) {
+  const source = subscriptionState && typeof subscriptionState === "object" ? subscriptionState : {};
+  return Boolean(
+    String(source.activationSource || "").trim() ||
+      String(source.generationScope || "").trim() ||
+      (Array.isArray(source.entitledNodeTypes) && source.entitledNodeTypes.length > 0) ||
+      (Array.isArray(source.entitledProviders) && source.entitledProviders.length > 0),
+  );
+}
+
+function normalizeLegacyEntitledModelIds(subscriptionState) {
+  return Array.isArray(subscriptionState?.entitledModelIds)
+    ? subscriptionState.entitledModelIds.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+}
+
+function normalizeLegacyEntitledModelKeys(subscriptionState) {
+  return Array.isArray(subscriptionState?.entitledModelKeys)
+    ? subscriptionState.entitledModelKeys
+        .map((item) => String(item || "").trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+}
+
+function normalizeGenerationScopeValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isGenerationScopeAllowed(generationScope) {
+  const normalizedScope = normalizeGenerationScopeValue(generationScope);
+  if (!normalizedScope) {
+    return true;
+  }
+  return !GENERATION_SCOPE_BLOCKED_VALUES.has(normalizedScope);
+}
+
+function isValueAllowedByRestriction(rawAllowedValues, candidateValue, normalizeValue) {
+  const allowedValues = Array.isArray(rawAllowedValues)
+    ? rawAllowedValues
+        .map((item) => normalizeValue(item))
+        .filter(Boolean)
+        .filter((item, index, list) => list.indexOf(item) === index)
+    : [];
+  if (allowedValues.length === 0) {
+    return true;
+  }
+  const normalizedCandidate = normalizeValue(candidateValue);
+  if (!normalizedCandidate) {
+    return false;
+  }
+  return allowedValues.includes(normalizedCandidate);
+}
+
+function inferLegacyNodeType(modelId, provider = "") {
+  if (isVipModel(modelId, provider)) {
+    return "video";
+  }
+  const normalizedModelId = String(modelId || "").trim().toLowerCase();
+  if (normalizedModelId.includes("text")) {
+    return "text";
+  }
+  if (normalizedModelId.includes("audio")) {
+    return "audio";
+  }
+  if (
+    normalizedModelId.includes("video") ||
+    normalizedModelId.includes("seedance") ||
+    normalizedModelId.includes("frames2video") ||
+    normalizedModelId.includes("multiframe2video") ||
+    normalizedModelId.includes("multimodal2video")
+  ) {
+    return "video";
+  }
+  if (normalizedModelId.includes("image")) {
+    return "image";
+  }
+  return "";
+}
+
+function generateInstallId() {
+  const seed = `${Date.now()}-${Math.random()}`;
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = ((hash * 31) + seed.charCodeAt(index)) >>> 0;
+  }
+  return `aic-${Date.now().toString(36)}-${hash.toString(36)}`;
+}
+
+export function createDefaultSubscriptionState() {
+  return {
+    loading: false,
+    status: "none",
+    expiresAt: null,
+    activationSource: "",
+    generationScope: "",
+    entitledModelKeys: [],
+    entitledModelIds: [],
+    entitledNodeTypes: [],
+    entitledProviders: [],
+    error: null,
+    lastSyncAt: 0,
+    contactText: SUBSCRIPTION_CONTACT_TEXT_FALLBACK,
+    contactUrl: "",
+  };
+}
+
+export function isActivationRequestAccepted(payload) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  return (
+    source?.success === true ||
+    Number(source?.code) === 0 ||
+    String(source?.status || "").trim().toLowerCase() === "active"
+  );
+}
+
+export function isActivationConfirmed(activationPayload, subscriptionState) {
+  return isActivationRequestAccepted(activationPayload) && isSubscriptionActive(subscriptionState || {});
+}
+
+export function extractSubscriptionExpiresAt(payload) {
+  const value = readFirstValue(
+    payload,
+    [
+      "expiresAt",
+      "expires_at",
+      "expireAt",
+      "expire_at",
+      "expiryAt",
+      "expiry_at",
+      "expiry",
+      "expiredAt",
+      "expired_at",
+      "validUntil",
+      "valid_until",
+      "deadlineAt",
+      "deadline",
+      "end_at",
+      "endAt",
+      "deadline_at",
+      "end_at",
+    ],
+    null,
+  );
+  return toExpirySeconds(value);
+}
+
+export function isSubscriptionActive(subscriptionState) {
+  return normalizeStatus(subscriptionState?.status) === "active";
+}
+
+export function canAccessGeneration(
+  subscriptionState,
+  { provider = "", nodeType = "", requireCdkeySource = false } = {},
+) {
+  const source = subscriptionState && typeof subscriptionState === "object" ? subscriptionState : {};
+  if (!isSubscriptionActive(source)) {
+    return false;
+  }
+  if (!isGenerationScopeAllowed(source.generationScope)) {
+    return false;
+  }
+
+  const activationSource = normalizeProviderValue(source.activationSource);
+  if (requireCdkeySource && activationSource !== "cdkey") {
+    return false;
+  }
+
+  if (
+    !isValueAllowedByRestriction(
+      source.entitledNodeTypes,
+      nodeType,
+      normalizeNodeTypeValue,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !isValueAllowedByRestriction(
+      source.entitledProviders,
+      provider,
+      normalizeProviderValue,
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function resolveVipGateModelId(modelId, provider = "") {
+  const normalizedModelId = String(modelId || "").trim();
+  const normalizedProvider = String(provider || "").trim().toLowerCase();
+  if (
+    normalizedProvider === "dreamina" ||
+    normalizedModelId.startsWith("dreamina/")
+  ) {
+    return DREAMINA_VIDEO_VIP_MODEL_ID;
+  }
+  return normalizedModelId;
+}
+
+export function getVipModelDisplayName(modelId, provider = "") {
+  const resolvedModelId = resolveVipGateModelId(modelId, provider);
+  return VIP_MODEL_DISPLAY_NAMES[resolvedModelId] || resolvedModelId || "该模型";
+}
+
+export function isVipModel(modelId, provider = "") {
+  return VIDEO_VIP_MODEL_ID_SET.has(resolveVipGateModelId(modelId, provider));
+}
+
+export function getGenerationAccessDisplayName({ modelId = "", provider = "", nodeType = "" } = {}) {
+  const normalizedNodeType = normalizeNodeTypeValue(nodeType);
+  if (NODE_TYPE_DISPLAY_NAMES[normalizedNodeType]) {
+    return NODE_TYPE_DISPLAY_NAMES[normalizedNodeType];
+  }
+  if (isVipModel(modelId, provider)) {
+    return getVipModelDisplayName(modelId, provider);
+  }
+  const normalizedProvider = normalizeProviderValue(provider);
+  if (normalizedProvider === "dreamina") {
+    return "即梦生成";
+  }
+  if (normalizedProvider === "runninghubwf") {
+    return "RunningHub 工作流生成";
+  }
+  return "生成权限";
+}
+
+export function setLocalVipUnlocked(unlocked) {
+  try {
+    if (unlocked) {
+      globalThis.localStorage?.setItem(V54_LOCAL_UNLOCK_KEY, "1");
+    } else {
+      globalThis.localStorage?.removeItem(V54_LOCAL_UNLOCK_KEY);
+    }
+  } catch {
+    // Ignore local storage failures.
+  }
+}
+
+export function isModelAllowed(modelId, subscriptionState, provider = "") {
+  const source = subscriptionState && typeof subscriptionState === "object" ? subscriptionState : {};
+  if (hasGenerationAccessMetadata(source) || !isVipModel(modelId, provider)) {
+    return canAccessGeneration(source, {
+      provider,
+      nodeType: inferLegacyNodeType(modelId, provider),
+    });
+  }
+
+  const resolvedModelId = resolveVipGateModelId(modelId, provider);
+  if (!isVipModel(resolvedModelId)) {
+    return true;
+  }
+  if (!isSubscriptionActive(source)) {
+    return false;
+  }
+
+  const entitledModelIds = normalizeLegacyEntitledModelIds(source);
+  if (entitledModelIds.length > 0) {
+    return entitledModelIds.includes(resolvedModelId);
+  }
+
+  const entitledModelKeys = normalizeLegacyEntitledModelKeys(source);
+  if (entitledModelKeys.length > 0) {
+    const aliases = VIP_MODEL_KEY_ALIASES[resolvedModelId] || [];
+    if (aliases.length === 0) {
+      return false;
+    }
+    return aliases.some((alias) => entitledModelKeys.includes(String(alias).toLowerCase()));
+  }
+
+  return true;
+}
+
+export async function ensureInstallId() {
+  try {
+    const localInstallId = String(globalThis.localStorage?.getItem(INSTALL_ID_KEY) || "").trim();
+    if (localInstallId) {
+      globalThis.__aicInstallId = localInstallId;
+      return localInstallId;
+    }
+  } catch {
+    // Continue with server lookup.
+  }
+
+  let userSettings = {};
+  try {
+    userSettings = (await fetchUserSettingsFromServer()) || {};
+  } catch {
+    userSettings = {};
+  }
+
+  const serverInstallId = String(userSettings.installId || "").trim();
+  if (serverInstallId) {
+    try {
+      globalThis.localStorage?.setItem(INSTALL_ID_KEY, serverInstallId);
+    } catch {
+      // Ignore persistence failures.
+    }
+    globalThis.__aicInstallId = serverInstallId;
+    return serverInstallId;
+  }
+
+  const generatedInstallId = generateInstallId();
+  try {
+    globalThis.localStorage?.setItem(INSTALL_ID_KEY, generatedInstallId);
+  } catch {
+    // Ignore persistence failures.
+  }
+  try {
+    await saveUserSettingsToServer({ ...userSettings, installId: generatedInstallId });
+  } catch {
+    // Ignore sync failures; the local installId is still usable.
+  }
+  globalThis.__aicInstallId = generatedInstallId;
+  return generatedInstallId;
+}
+
+export function normalizeSubscriptionPayload(payload) {
+  const defaultState = createDefaultSubscriptionState();
+  const source = getPayloadRoot(payload);
+
+  const entitledModelIds = readStringList(payload, [
+    "entitledModelIds",
+    "entitled_model_ids",
+    "modelIds",
+  ]);
+  const entitledModelKeys = readStringList(payload, [
+    "entitledModelKeys",
+    "entitled_model_keys",
+    "modelKeys",
+  ]);
+  const entitledNodeTypes = readStringList(payload, [
+    "entitledNodeTypes",
+    "entitled_node_types",
+    "nodeTypes",
+  ]);
+  const entitledProviders = readStringList(payload, [
+    "entitledProviders",
+    "entitled_providers",
+    "providers",
+  ]);
+
+  return {
+    ...defaultState,
+    status: normalizeStatus(source.status || source.subscriptionStatus || source.state || ""),
+    expiresAt: extractSubscriptionExpiresAt(payload),
+    activationSource: String(
+      source.activationSource ?? source.activation_source ?? defaultState.activationSource,
+    ).trim(),
+    generationScope: String(
+      source.generationScope ?? source.generation_scope ?? defaultState.generationScope,
+    ).trim(),
+    entitledModelKeys,
+    entitledModelIds,
+    entitledNodeTypes,
+    entitledProviders,
+    contactText: String(
+      source.contactText ?? source.contact_text ?? defaultState.contactText,
+    ),
+    contactUrl: String(source.contactUrl ?? source.contact_url ?? ""),
+  };
+}
+
+export async function pullSubscriptionState(installId) {
+  const payload = await fetchSubscriptionStatusImpl(installId);
+  const state = normalizeSubscriptionPayload(payload || {});
+  setLocalVipUnlocked(isSubscriptionActive(state));
+  return state;
+}
+
+export async function submitCdkey(installId, cdkey) {
+  const payload = await activateCdkeyImpl({ installId, cdkey });
+  return payload && typeof payload === "object" ? payload : {};
+}
+
+export function __setSubscriptionApiForTest({
+  fetchSubscriptionStatusImpl: nextFetchSubscriptionStatusImpl,
+  activateCdkeyImpl: nextActivateCdkeyImpl,
+} = {}) {
+  fetchSubscriptionStatusImpl =
+    typeof nextFetchSubscriptionStatusImpl === "function"
+      ? nextFetchSubscriptionStatusImpl
+      : fetchSubscriptionStatus;
+  activateCdkeyImpl =
+    typeof nextActivateCdkeyImpl === "function"
+      ? nextActivateCdkeyImpl
+      : activateCdkey;
+}

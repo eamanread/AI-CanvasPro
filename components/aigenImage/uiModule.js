@@ -1,1 +1,124 @@
-function a72_0x2f9f(_0x31ece3,_0x3782fb){_0x31ece3=_0x31ece3-0xa4;var _0x39c279=a72_0x39c2();var _0x2f9f7e=_0x39c279[_0x31ece3];return _0x2f9f7e;}function a72_0x39c2(){var _0x2f1905=['1042448yxRVdV','27KtHdLi','2cloxNG','135207SOtTOc','53022TOLyVG','125YEPNYq','1358469JotzRh','51042CdTeJU','135112cfSZQW','9083150seSvZI'];a72_0x39c2=function(){return _0x2f1905;};return a72_0x39c2();}(function(_0xe2733d,_0x4d9d59){var _0x282daf=a72_0x2f9f,_0x2158bf=_0xe2733d();while(!![]){try{var _0x1c591b=-parseInt(_0x282daf(0xa4))/0x1+parseInt(_0x282daf(0xad))/0x2*(-parseInt(_0x282daf(0xa8))/0x3)+-parseInt(_0x282daf(0xab))/0x4+parseInt(_0x282daf(0xa6))/0x5*(-parseInt(_0x282daf(0xa5))/0x6)+-parseInt(_0x282daf(0xa7))/0x7+parseInt(_0x282daf(0xa9))/0x8*(parseInt(_0x282daf(0xac))/0x9)+parseInt(_0x282daf(0xaa))/0xa;if(_0x1c591b===_0x4d9d59)break;else _0x2158bf['push'](_0x2158bf['shift']());}catch(_0x3924e5){_0x2158bf['push'](_0x2158bf['shift']());}}}(a72_0x39c2,0x20055));export{createAIGenerateNodeUiModule}from'./uiModule.impl.js';
+import { createAIGenerateNodeUiModule as createLegacyAIGenerateNodeUiModule } from "./uiModule.impl.js";
+import {
+  pickCanvasImageLocalPath,
+  pickCanvasThumbLocalPath,
+} from "../../services/imageDerivativeService.js";
+
+function trimText(value) {
+  return String(value ?? "").trim();
+}
+
+function withPreviewVersion(localPath, versionSeed) {
+  const normalizedPath = trimText(localPath).replace(/^\/+/, "");
+  if (!normalizedPath) {
+    return "";
+  }
+
+  const seed = trimText(versionSeed);
+  if (!seed) {
+    return normalizedPath;
+  }
+
+  const [basePart, hashPart = ""] = normalizedPath.split("#", 2);
+  const joiner = basePart.includes("?") ? "&" : "?";
+  return `${basePart}${joiner}__aicv=${encodeURIComponent(seed)}${hashPart ? `#${hashPart}` : ""}`;
+}
+
+function buildPreviewVersionSeed(nodeData, imageData = null) {
+  const image = imageData && typeof imageData === "object" ? imageData : null;
+  const parts = [
+    trimText(nodeData?.generationStartTime),
+    trimText(nodeData?.generationDuration),
+    trimText(nodeData?.jobStatus),
+    trimText(image?.sourceUrl || image?.imageUrl || image?.thumbUrl),
+  ].filter(Boolean);
+  return parts.join("|");
+}
+
+function decorateImageForPreview(image, nodeData) {
+  if (!image || typeof image !== "object") {
+    return image;
+  }
+
+  const versionSeed = buildPreviewVersionSeed(nodeData, image);
+  if (!versionSeed) {
+    return image;
+  }
+
+  const previewPath = withPreviewVersion(pickCanvasImageLocalPath(image), versionSeed);
+  const previewThumbPath = withPreviewVersion(pickCanvasThumbLocalPath(image), versionSeed);
+  if (!previewPath && !previewThumbPath) {
+    return image;
+  }
+
+  return {
+    ...image,
+    ...(previewPath ? { displayLocalPath: previewPath } : {}),
+    ...(previewThumbPath ? { thumbLocalPath: previewThumbPath } : {}),
+  };
+}
+
+function decorateNodeDataForPreview(data) {
+  if (!data || typeof data !== "object") {
+    return data;
+  }
+
+  let changed = false;
+  const nextData = {
+    ...data,
+  };
+
+  if (Array.isArray(data.images)) {
+    const nextImages = data.images.map((image) => {
+      const decorated = decorateImageForPreview(image, data);
+      if (decorated !== image) {
+        changed = true;
+      }
+      return decorated;
+    });
+    nextData.images = nextImages;
+  }
+
+  const topLevelSeed = buildPreviewVersionSeed(data, data);
+  const topLevelPreviewPath = withPreviewVersion(pickCanvasImageLocalPath(data), topLevelSeed);
+  const topLevelThumbPath = withPreviewVersion(pickCanvasThumbLocalPath(data), topLevelSeed);
+  if (topLevelPreviewPath && topLevelPreviewPath !== trimText(data.displayLocalPath)) {
+    nextData.displayLocalPath = topLevelPreviewPath;
+    changed = true;
+  }
+  if (topLevelThumbPath && topLevelThumbPath !== trimText(data.thumbLocalPath)) {
+    nextData.thumbLocalPath = topLevelThumbPath;
+    changed = true;
+  }
+
+  return changed ? nextData : data;
+}
+
+function createWrappedModule(legacyModule, overrides) {
+  const wrappedModule = {};
+  Object.defineProperties(wrappedModule, Object.getOwnPropertyDescriptors(legacyModule));
+  Object.defineProperties(wrappedModule, Object.getOwnPropertyDescriptors(overrides));
+  return wrappedModule;
+}
+
+export function createAIGenerateNodeUiModule(deps) {
+  const legacyModule = createLegacyAIGenerateNodeUiModule(deps);
+  const originalLoadAndDisplayImage = legacyModule._loadAndDisplayImage;
+
+  return createWrappedModule(legacyModule, {
+    async _loadAndDisplayImage() {
+      const originalData = this._data;
+      const decoratedData = decorateNodeDataForPreview(originalData);
+      if (decoratedData === originalData) {
+        return originalLoadAndDisplayImage.call(this);
+      }
+
+      try {
+        this._data = decoratedData;
+        return await originalLoadAndDisplayImage.call(this);
+      } finally {
+        this._data = originalData;
+      }
+    },
+  });
+}

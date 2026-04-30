@@ -44,6 +44,18 @@ class JsonFileRouteServiceTests(unittest.TestCase):
             self.assertEqual(result["code"], 404)
             self.assertEqual(result["message"], "Project not found")
 
+    def test_user_preset_dev_paths_are_not_handled_as_generic_user_json(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = self._build_service(temp_dir)
+
+            result = service.handle_post(
+                handler=None,
+                path="/api/v2/user/presets/dev/save",
+                body=b"{}",
+            )
+
+            self.assertIsNone(result)
+
 
 if __name__ == "__main__":
     unittest.main()

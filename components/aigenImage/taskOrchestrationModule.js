@@ -74,6 +74,15 @@ function buildRegistrySuccessPatch(result, startedAt) {
   };
 }
 
+function syncNodeDataFromStore(node, store) {
+  const latestNodeData = store?.getState?.()?.nodes?.[node?.nodeId];
+  if (!latestNodeData || latestNodeData === node?._data) {
+    return;
+  }
+
+  node._data = latestNodeData;
+}
+
 function createWrappedModule(legacyModule, overrides) {
   const wrappedModule = {};
   Object.defineProperties(wrappedModule, Object.getOwnPropertyDescriptors(legacyModule));
@@ -87,6 +96,8 @@ export function createAIGenerateNodeTaskOrchestrationModule(deps) {
 
   return createWrappedModule(legacyModule, {
     async _buildPayload(userInput = null) {
+      syncNodeDataFromStore(this, deps.store);
+
       if (!isRegistryImageNodeData(this._data)) {
         return originalBuildPayload.call(this, userInput);
       }

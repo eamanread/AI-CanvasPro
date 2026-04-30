@@ -48,6 +48,40 @@ function pickFirstNonEmptyString(values) {
   return "";
 }
 
+function looksLikeTaskToken(value) {
+  const text = trimText(value);
+  if (!text) {
+    return false;
+  }
+
+  if (/^(https?:|data:image\/)/i.test(text)) {
+    return false;
+  }
+
+  const normalized = text.toLowerCase();
+  if (
+    [
+      "success",
+      "succeeded",
+      "submitted",
+      "pending",
+      "queued",
+      "running",
+      "processing",
+      "complete",
+      "completed",
+      "done",
+      "ok",
+      "true",
+      "false",
+    ].includes(normalized)
+  ) {
+    return false;
+  }
+
+  return /^[a-zA-Z0-9._:-]+$/.test(text) && text.length >= 6;
+}
+
 function truncateText(value, limit = 180) {
   const text = trimText(value);
   if (text.length <= limit) {
@@ -190,24 +224,63 @@ export function extractTaskId(payload) {
     return "";
   }
 
-  return pickFirstNonEmptyString([
+  const directTaskId = pickFirstNonEmptyString([
     payload?.task_id,
     payload?.taskId,
     payload?.taskid,
+    payload?.request_id,
+    payload?.requestId,
     payload?.id,
     payload?.job_id,
     payload?.jobId,
     payload?.submit_id,
     payload?.submitId,
+    payload?.task,
+    payload?.job,
+    payload?.request,
+    payload?.submit,
     payload?.data?.task_id,
     payload?.data?.taskId,
     payload?.data?.taskid,
+    payload?.data?.request_id,
+    payload?.data?.requestId,
     payload?.data?.id,
     payload?.data?.job_id,
     payload?.data?.jobId,
+    payload?.data?.submit_id,
+    payload?.data?.submitId,
+    payload?.data?.task?.task_id,
+    payload?.data?.task?.taskId,
+    payload?.data?.task?.id,
+    payload?.data?.request?.request_id,
+    payload?.data?.request?.requestId,
+    payload?.data?.request?.id,
+    payload?.data?.job?.job_id,
+    payload?.data?.job?.jobId,
+    payload?.data?.job?.id,
+    payload?.data?.submit?.submit_id,
+    payload?.data?.submit?.submitId,
+    payload?.data?.submit?.id,
     payload?.response?.task_id,
     payload?.response?.taskId,
+    payload?.response?.request_id,
+    payload?.response?.requestId,
+    payload?.response?.submit_id,
+    payload?.response?.submitId,
+    payload?.response?.job_id,
+    payload?.response?.jobId,
+    payload?.response?.id,
   ]);
+
+  if (directTaskId) {
+    return directTaskId;
+  }
+
+  if (looksLikeTaskToken(payload?.data)) {
+    return trimText(payload.data);
+  }
+
+  return "";
 }
 
 export function extractTaskStatus(payload) {

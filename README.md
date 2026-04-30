@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="images\favicon.svg" width="64" height="64" alt="AI Canvas Logo"/>
+<img src="images/huanyinglogo.png" width="64" height="64" alt="幻映 Logo"/>
 
-# AI Canvas
+# 幻映
 
 **基于节点的 AI 多模态画布编辑器**
 
@@ -145,4 +145,3 @@
 - 📺 Bilibili：[space.bilibili.com/1876480181](https://space.bilibili.com/1876480181)
 
 ***
-

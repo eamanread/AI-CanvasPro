@@ -210,7 +210,7 @@ class HttpRouteDispatcher:
             self._json_ok(handler, self._activation_missing_payload())
             return True
         payload = client.activate_cdkey(install_id, cdkey)
-        gate_service.clear_vip_allow_cache(install_id)
+        gate_service.clear_generation_access_cache(install_id)
         if isinstance(payload, dict):
             self._json_ok(handler, payload)
         else:
@@ -318,7 +318,10 @@ class HttpRouteDispatcher:
                     "/api/v2/assets/save",
                     "/api/v2/workflows/save",
                 )
-                or path.startswith("/api/v2/user/")
+                or (
+                    path.startswith("/api/v2/user/")
+                    and not path.startswith("/api/v2/user/presets")
+                )
             )
             else b"",
         )
@@ -332,6 +335,8 @@ class HttpRouteDispatcher:
             self._read_body(handler)
             if path
             in (
+                "/api/v2/user/presets/definitions/save",
+                "/api/v2/user/presets/dev/save",
                 "/api/v2/assets/thumb/save",
                 "/api/v2/workflows/thumb/save",
             )
@@ -391,6 +396,14 @@ class HttpRouteDispatcher:
         return False
 
     def handle_delete(self, handler, path):
+        library_file_delete_response = self._get_library_file_route_service().handle_delete(
+            handler,
+            path,
+        )
+        if library_file_delete_response is not None:
+            self._send_route_response(handler, library_file_delete_response)
+            return True
+
         json_file_delete_response = self._get_json_file_route_service().handle_delete(
             handler,
             path,

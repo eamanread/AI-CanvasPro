@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildImageQueryCandidates,
+  extractTaskId,
   validateModel,
 } from "./modelValidationService.js";
 
@@ -121,6 +122,41 @@ test("modelValidationService: 图片模型返回 taskId 后会轮询直至成功
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("modelValidationService: extractTaskId 可识别 success 包裹下的多种任务 ID 形态", () => {
+  assert.equal(
+    extractTaskId({
+      code: 0,
+      msg: "success",
+      data: "task-raw-string-123",
+    }),
+    "task-raw-string-123"
+  );
+
+  assert.equal(
+    extractTaskId({
+      code: 0,
+      msg: "success",
+      data: {
+        request_id: "task-request-456",
+      },
+    }),
+    "task-request-456"
+  );
+
+  assert.equal(
+    extractTaskId({
+      code: 0,
+      msg: "success",
+      data: {
+        task: {
+          id: "task-nested-789",
+        },
+      },
+    }),
+    "task-nested-789"
+  );
 });
 
 test("modelValidationService: 缺少四要素时直接返回 unconfigured", async () => {

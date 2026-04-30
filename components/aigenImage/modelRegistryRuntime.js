@@ -1,5 +1,5 @@
-import { get, post } from "../../api/apiBase.js";
 import { processInputImages } from "../../api/imageUploadApi.js";
+import { get, post } from "../../api/requester.js";
 import { saveRemoteImageLocallyDetailed } from "../../modules/project.js";
 import {
   findModelById,
@@ -16,7 +16,7 @@ import {
 
 export const REGISTRY_IMAGE_PROVIDER = "registry-openai";
 
-const IMAGE_SUBMIT_TIMEOUT_MS = 60_000;
+const IMAGE_SUBMIT_TIMEOUT_MS = 200_000;
 const IMAGE_QUERY_TIMEOUT_MS = 30_000;
 const IMAGE_POLL_INTERVAL_MS = 3_000;
 const IMAGE_MAX_POLL_ROUNDS = 200;
@@ -335,26 +335,22 @@ async function queryImageTaskOnce(apiKey, queryUrl) {
         apiKey,
         id: trimText(parseUrlLike(queryUrl)?.searchParams?.get("task_id")),
       },
-      IMAGE_QUERY_TIMEOUT_MS
+      {
+        provider: REGISTRY_IMAGE_PROVIDER,
+        timeout: IMAGE_QUERY_TIMEOUT_MS,
+      }
     );
 
-    if (!response.success) {
-      throw new Error(response.error || "图片任务查询失败");
-    }
-
-    return response.data;
+    return response;
   }
 
-  const response = await get(
+  return await get(
     `/api/v2/proxy/task?apiUrl=${encodeURIComponent(queryUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
-    IMAGE_QUERY_TIMEOUT_MS
+    {
+      provider: REGISTRY_IMAGE_PROVIDER,
+      timeout: IMAGE_QUERY_TIMEOUT_MS,
+    }
   );
-
-  if (!response.success) {
-    throw new Error(response.error || "图片任务查询失败");
-  }
-
-  return response.data;
 }
 
 async function waitForRegistryImageTask(payload, taskId) {
@@ -424,9 +420,16 @@ async function persistGeneratedImages(urls) {
   for (const sourceUrl of normalizedUrls) {
     try {
       const saved = await saveRemoteImageLocallyDetailed(sourceUrl, projectId);
-      const localPath = trimText(saved?.localPath).replace(/^\/+/, "");
+      const localPath = trimText(
+        saved?.localPath ||
+          saved?.path ||
+          saved?.displayLocalPath ||
+          saved?.originalLocalPath ||
+          saved?.localUrl
+      ).replace(/^\/+/, "");
       const fallbackDisplayUrl =
-        trimText(saved?.displayUrl) || (localPath ? `/${localPath}` : trimText(sourceUrl));
+        trimText(saved?.displayUrl || saved?.localUrl) ||
+        (localPath ? `/${localPath}` : trimText(sourceUrl));
       items.push({
         sourceId: null,
         thumbId: null,
@@ -434,11 +437,11 @@ async function persistGeneratedImages(urls) {
         thumbUrl:
           trimText(saved?.thumbUrl) ||
           fallbackDisplayUrl ||
-          trimText(saved?.localPath) ||
+          trimText(saved?.localPath || saved?.localUrl || saved?.path) ||
           trimText(sourceUrl),
         imageUrl: fallbackDisplayUrl,
         localPath,
-        originalLocalPath: trimText(saved?.originalLocalPath || saved?.localPath),
+        originalLocalPath: trimText(saved?.originalLocalPath || saved?.localPath || localPath),
         displayLocalPath: trimText(saved?.displayLocalPath),
         thumbLocalPath: trimText(saved?.thumbLocalPath),
         originalWidth: Number(saved?.originalWidth || 0) || undefined,
@@ -478,6 +481,7 @@ export async function generateImageWithRegistryModel(payload) {
   const apiUrl = trimText(payload?.apiUrl);
   const apiKey = trimText(payload?.apiKey);
   const modelId = trimText(payload?.model);
+  const adapterType = trimText(payload?.adapterType).toLowerCase() || "openai_compatible";
   if (!apiUrl || !apiKey || !modelId) {
     throw new Error("该模型未配置");
   }
@@ -491,15 +495,21 @@ export async function generateImageWithRegistryModel(payload) {
     }
   );
 
+  const batchSize = Math.max(1, Number(payload?.batchSize || 1) || 1);
   const requestBody = {
     apiUrl,
     apiKey,
     model: modelId,
     prompt: trimText(payload?.prompt),
     urls: inputUrls,
-    batchSize: Math.max(1, Number(payload?.batchSize || 1) || 1),
     shutProgress: true,
   };
+
+  if (adapterType === "openai_compatible") {
+    requestBody.n = batchSize;
+  } else {
+    requestBody.batchSize = batchSize;
+  }
 
   if (!payload?.suppressAspectRatio && trimText(payload?.aspectRatio)) {
     requestBody.aspectRatio = trimText(payload.aspectRatio);
@@ -508,20 +518,20 @@ export async function generateImageWithRegistryModel(payload) {
     requestBody.imageSize = trimText(payload.imageSize);
   }
 
-  const response = await post("/api/v2/proxy/image", requestBody, IMAGE_SUBMIT_TIMEOUT_MS);
-  if (!response.success) {
-    throw new Error(response.error || "图片生成失败");
-  }
+  const response = await post("/api/v2/proxy/image", requestBody, {
+    provider: REGISTRY_IMAGE_PROVIDER,
+    timeout: IMAGE_SUBMIT_TIMEOUT_MS,
+  });
 
-  const directUrls = extractImageUrls(response.data);
+  const directUrls = extractImageUrls(response);
   if (directUrls.length > 0) {
     const images = finalizeGeneratedImages(await persistGeneratedImages(directUrls));
     return images.length === 1 ? images[0] : { isBatch: true, images };
   }
 
-  const taskId = extractTaskId(response.data);
+  const taskId = extractTaskId(response);
   if (!taskId) {
-    throw new Error(extractErrorMessage(response.data, "图片模型未返回任务ID或图片地址"));
+    throw new Error(extractErrorMessage(response, "图片模型未返回任务ID或图片地址"));
   }
 
   const taskUrls = await waitForRegistryImageTask(payload, taskId);

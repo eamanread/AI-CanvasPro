@@ -119,6 +119,13 @@ function createTaskModuleContext({
   incomingEdges = [],
   promptText = "hello world",
 }) {
+  if (!globalThis.Node) {
+    globalThis.Node = {
+      TEXT_NODE: 3,
+      ELEMENT_NODE: 1,
+    };
+  }
+
   const state = {
     nodes: {
       ...nodes,
@@ -208,6 +215,76 @@ test("aigenImage task orchestration: selectedModelId 可解析时改走 registry
       assert.equal(payload.apiUrl, "https://grsai.example.com/v1/draw/nano-banana");
       assert.equal(payload.selectedModelId, "mdl_image_test_1");
       assert.equal(payload.prompt, "hello world");
+    }
+  );
+});
+
+test("aigenImage task orchestration: 旧图片节点构造请求时优先读取 store 中最新 batchSize", async () => {
+  const targetId = "node-ai-image-legacy-batch-sync";
+  const { proto, ctx } = createTaskModuleContext({
+    targetId,
+    nodeData: {
+      id: targetId,
+      model: "apimart/seedream-4.0",
+      provider: "apimart",
+      aspectRatio: "1:1",
+      imageSize: "2K",
+      batchSize: 2,
+    },
+  });
+
+  ctx._data = {
+    ...ctx._data,
+    batchSize: 1,
+  };
+
+  const payload = await proto._buildPayload.call(ctx);
+
+  assert.equal(payload.batchSize, 2);
+});
+
+test("aigenImage task orchestration: registry 图片节点构造请求时优先读取 store 中最新 batchSize", async () => {
+  await withConfig(
+    {
+      modelRegistry: {
+        image: [
+          {
+            id: "mdl_image_batch_sync",
+            nodeType: "image",
+            modelName: "GPT Image 2",
+            modelId: "gpt-image-2",
+            apiKey: "sk-image",
+            baseUrl: "https://registry.example.com/v1/images/generations",
+            adapterType: "openai_compatible",
+            status: "available",
+          },
+        ],
+      },
+    },
+    async () => {
+      const targetId = "node-ai-image-registry-batch-sync";
+      const { proto, ctx } = createTaskModuleContext({
+        targetId,
+        nodeData: {
+          id: targetId,
+          selectedModelId: "mdl_image_batch_sync",
+          selectedModelNameSnapshot: "GPT Image 2",
+          modelDeleted: false,
+          aspectRatio: "1:1",
+          imageSize: "2K",
+          batchSize: 2,
+        },
+      });
+
+      ctx._data = {
+        ...ctx._data,
+        batchSize: 1,
+      };
+
+      const payload = await proto._buildPayload.call(ctx);
+
+      assert.equal(payload.provider, REGISTRY_IMAGE_PROVIDER);
+      assert.equal(payload.batchSize, 2);
     }
   );
 });
