@@ -29,6 +29,7 @@ RUNTIME_DIRS = (
     "hooks",
     "images",
     "modules",
+    "services",
     "src",
     "styles",
     "ui",
