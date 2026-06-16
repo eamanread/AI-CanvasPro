@@ -33,6 +33,7 @@ RUNTIME_DIRS = (
     "hooks",
     "images",
     "integrations",
+    "manifests",
     "modules",
     "services",
     "src",
