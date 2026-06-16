@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "director-intent/v1",
+  "flowId": "flow-mqa010f3-vtb1",
+  "lane": "director",
+  "laneReason": "用户使用导演前缀显式选择导演道",
+  "userGoal": "按 QMAI 项目铺一版导演计划",
+  "constraints": [],
+  "clarifications": []
+}

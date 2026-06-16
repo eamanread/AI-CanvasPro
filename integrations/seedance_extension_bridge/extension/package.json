@@ -1,0 +1,14 @@
+{
+  "name": "seedance2-batch-generator",
+  "version": "1.0.0",
+  "description": "即梦AI Seedance2.0 批量生成 Chrome 扩展 (Playwright 测试)",
+  "scripts": {
+    "mock": "node mock-server.js",
+    "login": "node playwright/login.js",
+    "batch": "node playwright/batch.js",
+    "start": "node playwright/batch.js"
+  },
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}

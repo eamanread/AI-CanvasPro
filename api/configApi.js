@@ -9,6 +9,20 @@ function normalizeApiUrl(value) {
   return String(value || "").trim().replace(/\/+$/, "");
 }
 
+function getCanvasAgentProviderConfig(providerConfig, defaultUrl) {
+  const apiUrl = normalizeApiUrl(providerConfig?.apiUrl || defaultUrl);
+  const proxyBaseUrl = normalizeApiUrl(providerConfig?.proxyBaseUrl || "");
+  return {
+    apiUrl,
+    apiKey: providerConfig?.apiKey || "",
+    proxyBaseUrl,
+    proxyToken: providerConfig?.proxyToken || "",
+    model: providerConfig?.model || "",
+    providerType: providerConfig?.providerType || "",
+    defaultDurationSec: providerConfig?.defaultDurationSec || "",
+  };
+}
+
 function isPlainObject(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -86,15 +100,21 @@ export function getProviderConfig(providerId) {
   const defaultUrl = meta?.defaultUrl || "https://grsai.dakka.com.cn";
   const providerConfig = apiConfig?.providers?.[providerId];
 
+  if (providerId === "canvas_agent" || providerId === "pi_canvas_agent") {
+    return getCanvasAgentProviderConfig(providerConfig || {}, "");
+  }
+
   if (
     providerConfig?.apiUrl ||
     providerConfig?.apiKey ||
-    providerConfig?.modelApiKey
+    providerConfig?.modelApiKey ||
+    providerConfig?.defaultDurationSec
   ) {
     return {
       apiUrl: normalizeApiUrl(providerConfig.apiUrl || defaultUrl),
       apiKey: providerConfig.apiKey || "",
       modelApiKey: providerConfig.modelApiKey || "",
+      defaultDurationSec: providerConfig.defaultDurationSec || "",
     };
   }
 
@@ -103,12 +123,14 @@ export function getProviderConfig(providerId) {
     if (
       runninghubConfig?.apiUrl ||
       runninghubConfig?.apiKey ||
-      runninghubConfig?.modelApiKey
+      runninghubConfig?.modelApiKey ||
+      runninghubConfig?.defaultDurationSec
     ) {
       return {
         apiUrl: normalizeApiUrl(runninghubConfig.apiUrl || defaultUrl),
         apiKey: runninghubConfig.apiKey || "",
         modelApiKey: "",
+        defaultDurationSec: runninghubConfig.defaultDurationSec || "",
       };
     }
   }
@@ -120,6 +142,7 @@ export function getProviderConfig(providerId) {
       ),
       apiKey: apiConfig?.apiKeyInput || apiConfig?.apiKey || "",
       modelApiKey: "",
+      defaultDurationSec: "",
     };
   }
 
@@ -127,5 +150,6 @@ export function getProviderConfig(providerId) {
     apiUrl: defaultUrl,
     apiKey: "",
     modelApiKey: "",
+    defaultDurationSec: "",
   };
 }

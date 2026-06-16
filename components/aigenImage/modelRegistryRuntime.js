@@ -5,6 +5,7 @@ import {
   findModelById,
   getModelsByNodeType,
 } from "../../modules/modelRegistryService.js";
+import { filterConfiguredApiModels } from "../../modules/modelRegistryFilters.js";
 import {
   buildImageQueryCandidates,
   extractErrorMessage,
@@ -13,16 +14,86 @@ import {
   extractTaskStatus,
   hasCompleteModelConfig,
 } from "../../modules/modelValidationService.js";
+import {
+  buildRegistryImageSubmitRequest,
+  normalizeRegistryImageAdapterType,
+} from "../../modules/registryImageRequestAdapter.js";
+import { getModelMenuSubtitle } from "../../modules/modelMenuDescriptions.js";
 
 export const REGISTRY_IMAGE_PROVIDER = "registry-openai";
 
-const IMAGE_SUBMIT_TIMEOUT_MS = 200_000;
+const IMAGE_SUBMIT_TIMEOUT_MS = 600_000;
 const IMAGE_QUERY_TIMEOUT_MS = 30_000;
 const IMAGE_POLL_INTERVAL_MS = 3_000;
 const IMAGE_MAX_POLL_ROUNDS = 200;
 
 function trimText(value) {
   return String(value ?? "").trim();
+}
+
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    throwAbortError();
+  }
+}
+
+function throwAbortError() {
+  if (typeof DOMException === "function") {
+    throw new DOMException("Generation aborted", "AbortError");
+  }
+  const error = new Error("Generation aborted");
+  error.name = "AbortError";
+  throw error;
+}
+
+function waitForPollInterval(ms, signal) {
+  throwIfAborted(signal);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    if (signal) {
+      signal.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          try {
+            throwAbortError();
+          } catch (error) {
+            reject(error);
+          }
+        },
+        { once: true }
+      );
+    }
+  });
+}
+
+export function parseRegistryImageSubmitResponse(response) {
+  if (!response || typeof response !== "string") {
+    return response;
+  }
+
+  const text = trimText(response);
+  if (!text) {
+    return "";
+  }
+
+  const ssePayloads = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.replace(/^data:\s*/, "").trim())
+    .filter((line) => line && line !== "[DONE]");
+
+  const candidates = ssePayloads.length > 0 ? ssePayloads : [text];
+  for (let index = candidates.length - 1; index >= 0; index -= 1) {
+    try {
+      return JSON.parse(candidates[index]);
+    } catch {
+      // Try the previous SSE frame, if any.
+    }
+  }
+
+  return response;
 }
 
 function normalizeInputUrls(values) {
@@ -73,7 +144,7 @@ function resolveGrsaiResultQueryApiUrl(queryUrl) {
 }
 
 function getImageModels() {
-  return getModelsByNodeType("image");
+  return filterConfiguredApiModels(getModelsByNodeType("image"));
 }
 
 export function isRegistryImageNodeData(data) {
@@ -203,7 +274,7 @@ function buildImageMenuHtml(models, selectedModelId) {
   return models
     .map((model) => {
       const isActive = trimText(model.id) === trimText(selectedModelId);
-      const subText = trimText(model.modelId) || "未配置";
+      const subText = getModelMenuSubtitle(model, { nodeType: "image" });
       return `
         <div
           class="floating-menu-item${isActive ? " active" : ""}"
@@ -218,6 +289,27 @@ function buildImageMenuHtml(models, selectedModelId) {
       `;
     })
     .join("");
+}
+
+function buildImageMenuSignature(models, selectedModelId) {
+  return JSON.stringify({
+    selectedModelId,
+    models: models.map((model) => [
+      model.id,
+      model.modelName,
+      trimText(model.modelId),
+      trimText(model.baseUrl),
+    ]),
+  });
+}
+
+function syncImageMenuActiveState(menuEl, selectedModelId) {
+  menuEl?.querySelectorAll?.(".floating-menu-item")?.forEach((itemEl) => {
+    itemEl.classList?.toggle(
+      "active",
+      trimText(itemEl.dataset?.modelId) === trimText(selectedModelId)
+    );
+  });
 }
 
 export function applyImageModelSelectorUi({ node, data, store }) {
@@ -242,21 +334,19 @@ export function applyImageModelSelectorUi({ node, data, store }) {
   triggerEl.style.opacity = models.length > 0 ? "" : "0.6";
   triggerEl.disabled = models.length === 0;
 
-  const signature = JSON.stringify({
-    selectedModelId,
-    models: models.map((model) => [
-      model.id,
-      model.modelName,
-      trimText(model.modelId),
-      trimText(model.baseUrl),
-    ]),
-  });
+  const signature = buildImageMenuSignature(models, selectedModelId);
 
   if (menuEl.dataset.registrySignature !== signature) {
     menuEl.innerHTML = buildImageMenuHtml(models, selectedModelId);
     menuEl.dataset.registrySignature = signature;
   }
   menuEl.__registryModels = models;
+  menuEl.__registryContext = {
+    node,
+    store,
+    labelEl,
+    triggerEl,
+  };
 
   if (menuEl.dataset.registryBound === "true") {
     menuEl.dataset.registryNodeId = node.nodeId;
@@ -279,9 +369,21 @@ export function applyImageModelSelectorUi({ node, data, store }) {
       return;
     }
 
-    applyImageNodeSelectionPatch(node, store, buildImageModelSelectionPatch(model));
-    labelEl.textContent = model.modelName;
-    triggerEl.title = model.modelName;
+    const context = menuEl.__registryContext || {};
+    const currentNode = context.node || node;
+    const currentStore = context.store || store;
+    const currentLabelEl = context.labelEl || labelEl;
+    const currentTriggerEl = context.triggerEl || triggerEl;
+
+    applyImageNodeSelectionPatch(
+      currentNode,
+      currentStore,
+      buildImageModelSelectionPatch(model)
+    );
+    currentLabelEl.textContent = model.modelName;
+    currentTriggerEl.title = model.modelName;
+    syncImageMenuActiveState(menuEl, model.id);
+    menuEl.dataset.registrySignature = buildImageMenuSignature(availableModels, model.id);
     menuEl.classList.remove("show");
   });
 }
@@ -325,7 +427,8 @@ export function buildRegistryImagePayload(basePayload, model) {
   };
 }
 
-async function queryImageTaskOnce(apiKey, queryUrl) {
+async function queryImageTaskOnce(apiKey, queryUrl, options = {}) {
+  throwIfAborted(options.signal);
   const grsaiResultApiUrl = resolveGrsaiResultQueryApiUrl(queryUrl);
   if (grsaiResultApiUrl) {
     const response = await post(
@@ -338,10 +441,12 @@ async function queryImageTaskOnce(apiKey, queryUrl) {
       {
         provider: REGISTRY_IMAGE_PROVIDER,
         timeout: IMAGE_QUERY_TIMEOUT_MS,
+        responseType: "text",
+        signal: options.signal,
       }
     );
 
-    return response;
+    return parseRegistryImageSubmitResponse(response);
   }
 
   return await get(
@@ -349,11 +454,12 @@ async function queryImageTaskOnce(apiKey, queryUrl) {
     {
       provider: REGISTRY_IMAGE_PROVIDER,
       timeout: IMAGE_QUERY_TIMEOUT_MS,
+      signal: options.signal,
     }
   );
 }
 
-async function waitForRegistryImageTask(payload, taskId) {
+async function waitForRegistryImageTask(payload, taskId, options = {}) {
   const apiKey = trimText(payload?.apiKey);
   const baseUrl = trimText(payload?.apiUrl);
   const queryCandidates = buildImageQueryCandidates(baseUrl, taskId);
@@ -363,11 +469,13 @@ async function waitForRegistryImageTask(payload, taskId) {
 
   let lastPendingMessage = "";
   for (let round = 0; round < IMAGE_MAX_POLL_ROUNDS; round += 1) {
+    throwIfAborted(options.signal);
     for (const queryUrl of queryCandidates) {
       let snapshot;
       try {
-        snapshot = await queryImageTaskOnce(apiKey, queryUrl);
+        snapshot = await queryImageTaskOnce(apiKey, queryUrl, options);
       } catch (error) {
+        throwIfAborted(options.signal);
         lastPendingMessage = trimText(error?.message);
         continue;
       }
@@ -379,9 +487,16 @@ async function waitForRegistryImageTask(payload, taskId) {
 
       const status = extractTaskStatus(snapshot);
       if (
-        ["failed", "fail", "error", "cancelled", "canceled", "forbidden", "task_failed"].includes(
-          status
-        )
+        [
+          "failed",
+          "failure",
+          "fail",
+          "error",
+          "cancelled",
+          "canceled",
+          "forbidden",
+          "task_failed",
+        ].includes(status)
       ) {
         throw new Error(extractErrorMessage(snapshot, "图片生成失败"));
       }
@@ -398,6 +513,9 @@ async function waitForRegistryImageTask(payload, taskId) {
           "querying",
           "waiting",
           "in_progress",
+          "not_start",
+          "starting",
+          "inqueue",
         ].includes(status)
       ) {
         lastPendingMessage = extractErrorMessage(snapshot, `任务状态异常：${status || "unknown"}`);
@@ -405,7 +523,7 @@ async function waitForRegistryImageTask(payload, taskId) {
     }
 
     if (round < IMAGE_MAX_POLL_ROUNDS - 1) {
-      await new Promise((resolve) => setTimeout(resolve, IMAGE_POLL_INTERVAL_MS));
+      await waitForPollInterval(IMAGE_POLL_INTERVAL_MS, options.signal);
     }
   }
 
@@ -477,11 +595,17 @@ export function finalizeGeneratedImages(items) {
   throw new Error(firstError || "图片已生成，但结果图片无法下载或显示");
 }
 
-export async function generateImageWithRegistryModel(payload) {
+function normalizeRegistryBatchSize(value) {
+  const numericValue = Math.trunc(Number(value || 1));
+  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : 1;
+}
+
+export async function generateImageWithRegistryModel(payload, options = {}) {
+  throwIfAborted(options.signal);
   const apiUrl = trimText(payload?.apiUrl);
   const apiKey = trimText(payload?.apiKey);
   const modelId = trimText(payload?.model);
-  const adapterType = trimText(payload?.adapterType).toLowerCase() || "openai_compatible";
+  const adapterType = normalizeRegistryImageAdapterType(payload?.adapterType);
   if (!apiUrl || !apiKey || !modelId) {
     throw new Error("该模型未配置");
   }
@@ -495,46 +619,75 @@ export async function generateImageWithRegistryModel(payload) {
     }
   );
 
-  const batchSize = Math.max(1, Number(payload?.batchSize || 1) || 1);
-  const requestBody = {
-    apiUrl,
-    apiKey,
-    model: modelId,
-    prompt: trimText(payload?.prompt),
-    urls: inputUrls,
-    shutProgress: true,
+  const requestedBatchSize = normalizeRegistryBatchSize(payload?.batchSize);
+  const submitOnce = async (requestBatchSize) => {
+    throwIfAborted(options.signal);
+    const normalizedRequestBatchSize = normalizeRegistryBatchSize(requestBatchSize);
+    const submitRequest = buildRegistryImageSubmitRequest(
+      {
+        ...payload,
+        apiUrl,
+        apiKey,
+        model: modelId,
+        adapterType,
+        inputUrls,
+      },
+      normalizedRequestBatchSize
+    );
+    const requestBody = {
+      apiKey,
+      ...submitRequest.body,
+      apiUrl: submitRequest.apiUrl,
+    };
+
+    const responseText = await post("/api/v2/proxy/image", requestBody, {
+      provider: REGISTRY_IMAGE_PROVIDER,
+      timeout: IMAGE_SUBMIT_TIMEOUT_MS,
+      responseType: "text",
+      signal: options.signal,
+    });
+    const response = parseRegistryImageSubmitResponse(responseText);
+
+    const directUrls = extractImageUrls(response);
+    if (directUrls.length > 0) {
+      return finalizeGeneratedImages(await persistGeneratedImages(directUrls));
+    }
+
+    const taskId = extractTaskId(response);
+    if (!taskId) {
+      throw new Error(
+        extractErrorMessage(response, "Image model did not return a task id or image URL")
+      );
+    }
+    options.onTaskMeta?.({ taskId, apiKey });
+    options.onTaskId?.(taskId);
+
+    const taskUrls = await waitForRegistryImageTask(
+      {
+        ...payload,
+        apiUrl: submitRequest.apiUrl,
+      },
+      taskId,
+      options
+    );
+    return finalizeGeneratedImages(await persistGeneratedImages(taskUrls));
   };
 
-  if (adapterType === "openai_compatible") {
-    requestBody.n = batchSize;
-  } else {
-    requestBody.batchSize = batchSize;
-  }
-
-  if (!payload?.suppressAspectRatio && trimText(payload?.aspectRatio)) {
-    requestBody.aspectRatio = trimText(payload.aspectRatio);
-  }
-  if (!payload?.suppressImageSize && trimText(payload?.imageSize)) {
-    requestBody.imageSize = trimText(payload.imageSize);
-  }
-
-  const response = await post("/api/v2/proxy/image", requestBody, {
-    provider: REGISTRY_IMAGE_PROVIDER,
-    timeout: IMAGE_SUBMIT_TIMEOUT_MS,
-  });
-
-  const directUrls = extractImageUrls(response);
-  if (directUrls.length > 0) {
-    const images = finalizeGeneratedImages(await persistGeneratedImages(directUrls));
+  if (requestedBatchSize <= 1) {
+    const images = await submitOnce(1);
     return images.length === 1 ? images[0] : { isBatch: true, images };
   }
 
-  const taskId = extractTaskId(response);
-  if (!taskId) {
-    throw new Error(extractErrorMessage(response, "图片模型未返回任务ID或图片地址"));
+  const generatedBatchImages = [];
+  let remaining = requestedBatchSize;
+  while (remaining > 0) {
+    const generatedImages = await submitOnce(remaining);
+    generatedBatchImages.push(...generatedImages);
+    remaining = requestedBatchSize - generatedBatchImages.length;
   }
 
-  const taskUrls = await waitForRegistryImageTask(payload, taskId);
-  const images = finalizeGeneratedImages(await persistGeneratedImages(taskUrls));
-  return images.length === 1 ? images[0] : { isBatch: true, images };
+  const finalBatchImages = generatedBatchImages.slice(0, requestedBatchSize);
+  return finalBatchImages.length === 1
+    ? finalBatchImages[0]
+    : { isBatch: true, images: finalBatchImages };
 }

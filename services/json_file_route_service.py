@@ -187,7 +187,7 @@ class JsonFileRouteService:
         if not asset_id:
             return self._json_err(400, "Asset ID required")
         filename = self._safe_name(asset_id) + ".json"
-        self._write_json_file(os.path.join(self._get_assets_dir(), filename), data)
+        self._atomic_write_json(os.path.join(self._get_assets_dir(), filename), data)
         return self._json_ok({"success": True, "id": asset_id})
 
     def _save_workflow(self, body):
@@ -200,7 +200,7 @@ class JsonFileRouteService:
         filename = self._safe_name(workflow_id) + ".json"
         if not data.get("scope"):
             data["scope"] = "private"
-        self._write_json_file(os.path.join(self._get_workflows_dir(), filename), data)
+        self._atomic_write_json(os.path.join(self._get_workflows_dir(), filename), data)
         return self._json_ok({"success": True, "id": workflow_id})
 
     def _save_user_json(self, path, body):

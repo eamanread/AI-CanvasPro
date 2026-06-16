@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildImageQueryCandidates,
+  extractErrorMessage,
   extractTaskId,
   validateModel,
 } from "./modelValidationService.js";
@@ -189,4 +190,20 @@ test("modelValidationService: 可推导 grsai 与 apimart 的查询地址", () =
     "task-2"
   );
   assert.ok(apimartCandidates.includes("https://api.apimart.ai/v1/tasks/task-2"));
+});
+
+test("modelValidationService: extractErrorMessage does not report success as a failure reason", () => {
+  assert.equal(
+    extractErrorMessage(
+      {
+        code: 0,
+        msg: "success",
+        data: {
+          status: "success",
+        },
+      },
+      "图片模型未返回任务ID或图片地址"
+    ),
+    "图片模型未返回任务ID或图片地址"
+  );
 });

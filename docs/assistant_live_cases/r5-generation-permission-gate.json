@@ -1,0 +1,65 @@
+{
+  "id": "r5-generation-permission-gate",
+  "title": "R5 generation permission gate",
+  "initialCanvas": {
+    "nodes": [
+      {
+        "id": "text_node",
+        "nodeType": "ai-text",
+        "name": "Text Node"
+      },
+      {
+        "id": "image_node",
+        "nodeType": "ai-image",
+        "name": "Image Node"
+      },
+      {
+        "id": "video_node",
+        "nodeType": "ai-video",
+        "name": "Video Node"
+      }
+    ],
+    "edges": [],
+    "selectedNodeIds": ["text_node"]
+  },
+  "streamFrames": [
+    {
+      "type": "message.start",
+      "conversationId": "conv_r5_generation"
+    },
+    {
+      "type": "message.delta",
+      "delta": "I will queue text and image generation, while gating video generation."
+    },
+    {
+      "type": "message.done",
+      "reply": "Text and image can queue; video requires strong confirmation.",
+      "actions": [
+        {
+          "type": "queue_generation_task",
+          "nodeId": "text_node",
+          "nodeType": "ai-text",
+          "prompt": "write copy"
+        },
+        {
+          "type": "queue_generation_task",
+          "nodeId": "image_node",
+          "nodeType": "ai-image",
+          "prompt": "make image"
+        },
+        {
+          "type": "queue_generation_task",
+          "nodeId": "video_node",
+          "nodeType": "ai-video",
+          "prompt": "make video",
+          "requiresConfirmation": true
+        }
+      ],
+      "requiresConfirmation": true
+    }
+  ],
+  "expected": {
+    "safeQueuedNodeIds": ["text_node", "image_node"],
+    "videoRequiresStrongConfirmation": true
+  }
+}

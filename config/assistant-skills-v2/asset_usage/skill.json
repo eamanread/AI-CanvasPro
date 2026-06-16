@@ -1,0 +1,60 @@
+{
+  "id": "asset_usage",
+  "name": "资产使用与引用",
+  "version": "1.0.0",
+  "type": "scenario",
+  "enabled": true,
+  "priority": 93,
+  "injectMode": "when_matched",
+  "triggers": [
+    "资产",
+    "素材",
+    "拿这个资产",
+    "使用这张图",
+    "用这张图",
+    "参考图",
+    "绑定资产",
+    "asset"
+  ],
+  "requiredContext": [
+    "context.assets.items",
+    "context.references.items",
+    "context.attachments.items",
+    "context.selection.selectedNodeIds"
+  ],
+  "allowedActions": [
+    "create_node",
+    "update_node_data",
+    "connect_nodes",
+    "focus_nodes"
+  ],
+  "forbiddenActions": [
+    "delete_nodes",
+    "write_file",
+    "shell_command",
+    "fetch_url",
+    "download_url",
+    "queue_generation_task:ai-video"
+  ],
+  "qualityRules": [
+    "资产存在时必须优先从 context.assets、references、attachments 或 selection 中查找，不要凭空说没有。",
+    "引用资产时保留 asset id、name、type、thumbnail 或 citation 等可追踪信息。",
+    "不复制本地绝对路径，不泄露文件系统路径。"
+  ],
+  "riskLevel": "low",
+  "requiresConfirmation": false,
+  "qualityChecks": [
+    {
+      "type": "requiresActionType",
+      "action": "create_node"
+    },
+    {
+      "type": "forbidsActionType",
+      "action": "delete_nodes"
+    },
+    {
+      "type": "maxActions",
+      "value": 8
+    }
+  ]
+}

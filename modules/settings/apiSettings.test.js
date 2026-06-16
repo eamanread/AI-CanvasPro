@@ -121,3 +121,12 @@ test("apiSettings: 缺少 modelName 时会返回错误", () => {
   assert.equal(result.registry.image.length, 0);
   assert.match(result.errors[0], /缺少 modelName/);
 });
+
+test("apiSettings: assistant does not expose a separate canvas agent model config entry", async () => {
+  const module = await import("./apiSettings.js");
+  const configs = module.getSpecialProviderConfigs();
+  const byId = Object.fromEntries(configs.map((config) => [config.providerId, config]));
+
+  assert.equal(byId.canvas_agent, undefined);
+  assert.equal(byId.pi_canvas_agent, undefined);
+});

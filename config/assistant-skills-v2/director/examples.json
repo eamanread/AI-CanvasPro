@@ -1,0 +1,11 @@
+[
+  {
+    "input": "导演：按 QMAI 雨屋项目铺一版分镜",
+    "matchedSkill": "director",
+    "actions": [
+      "create_node",
+      "connect_nodes",
+      "layout_nodes"
+    ]
+  }
+]

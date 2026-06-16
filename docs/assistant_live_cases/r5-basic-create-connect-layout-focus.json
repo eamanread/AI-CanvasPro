@@ -1,0 +1,109 @@
+{
+  "id": "r5-basic-create-connect-layout-focus",
+  "title": "R5 basic create/connect/layout/focus",
+  "initialCanvas": {
+    "nodes": [
+      {
+        "id": "seed_prompt",
+        "nodeType": "source-text",
+        "name": "Seed Prompt",
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "edges": [],
+    "selectedNodeIds": [
+      "seed_prompt"
+    ]
+  },
+  "modelOptions": [
+    {
+      "provider": "model_registry",
+      "id": "text-live-fixture",
+      "modelId": "agent-live-fixture",
+      "model": "agent-live-fixture",
+      "displayName": "R5 Live Fixture",
+      "configured": true,
+      "supportsText": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsTools": false
+    },
+    {
+      "provider": "model_registry",
+      "id": "text-disabled-fixture",
+      "modelId": "agent-disabled",
+      "model": "agent-disabled",
+      "displayName": "Disabled Text Fixture",
+      "configured": false,
+      "supportsText": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsTools": false,
+      "disabledReason": "Missing API Key or Endpoint"
+    }
+  ],
+  "streamFrames": [
+    {
+      "type": "message.start",
+      "conversationId": "conv_r5_basic",
+      "messageId": "msg_r5_basic",
+      "traceId": "trace_r5_basic"
+    },
+    {
+      "type": "message.delta",
+      "delta": "I will create a review note, connect it, arrange the layout, and focus it."
+    },
+    {
+      "type": "warning",
+      "message": "Using the currently selected node as the connection source."
+    },
+    {
+      "type": "message.done",
+      "conversationId": "conv_r5_basic",
+      "messageId": "msg_r5_basic",
+      "traceId": "trace_r5_basic",
+      "reply": "The canvas update proposal is ready.",
+      "actions": [
+        {
+          "id": "r5_note",
+          "type": "create_node",
+          "nodeType": "comment",
+          "name": "R5 Review Note",
+          "data": {
+            "content": "Live fixture note"
+          }
+        },
+        {
+          "type": "connect_nodes",
+          "from": "seed_prompt",
+          "to": "r5_note"
+        },
+        {
+          "type": "layout_nodes",
+          "nodeIds": [
+            "seed_prompt",
+            "r5_note"
+          ],
+          "layout": "horizontal"
+        },
+        {
+          "type": "focus_nodes",
+          "nodeIds": [
+            "r5_note"
+          ]
+        }
+      ],
+      "warnings": [],
+      "requiresConfirmation": false
+    }
+  ],
+  "expected": {
+    "createdNodes": 1,
+    "createdEdges": 1,
+    "receiptContains": [
+      "R5 Review Note"
+    ],
+    "historyRestores": true
+  }
+}

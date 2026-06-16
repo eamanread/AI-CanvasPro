@@ -79,6 +79,39 @@ class SubscriptionGateServiceTests(unittest.TestCase):
         self.assertEqual(decision["provider"], "runninghubwf")
         self.assertEqual(decision["nodeType"], "video")
 
+    def test_generation_gate_allows_active_trial_when_cdkey_source_not_required(self):
+        client = _StubClient(
+            decision={
+                "allowed": True,
+                "installId": "aic-test",
+                "status": "active",
+                "reasonCode": "ACTIVE",
+                "reasonMessage": "",
+                "activationSource": "trial",
+                "generationScope": "all",
+                "payload": {
+                    "activationSource": "trial",
+                    "generationScope": "all",
+                },
+            }
+        )
+        service = SubscriptionGateService(
+            client=client,
+            enforce_generation_subscription=True,
+            require_cdkey_source=False,
+        )
+
+        decision = service.check_generation_access(
+            handler=object(),
+            payload={},
+            provider="grsai",
+            node_type="image",
+        )
+
+        self.assertTrue(decision["allowed"])
+        self.assertEqual(decision["activationSource"], "trial")
+        self.assertEqual(decision["generationScope"], "all")
+
     def test_generation_gate_blocks_non_cdkey_source_when_required(self):
         client = _StubClient(
             decision={

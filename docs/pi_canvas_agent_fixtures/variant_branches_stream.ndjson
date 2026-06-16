@@ -1,0 +1,4 @@
+{"type":"message.start","conversationId":"fixture-variant","messageId":"m-variant","traceId":"t-variant"}
+{"type":"message.delta","delta":"I will prepare three editable variant branches from the selected subgraph without starting generation."}
+{"type":"tool.status","message":"Proposing prepare-only variant branches"}
+{"type":"message.done","reply":"Three variant branches are ready for preview. They duplicate the selected subgraph only; no generation or deletion is requested.","actions":[{"type":"duplicate_nodes","nodeIds":["script_1","image_1"],"variants":[{"id":"noir","label":"Noir rain","difference":"high-contrast rainy mood"},{"id":"pop","label":"Pop color","difference":"bright playful commercial mood"},{"id":"doc","label":"Documentary","difference":"handheld realistic mood"}],"groupBranches":true,"gap":180,"padding":56,"metadata":{"assistantIntent":"variant_branches","workflowKind":"variant_branches"}}],"warnings":[],"requiresConfirmation":true}

@@ -286,8 +286,46 @@ function getSubscriptionCode(payload) {
   return String(payload.code || payload.errorCode || "").trim().toUpperCase();
 }
 
+function parseJsonText(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSubscriptionPayloadCandidate(payload) {
+  if (!payload) {
+    return payload;
+  }
+  if (typeof payload === "string") {
+    const parsed = parseJsonText(payload);
+    if (parsed) {
+      return parsed;
+    }
+
+    const ssePayloads = payload
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.replace(/^data:\s*/, "").trim())
+      .filter((line) => line && line !== "[DONE]");
+    for (let index = ssePayloads.length - 1; index >= 0; index -= 1) {
+      const sseParsed = parseJsonText(ssePayloads[index]);
+      if (sseParsed) {
+        return sseParsed;
+      }
+    }
+  }
+  return payload;
+}
+
 function isSubscriptionRequiredPayload(payload) {
-  return getSubscriptionCode(payload) === SUBSCRIPTION_REQUIRED_CODE;
+  return getSubscriptionCode(normalizeSubscriptionPayloadCandidate(payload)) === SUBSCRIPTION_REQUIRED_CODE;
 }
 
 function triggerSubscriptionRequired(url, provider, error) {
@@ -331,10 +369,11 @@ function buildSubscriptionError(url, provider, payload, status = 200) {
 }
 
 function maybeThrowSubscriptionRequired(url, provider, payload, status = 200) {
-  if (!isLocalApiRequest(url) || !isGenerationRoute(url) || !isSubscriptionRequiredPayload(payload)) {
+  const normalizedPayload = normalizeSubscriptionPayloadCandidate(payload);
+  if (!isLocalApiRequest(url) || !isGenerationRoute(url) || !isSubscriptionRequiredPayload(normalizedPayload)) {
     return;
   }
-  throw buildSubscriptionError(url, provider, payload, status);
+  throw buildSubscriptionError(url, provider, normalizedPayload, status);
 }
 
 export async function requester(options) {

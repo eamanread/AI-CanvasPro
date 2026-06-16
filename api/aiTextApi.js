@@ -1,1 +1,989 @@
-(function(_0x571f87,_0x1cd571){const _0xb5b15b=a12_0x1c38,_0x2c7bff=_0x571f87();while(!![]){try{const _0xb5410=parseInt(_0xb5b15b(0x2b7))/0x1*(parseInt(_0xb5b15b(0x2a7))/0x2)+-parseInt(_0xb5b15b(0x292))/0x3+-parseInt(_0xb5b15b(0x28a))/0x4*(-parseInt(_0xb5b15b(0x23f))/0x5)+parseInt(_0xb5b15b(0x208))/0x6*(-parseInt(_0xb5b15b(0x20f))/0x7)+-parseInt(_0xb5b15b(0x2a2))/0x8*(parseInt(_0xb5b15b(0x270))/0x9)+-parseInt(_0xb5b15b(0x24f))/0xa*(parseInt(_0xb5b15b(0x1f8))/0xb)+parseInt(_0xb5b15b(0x234))/0xc*(parseInt(_0xb5b15b(0x266))/0xd);if(_0xb5410===_0x1cd571)break;else _0x2c7bff['push'](_0x2c7bff['shift']());}catch(_0x488bf2){_0x2c7bff['push'](_0x2c7bff['shift']());}}}(a12_0x41f9,0x72417));import*as a12_0x2fcb05 from'./adapters/ApimartAdapter.js';import*as a12_0x2290c9 from'./adapters/GeminiAdapter.js';import*as a12_0x46d177 from'./adapters/PpioAdapter.js';import{ensureConfig,getProviderConfig}from'./configApi.js';import{applyCameraAngleToPrompt}from'./cameraPromptApi.js';function a12_0x41f9(){const _0x243717=['choices','OffscreenCanvas','catch','markdown','106fLtMzZ','SUBMITTED','[DONE]','length','#ffffff','.avif','图片尺寸无效','stringify','data','authError','32021Ezrkwn','当前环境不支持图片\x20Base64\x20编码','isProxy','文本任务创建失败','width','toString','RunningHUB\x20未返回文本内容','convertToBlob','lastIndexOf','image/gif','服务端返回的不是可解析的\x20JSON。HTTP\x20','SUCCESS','cameraAngle','fillStyle','arrayBuffer','task_id','498ZqWovy','slice','ceil','floor','#d8dee8','runninghub','isGeminiTextModel','63462zQQcce','status','body','image/png','URL','toUpperCase','参考图片处理失败，无法映射\x20@图片\x20引用','CANCELLED','600\x20',':generateContent','onerror','/api/v2/proxy/completions','image/svg+xml','PARSE_ERROR','replace','FAILED','data:image/','lineWidth','CANCELED','lastIndex','），无法发起文本生成请求','/api','src','rgba(15,\x2023,\x2042,\x200.82)','trunc','fillRect','该模型需要图片参考','reason','prompt','errorMessage','fromCharCode','apimart','exec','文本任务执行失败','provider','url','naturalHeight','6036GJTshf','message','POST','/api/v2/proxy/image','.webp','image/jpeg','px\x20sans-serif','createElement','crossOrigin','SUCCEEDED','application/json','55305HPkFGO','API\x20Key\x20未配置（厂商：','RunningHUB\x20文本任务创建成功但未返回\x20taskId','isArray','当前环境不支持多图合成','includes','content','taskId','textBaseline','parse','indexOf','Image','string','image/','revokeObjectURL','function','3170JrHMYJ','gemini-3.1-pro','image_url','code','push','canvas','dispose','.svg','base64','system','error','.bmp','systemPrompt','remote','https://www.runninghub.cn/openapi/v2/query','min','ppio','/v1','QUEUED','blob','grsai','msg','naturalWidth','76063rwyixt','\x20字符）。为避免接口/代理返回异常，请分段生成：先让模型输出大纲，再按章节逐段生成。','data:','响应看起来像\x20HTML（常见原因：网关/防火墙拦截、API\x20地址错误、上游返回了错误页）。\x0a','candidates','drawImage','apiKey','round','You\x20are\x20a\x20helpful\x20assistant.','inputImageUrls','5785254kmILDc','type','middle','center','getTextProxyApiUrl','detail','文本任务轮询失败','/chat/completions','custom','handle','forEach','/api/','openai','服务端返回了空响应','RUNNING','object','now','textAlign','toBlob','服务端未返回文本内容','filter','ERROR','results','fillText','modelApiKey','test','160FKBGHi','createObjectURL','onload','source','当前环境不支持图片加载','model','https://www.runninghub.cn/openapi/v2/','\x0a[结尾]\x0a','2197383QNAjgC','PENDING','headers','failedReason','anonymous','strokeRect','sqrt','match','endsWith','Bearer\x20','parts','max','undefined','runninghub-model/','.gif','参考图片处理失败，无法上传到\x20RunningHUB','8BnQKsV','startsWith','image/webp','响应片段(截断)：\x0a[开头]\x0a','#f5f7fb','2510uiUReB','toLowerCase','/v1beta/models','map','split','index','FAIL','text','/v1/chat/completions','height','close','trim'];a12_0x41f9=function(){return _0x243717;};return a12_0x41f9();}import{fetchWithTimeout,buildApiUrl}from'./apiBase.js';import{processInputImages,uploadToRunningHub}from'./imageUploadApi.js';import{get as a12_0x5eb023}from'./requester.js';import{ApiError,parseError,parseNetworkError}from'./errors/index.js';const GENERATION_TIMEOUT=0x5*0x3c*0x3e8,IMAGE_MENTION_RE=/@图片\d+/g,RUNNINGHUB_CONTACT_SHEET_MAX_SIDE_PX=0x800,RUNNINGHUB_CONTACT_SHEET_GAP_PX=0x18,RUNNINGHUB_CONTACT_SHEET_MIN_CELL_PX=0x100;function normalizeInputUrls(_0x4c72d3){const _0x4d6e14=a12_0x1c38;return Array[_0x4d6e14(0x242)](_0x4c72d3)?_0x4c72d3[_0x4d6e14(0x2aa)](_0x5232a2=>String(_0x5232a2||'')['trim']())[_0x4d6e14(0x284)](Boolean):[];}const RUNNINGHUB_POLL_INTERVAL_MS=0xbb8;function sleep(_0x462827){return new Promise(_0x30ef8d=>setTimeout(_0x30ef8d,_0x462827));}function pickFirstNonEmptyString(_0x26102c){const _0x3e6123=a12_0x1c38;for(const _0x1998fb of _0x26102c){if(typeof _0x1998fb===_0x3e6123(0x24b)&&_0x1998fb[_0x3e6123(0x2b2)]())return _0x1998fb[_0x3e6123(0x2b2)]();}return'';}function isRunningHubTextModel(_0x81b133,_0x4470f3){const _0x182a4e=a12_0x1c38;return _0x81b133==='runninghub'&&String(_0x4470f3||'')[_0x182a4e(0x2a3)](_0x182a4e(0x29f));}function parseRunningHubResponseData(_0x1e5c93){const _0x5ddeb0=a12_0x1c38;if(!_0x1e5c93)return{};if(typeof _0x1e5c93===_0x5ddeb0(0x27f))return _0x1e5c93;const _0x34ef9e=String(_0x1e5c93||'')[_0x5ddeb0(0x2b2)]();if(!_0x34ef9e)return{};try{return JSON['parse'](_0x34ef9e);}catch{}const _0x21659a=_0x34ef9e[_0x5ddeb0(0x2ab)]('\x0a')[_0x5ddeb0(0x284)](_0xbaba89=>_0xbaba89['trim']()[_0x5ddeb0(0x2a3)](_0x5ddeb0(0x268)));if(_0x21659a[_0x5ddeb0(0x2ba)]>0x0){const _0x2ac8c0=_0x21659a[_0x21659a['length']-0x1]['replace'](/^data:\s*/,'');try{return JSON[_0x5ddeb0(0x248)](_0x2ac8c0);}catch{}}throw new Error('无法解析\x20RunningHUB\x20文本接口响应');}function getRunningHubTaskId(_0x1dff75){const _0xb4e791=a12_0x1c38;return String(_0x1dff75?.[_0xb4e791(0x246)]||_0x1dff75?.[_0xb4e791(0x207)]||_0x1dff75?.[_0xb4e791(0x1f6)]?.['taskId']||_0x1dff75?.[_0xb4e791(0x1f6)]?.['task_id']||_0x1dff75?.[_0xb4e791(0x1f6)]?.['id']||_0x1dff75?.['id']||'')['trim']();}function stringifyRunningHubReason(_0x5b08f2){const _0x4aa185=a12_0x1c38;if(_0x5b08f2==null)return'';if(typeof _0x5b08f2===_0x4aa185(0x24b))return _0x5b08f2[_0x4aa185(0x2b2)]();if(typeof _0x5b08f2===_0x4aa185(0x27f)){const _0x12b8a0=pickFirstNonEmptyString([_0x5b08f2[_0x4aa185(0x235)],_0x5b08f2[_0x4aa185(0x22c)],_0x5b08f2[_0x4aa185(0x259)],_0x5b08f2[_0x4aa185(0x264)],_0x5b08f2[_0x4aa185(0x22a)],_0x5b08f2[_0x4aa185(0x275)]]);if(_0x12b8a0)return _0x12b8a0;try{return JSON['stringify'](_0x5b08f2);}catch{}}return String(_0x5b08f2||'')[_0x4aa185(0x2b2)]();}function getRunningHubTextErrorMessage(_0x5689b0,_0x360909='文本生成失败'){const _0x136f59=a12_0x1c38;return pickFirstNonEmptyString([_0x5689b0?.[_0x136f59(0x22c)],_0x5689b0?.['message'],_0x5689b0?.[_0x136f59(0x259)],_0x5689b0?.[_0x136f59(0x264)],stringifyRunningHubReason(_0x5689b0?.[_0x136f59(0x295)]),stringifyRunningHubReason(_0x5689b0?.['reason'])])||_0x360909;}function sanitizeGeneratedText(_0x5ac96b){const _0x466e28=a12_0x1c38;return String(_0x5ac96b||'')['replace'](/<think>[\s\S]*?<\/think>\n?/g,'')[_0x466e28(0x2b2)]();}function hasImageMentions(_0x551a21){const _0x16e16c=a12_0x1c38;return/@图片\d+/[_0x16e16c(0x289)](String(_0x551a21||''));}function guessImageMimeType(_0x594f24){const _0x13c5b2=a12_0x1c38,_0xb1c687=String(_0x594f24||'')[_0x13c5b2(0x2b2)]()[_0x13c5b2(0x2a8)]();if(_0xb1c687[_0x13c5b2(0x2a3)](_0x13c5b2(0x21f))){const _0x579410=_0xb1c687[_0x13c5b2(0x299)](/^data:(image\/[^;,]+)[;,]/i);return _0x579410?.[0x1]||_0x13c5b2(0x212);}if(_0xb1c687[_0x13c5b2(0x244)]('.png'))return _0x13c5b2(0x212);if(_0xb1c687['includes'](_0x13c5b2(0x238)))return _0x13c5b2(0x2a4);if(_0xb1c687[_0x13c5b2(0x244)](_0x13c5b2(0x2a0)))return _0x13c5b2(0x201);if(_0xb1c687[_0x13c5b2(0x244)](_0x13c5b2(0x25a)))return'image/bmp';if(_0xb1c687[_0x13c5b2(0x244)](_0x13c5b2(0x256)))return _0x13c5b2(0x21b);if(_0xb1c687['includes'](_0x13c5b2(0x1f3)))return'image/avif';return _0x13c5b2(0x239);}function arrayBufferToBase64(_0xf3232d){const _0x8af7fb=a12_0x1c38;if(typeof Buffer!==_0x8af7fb(0x29e))return Buffer['from'](_0xf3232d)[_0x8af7fb(0x1fd)](_0x8af7fb(0x257));const _0x512d67=new Uint8Array(_0xf3232d);let _0x52ca9a='';const _0x42d814=0x8000;for(let _0x2d7f07=0x0;_0x2d7f07<_0x512d67[_0x8af7fb(0x2ba)];_0x2d7f07+=_0x42d814){const _0xedb55b=_0x512d67['subarray'](_0x2d7f07,_0x2d7f07+_0x42d814);_0x52ca9a+=String[_0x8af7fb(0x22d)](..._0xedb55b);}if(typeof btoa==='function')return btoa(_0x52ca9a);throw new Error(_0x8af7fb(0x1f9));}function a12_0x1c38(_0x4c7551,_0x3bd552){_0x4c7551=_0x4c7551-0x1f2;const _0x41f97d=a12_0x41f9();let _0x1c38a1=_0x41f97d[_0x4c7551];return _0x1c38a1;}function resolveInputFetchUrl(_0x31bdd6){const _0x43fd27=a12_0x1c38,_0x489a1e=String(_0x31bdd6||'')[_0x43fd27(0x2b2)]();if(!_0x489a1e)return'';if(/^(?:https?:|data:|blob:)/i['test'](_0x489a1e))return _0x489a1e;if(_0x489a1e[_0x43fd27(0x2a3)]('/'))return buildApiUrl(_0x489a1e);return _0x489a1e;}function loadCanvasImageFromObjectUrl(_0x4c562f){return new Promise((_0x2efac3,_0xd7c590)=>{const _0x37ee5a=a12_0x1c38,_0x4ab52e=globalThis?.[_0x37ee5a(0x24a)];if(typeof _0x4ab52e!=='function'){_0xd7c590(new Error(_0x37ee5a(0x28e)));return;}const _0x26e78f=new _0x4ab52e();_0x37ee5a(0x23c)in _0x26e78f&&(_0x26e78f[_0x37ee5a(0x23c)]=_0x37ee5a(0x296)),_0x26e78f[_0x37ee5a(0x28c)]=()=>_0x2efac3(_0x26e78f),_0x26e78f[_0x37ee5a(0x219)]=()=>_0xd7c590(new Error('图片加载失败')),_0x26e78f[_0x37ee5a(0x225)]=_0x4c562f;});}async function loadCanvasImageSource(_0x3a60f9){const _0x3348a7=a12_0x1c38,_0x3f472f=globalThis?.['createImageBitmap'];if(typeof _0x3f472f===_0x3348a7(0x24e)){const _0x1ac85f=await _0x3f472f(_0x3a60f9),_0x1ee9b4=Number(_0x1ac85f?.[_0x3348a7(0x1fc)]||0x0),_0x9fc6b8=Number(_0x1ac85f?.[_0x3348a7(0x2b0)]||0x0);if(_0x1ee9b4>0x0&&_0x9fc6b8>0x0)return{'handle':_0x1ac85f,'width':_0x1ee9b4,'height':_0x9fc6b8,'dispose':()=>_0x1ac85f?.[_0x3348a7(0x2b1)]?.()};_0x1ac85f?.[_0x3348a7(0x2b1)]?.();}const _0x46999d=globalThis?.[_0x3348a7(0x213)];if(typeof _0x46999d?.[_0x3348a7(0x28b)]!==_0x3348a7(0x24e))throw new Error(_0x3348a7(0x243));const _0x4b91d3=_0x46999d[_0x3348a7(0x28b)](_0x3a60f9);try{const _0x46353f=await loadCanvasImageFromObjectUrl(_0x4b91d3),_0xdd94d7=Number(_0x46353f?.[_0x3348a7(0x265)]||_0x46353f?.[_0x3348a7(0x1fc)]||0x0),_0x1a7e4b=Number(_0x46353f?.[_0x3348a7(0x233)]||_0x46353f?.[_0x3348a7(0x2b0)]||0x0);if(!(_0xdd94d7>0x0&&_0x1a7e4b>0x0))throw new Error(_0x3348a7(0x1f4));return{'handle':_0x46353f,'width':_0xdd94d7,'height':_0x1a7e4b,'dispose':()=>_0x46999d[_0x3348a7(0x24d)]?.(_0x4b91d3)};}catch(_0x272135){_0x46999d[_0x3348a7(0x24d)]?.(_0x4b91d3);throw _0x272135;}}function createCanvasTarget(_0x4fe94f,_0xb9cf80){const _0x484b99=a12_0x1c38,_0x492d58=globalThis?.[_0x484b99(0x2b4)];if(typeof _0x492d58===_0x484b99(0x24e)){const _0x29133d=new _0x492d58(_0x4fe94f,_0xb9cf80);return{'canvas':_0x29133d,'toBlob':async()=>{const _0x5e2939=_0x484b99;if(typeof _0x29133d[_0x5e2939(0x1ff)]===_0x5e2939(0x24e))return await _0x29133d['convertToBlob']({'type':_0x5e2939(0x212)});return null;}};}if(typeof document!=='undefined'&&typeof document[_0x484b99(0x23b)]===_0x484b99(0x24e)){const _0x3dbd01=document[_0x484b99(0x23b)](_0x484b99(0x254));return _0x3dbd01[_0x484b99(0x1fc)]=_0x4fe94f,_0x3dbd01[_0x484b99(0x2b0)]=_0xb9cf80,{'canvas':_0x3dbd01,'toBlob':async()=>await new Promise(_0x1acbea=>{const _0x48dbea=_0x484b99;if(typeof _0x3dbd01['toBlob']!==_0x48dbea(0x24e)){_0x1acbea(null);return;}_0x3dbd01[_0x48dbea(0x282)](_0x176e3c=>_0x1acbea(_0x176e3c),_0x48dbea(0x212));})};}throw new Error(_0x484b99(0x243));}function resolveRunningHubContactSheetGrid(_0x11c37c){const _0xacd3ec=a12_0x1c38,_0x2f35fc=Math['max'](0x1,Math[_0xacd3ec(0x227)](Number(_0x11c37c)||0x1)),_0x3eff4a=_0x2f35fc===0x2?0x2:Math[_0xacd3ec(0x20a)](Math[_0xacd3ec(0x298)](_0x2f35fc)),_0xeb8ac9=Math[_0xacd3ec(0x20a)](_0x2f35fc/_0x3eff4a);return{'cols':_0x3eff4a,'rows':_0xeb8ac9};}function resolveRunningHubContactSheetCellSize(_0x6e8413,_0x5bb1f1){const _0x206e23=a12_0x1c38,_0x4c06f1=RUNNINGHUB_CONTACT_SHEET_MAX_SIDE_PX,_0x103df8=RUNNINGHUB_CONTACT_SHEET_GAP_PX,_0xedf097=Math[_0x206e23(0x20b)]((_0x4c06f1-_0x103df8*(_0x6e8413+0x1))/_0x6e8413),_0x23b4cb=Math['floor']((_0x4c06f1-_0x103df8*(_0x5bb1f1+0x1))/_0x5bb1f1);return Math[_0x206e23(0x29d)](RUNNINGHUB_CONTACT_SHEET_MIN_CELL_PX,Math[_0x206e23(0x25e)](_0xedf097,_0x23b4cb));}async function composeRunningHubMultiImageBlob(_0x3fcd89){const _0x52b6ba=a12_0x1c38,_0x229e5a=normalizeInputUrls(_0x3fcd89),_0x53fece=[];for(const _0x1753f1 of _0x229e5a){try{const _0x161b32=await a12_0x5eb023(resolveInputFetchUrl(_0x1753f1),{'provider':'remote','buildUrl':![],'responseType':_0x52b6ba(0x262)}),_0x3f6a24=await loadCanvasImageSource(_0x161b32);_0x53fece[_0x52b6ba(0x253)]({'blob':_0x161b32,'source':_0x3f6a24});}catch{}}if(_0x53fece[_0x52b6ba(0x2ba)]===0x0)throw new Error('参考图片处理失败，无法合成多图输入');if(_0x53fece[_0x52b6ba(0x2ba)]===0x1){const _0x1cd8dd=_0x53fece[0x0][_0x52b6ba(0x262)];return _0x53fece[0x0][_0x52b6ba(0x28d)]?.[_0x52b6ba(0x255)]?.(),_0x1cd8dd;}try{const {cols:_0x42e74d,rows:_0x15d011}=resolveRunningHubContactSheetGrid(_0x53fece[_0x52b6ba(0x2ba)]),_0x51b2a0=RUNNINGHUB_CONTACT_SHEET_GAP_PX,_0x43b0b1=resolveRunningHubContactSheetCellSize(_0x42e74d,_0x15d011),_0x214dd7=_0x42e74d*_0x43b0b1+_0x51b2a0*(_0x42e74d+0x1),_0x439dd6=_0x15d011*_0x43b0b1+_0x51b2a0*(_0x15d011+0x1),{canvas:_0xd246a4,toBlob:_0x2d984f}=createCanvasTarget(_0x214dd7,_0x439dd6),_0x2ba87d=_0xd246a4?.['getContext']?.('2d');if(!_0x2ba87d||typeof _0x2ba87d[_0x52b6ba(0x26b)]!==_0x52b6ba(0x24e))throw new Error(_0x52b6ba(0x243));_0x2ba87d[_0x52b6ba(0x205)]=_0x52b6ba(0x1f2),_0x2ba87d[_0x52b6ba(0x228)]?.(0x0,0x0,_0x214dd7,_0x439dd6);const _0x349711=Math[_0x52b6ba(0x29d)](0x1e,Math[_0x52b6ba(0x26d)](_0x43b0b1*0.14)),_0x1444fd=Math[_0x52b6ba(0x29d)](0x10,Math['round'](_0x349711*0.48));_0x53fece[_0x52b6ba(0x27a)]((_0x3c568e,_0x2a8dfd)=>{const _0x1bc3f4=_0x52b6ba,_0x1b704a=Math['floor'](_0x2a8dfd/_0x42e74d),_0x4e3af6=_0x2a8dfd%_0x42e74d,_0x2fbd9e=_0x51b2a0+_0x4e3af6*(_0x43b0b1+_0x51b2a0),_0xfba47d=_0x51b2a0+_0x1b704a*(_0x43b0b1+_0x51b2a0);_0x2ba87d[_0x1bc3f4(0x205)]=_0x1bc3f4(0x2a6),_0x2ba87d[_0x1bc3f4(0x228)]?.(_0x2fbd9e,_0xfba47d,_0x43b0b1,_0x43b0b1);const _0x2e6200=Math[_0x1bc3f4(0x29d)](0x1,Number(_0x3c568e[_0x1bc3f4(0x28d)]['width']||0x1)),_0x5419c8=Math[_0x1bc3f4(0x29d)](0x1,Number(_0x3c568e['source'][_0x1bc3f4(0x2b0)]||0x1)),_0x12a5de=Math[_0x1bc3f4(0x25e)](_0x43b0b1/_0x2e6200,_0x43b0b1/_0x5419c8),_0x4d091e=Math['max'](0x1,Math[_0x1bc3f4(0x26d)](_0x2e6200*_0x12a5de)),_0x52219a=Math['max'](0x1,Math[_0x1bc3f4(0x26d)](_0x5419c8*_0x12a5de)),_0x57c508=_0x2fbd9e+Math['round']((_0x43b0b1-_0x4d091e)/0x2),_0xbceb6c=_0xfba47d+Math[_0x1bc3f4(0x26d)]((_0x43b0b1-_0x52219a)/0x2);_0x2ba87d[_0x1bc3f4(0x26b)](_0x3c568e[_0x1bc3f4(0x28d)][_0x1bc3f4(0x279)],_0x57c508,_0xbceb6c,_0x4d091e,_0x52219a),_0x2ba87d['strokeStyle']=_0x1bc3f4(0x20c),_0x2ba87d[_0x1bc3f4(0x220)]=0x2,_0x2ba87d[_0x1bc3f4(0x297)]?.(_0x2fbd9e+0x1,_0xfba47d+0x1,_0x43b0b1-0x2,_0x43b0b1-0x2),_0x2ba87d['fillStyle']=_0x1bc3f4(0x226),_0x2ba87d[_0x1bc3f4(0x228)]?.(_0x2fbd9e+0xc,_0xfba47d+0xc,_0x349711,_0x349711),_0x2ba87d[_0x1bc3f4(0x205)]=_0x1bc3f4(0x1f2),_0x2ba87d['font']=_0x1bc3f4(0x217)+_0x1444fd+_0x1bc3f4(0x23a),_0x2ba87d[_0x1bc3f4(0x281)]=_0x1bc3f4(0x273),_0x2ba87d[_0x1bc3f4(0x247)]=_0x1bc3f4(0x272),_0x2ba87d[_0x1bc3f4(0x287)]?.(String(_0x2a8dfd+0x1),_0x2fbd9e+0xc+_0x349711/0x2,_0xfba47d+0xc+_0x349711/0x2);});const _0x343f23=await _0x2d984f();if(!_0x343f23)throw new Error('多图合成失败');return _0x343f23;}finally{_0x53fece['forEach'](_0x47ef51=>{const _0x250b81=_0x52b6ba;_0x47ef51[_0x250b81(0x28d)]?.[_0x250b81(0x255)]?.();});}}async function buildRunningHubTextImageUrl(_0x35a1fa,_0x46b690){const _0x36cd1d=a12_0x1c38,_0x4e0e1a=normalizeInputUrls(_0x35a1fa);if(_0x4e0e1a[_0x36cd1d(0x2ba)]===0x0)return'';if(_0x4e0e1a[_0x36cd1d(0x2ba)]===0x1){const _0x26be83=await processInputImages(_0x4e0e1a,_0x46b690,{'applyInputQualityProfile':!![],'provider':_0x36cd1d(0x20d),'preferFree':![]});return String(_0x26be83[0x0]||'')['trim']();}const _0x38417b=await composeRunningHubMultiImageBlob(_0x4e0e1a);return String(await uploadToRunningHub(_0x38417b,_0x46b690))[_0x36cd1d(0x2b2)]();}function mergeAdjacentTextParts(_0x5c3396,{createTextPart:_0x58a88a,isTextPart:_0x5a46aa}){const _0x3d4f9c=a12_0x1c38,_0x4f8a2f=[];let _0xe19b09='';const _0x1bc7bc=()=>{const _0x366bce=a12_0x1c38;if(!_0xe19b09)return;_0x4f8a2f[_0x366bce(0x253)](_0x58a88a(_0xe19b09)),_0xe19b09='';};for(const _0x2327c6 of _0x5c3396){if(!_0x2327c6)continue;if(_0x5a46aa(_0x2327c6)){_0xe19b09+=String(_0x2327c6[_0x3d4f9c(0x2ae)]||'');continue;}_0x1bc7bc(),_0x4f8a2f['push'](_0x2327c6);}return _0x1bc7bc(),_0x4f8a2f;}function buildPromptMediaParts(_0x5e92e6,_0x2fa80d,{createTextPart:_0x3b50cb,isTextPart:_0x9f4ae1}){const _0x5778c2=a12_0x1c38,_0x50933c=String(_0x5e92e6||''),_0x282801=Array[_0x5778c2(0x242)](_0x2fa80d)?_0x2fa80d[_0x5778c2(0x284)](Boolean):[];if(_0x282801[_0x5778c2(0x2ba)]===0x0)return _0x50933c?[_0x3b50cb(_0x50933c)]:[];const _0x43eadf=[];let _0x344d8c=0x0,_0x4e15c0=0x0,_0x166a1d;IMAGE_MENTION_RE[_0x5778c2(0x222)]=0x0;while(_0x166a1d=IMAGE_MENTION_RE[_0x5778c2(0x22f)](_0x50933c)){const _0x1a5c9c=_0x50933c[_0x5778c2(0x209)](_0x4e15c0,_0x166a1d[_0x5778c2(0x2ac)]);_0x1a5c9c&&_0x43eadf[_0x5778c2(0x253)](_0x3b50cb(_0x1a5c9c));const _0xa7e287=_0x282801[_0x344d8c++];_0xa7e287?_0x43eadf['push'](_0xa7e287):_0x43eadf[_0x5778c2(0x253)](_0x3b50cb(_0x166a1d[0x0])),_0x4e15c0=_0x166a1d['index']+_0x166a1d[0x0][_0x5778c2(0x2ba)];}const _0x44db48=_0x50933c[_0x5778c2(0x209)](_0x4e15c0);_0x44db48&&_0x43eadf[_0x5778c2(0x253)](_0x3b50cb(_0x44db48));while(_0x344d8c<_0x282801[_0x5778c2(0x2ba)]){_0x43eadf[_0x5778c2(0x253)](_0x282801[_0x344d8c++]);}if(_0x43eadf[_0x5778c2(0x2ba)]===0x0)return _0x282801[_0x5778c2(0x209)]();return mergeAdjacentTextParts(_0x43eadf,{'createTextPart':_0x3b50cb,'isTextPart':_0x9f4ae1});}async function fetchInlineImagePart(_0x1d5719){const _0x58a87b=a12_0x1c38,_0x5b18a3=String(_0x1d5719||'')[_0x58a87b(0x2b2)]()[_0x58a87b(0x299)](/^data:(image\/[^;,]+);base64,(.+)$/i);if(_0x5b18a3)return{'inline_data':{'mime_type':_0x5b18a3[0x1],'data':_0x5b18a3[0x2]}};const _0x5e72f5=await a12_0x5eb023(_0x1d5719,{'provider':_0x58a87b(0x25c),'buildUrl':![],'responseType':_0x58a87b(0x262)}),_0x135a0f=String(_0x5e72f5?.[_0x58a87b(0x271)]||'')[_0x58a87b(0x2b2)]()||guessImageMimeType(_0x1d5719);if(!_0x135a0f[_0x58a87b(0x2a3)](_0x58a87b(0x24c)))return null;const _0x4e33d3=await _0x5e72f5[_0x58a87b(0x206)]();return{'inline_data':{'mime_type':_0x135a0f,'data':arrayBufferToBase64(_0x4e33d3)}};}async function buildGeminiUserParts(_0x45585d,_0x40c881){const _0x56495b=a12_0x1c38,_0x2d9d55=[];for(const _0x2b089f of _0x40c881){try{const _0x137dae=await fetchInlineImagePart(_0x2b089f);if(_0x137dae)_0x2d9d55[_0x56495b(0x253)](_0x137dae);}catch{}}if(hasImageMentions(_0x45585d)&&_0x40c881[_0x56495b(0x2ba)]>0x0&&_0x2d9d55['length']===0x0)throw new Error(_0x56495b(0x215));return buildPromptMediaParts(_0x45585d,_0x2d9d55,{'createTextPart':_0x44e841=>({'text':_0x44e841}),'isTextPart':_0x449b54=>!!_0x449b54&&typeof _0x449b54[_0x56495b(0x2ae)]===_0x56495b(0x24b)});}async function buildChatCompletionUserContent(_0x32e93b,_0x176e2e,_0x307153,_0x10fe28){const _0x47816c=a12_0x1c38,_0x5ee66f=await processInputImages(_0x176e2e,_0x307153,{'applyInputQualityProfile':!![],'provider':_0x10fe28,'preferFree':!![]}),_0x1a4b11=_0x5ee66f[_0x47816c(0x2aa)](_0xffdda9=>({'type':_0x47816c(0x251),'image_url':{'url':_0xffdda9}}));if(hasImageMentions(_0x32e93b)&&_0x176e2e[_0x47816c(0x2ba)]>0x0&&_0x1a4b11['length']===0x0)throw new Error('参考图片处理失败，无法映射\x20@图片\x20引用');const _0x3fc85e=buildPromptMediaParts(_0x32e93b,_0x1a4b11,{'createTextPart':_0x21e55c=>({'type':_0x47816c(0x2ae),'text':_0x21e55c}),'isTextPart':_0x45157a=>!!_0x45157a&&_0x45157a[_0x47816c(0x271)]===_0x47816c(0x2ae)});if(_0x3fc85e[_0x47816c(0x2ba)]===0x1&&_0x3fc85e[0x0]?.[_0x47816c(0x271)]===_0x47816c(0x2ae))return _0x3fc85e[0x0][_0x47816c(0x2ae)];return _0x3fc85e[_0x47816c(0x2ba)]>0x0?_0x3fc85e:String(_0x32e93b||'');}export async function buildGenerateTextRequest(_0x3f9be7){const _0x50ec1d=a12_0x1c38;await ensureConfig();const _0x1063c5=applyCameraAngleToPrompt(_0x3f9be7[_0x50ec1d(0x22b)],_0x3f9be7[_0x50ec1d(0x204)]),_0x53e0f0=_0x1063c5['length'];if(_0x53e0f0>0xc350)throw new Error('提示词过长（'+_0x53e0f0+_0x50ec1d(0x267));let _0x58a6bc=_0x3f9be7[_0x50ec1d(0x28f)]||_0x50ec1d(0x250);_0x58a6bc=a12_0x2fcb05['normalizeTextModel'](_0x58a6bc);const _0x7ecb63=_0x3f9be7[_0x50ec1d(0x231)]==='custom'?'openai':_0x3f9be7['provider']||_0x50ec1d(0x263),_0x324cb1=getProviderConfig(_0x7ecb63),_0x4b424d=_0x324cb1['apiUrl']['replace'](/\/v1\/?$/,''),_0x15c4dd=isRunningHubTextModel(_0x7ecb63,_0x58a6bc)?_0x324cb1[_0x50ec1d(0x288)]||_0x3f9be7['apiKey']||_0x324cb1['apiKey']:_0x3f9be7[_0x50ec1d(0x26c)]||_0x324cb1['apiKey'];if(!_0x15c4dd)throw ApiError[_0x50ec1d(0x1f7)](_0x7ecb63,null,_0x50ec1d(0x240)+_0x7ecb63+_0x50ec1d(0x223));const _0x17b36d=a12_0x2fcb05[_0x50ec1d(0x20e)](_0x7ecb63,_0x58a6bc),_0x1c7d43=normalizeInputUrls(_0x3f9be7['inputUrls']),_0x5c984e=normalizeInputUrls(_0x3f9be7[_0x50ec1d(0x26f)]);if(isRunningHubTextModel(_0x7ecb63,_0x58a6bc)){if(_0x5c984e[_0x50ec1d(0x2ba)]===0x0)throw new Error(_0x50ec1d(0x229));const _0xb6f8a2=await buildRunningHubTextImageUrl(_0x5c984e,_0x15c4dd);if(!_0xb6f8a2)throw new Error(_0x50ec1d(0x2a1));return{'url':_0x50ec1d(0x237),'headers':{'Content-Type':_0x50ec1d(0x23e)},'body':{'apiUrl':_0x50ec1d(0x290)+String(_0x58a6bc)[_0x50ec1d(0x21d)](/^runninghub-model\//,''),'apiKey':_0x15c4dd,'prompt':_0x1063c5,'imageUrl':_0xb6f8a2},'isProxy':!![]};}let _0x2709f6;if(_0x17b36d){const _0x2ec315=await buildGeminiUserParts(_0x1063c5,_0x1c7d43);_0x2709f6=a12_0x2290c9['buildGenerateContentBody'](_0x2ec315[_0x50ec1d(0x2ba)]>0x0?_0x2ec315:_0x1063c5,_0x3f9be7[_0x50ec1d(0x25b)]);}else{const _0x5819b9=await buildChatCompletionUserContent(_0x1063c5,_0x1c7d43,_0x15c4dd,_0x7ecb63);_0x2709f6={'model':_0x58a6bc,'stream':![],'messages':[{'role':_0x50ec1d(0x258),'content':_0x3f9be7[_0x50ec1d(0x25b)]||_0x50ec1d(0x26e)},{'role':'user','content':_0x5819b9}]};}if(_0x7ecb63===_0x50ec1d(0x25f)||_0x7ecb63===_0x50ec1d(0x27c)||_0x7ecb63==='apimart'){let _0x27ff13;if(_0x7ecb63===_0x50ec1d(0x25f))_0x27ff13=a12_0x46d177[_0x50ec1d(0x274)](_0x4b424d);else{if(_0x7ecb63===_0x50ec1d(0x22e))_0x27ff13=a12_0x2fcb05[_0x50ec1d(0x274)](_0x4b424d,_0x58a6bc,_0x17b36d);else{if(_0x4b424d['includes'](_0x50ec1d(0x218))||_0x4b424d[_0x50ec1d(0x244)](_0x50ec1d(0x2a9))||_0x4b424d[_0x50ec1d(0x29a)]('/chat/completions')||_0x4b424d['includes'](_0x50ec1d(0x27b))&&_0x4b424d[_0x50ec1d(0x2ab)](_0x50ec1d(0x27b))[_0x50ec1d(0x2ba)]>0x1)_0x27ff13=_0x4b424d;else{if(_0x4b424d['endsWith'](_0x50ec1d(0x224)))_0x27ff13=_0x4b424d;else _0x4b424d[_0x50ec1d(0x29a)]('/v1')?_0x27ff13=_0x4b424d:_0x27ff13=_0x4b424d+_0x50ec1d(0x260);}}}return{'url':_0x50ec1d(0x21a),'headers':{'Content-Type':'application/json'},'body':{'apiUrl':_0x27ff13,'apiKey':_0x15c4dd,..._0x2709f6},'isProxy':!![]};}let _0x4a0e4a;if(_0x4b424d[_0x50ec1d(0x244)](':generateContent')||_0x4b424d[_0x50ec1d(0x244)]('/v1beta/models')||_0x4b424d['endsWith'](_0x50ec1d(0x277))||_0x4b424d[_0x50ec1d(0x244)](_0x50ec1d(0x27b))&&_0x4b424d['split']('/api/')[_0x50ec1d(0x2ba)]>0x1)_0x4a0e4a=_0x4b424d;else{if(_0x4b424d['endsWith']('/api'))_0x4a0e4a=_0x4b424d+_0x50ec1d(0x2af);else _0x4b424d[_0x50ec1d(0x29a)]('/v1')?_0x4a0e4a=_0x4b424d+_0x50ec1d(0x277):_0x4a0e4a=_0x4b424d+_0x50ec1d(0x2af);}return{'url':_0x4a0e4a,'headers':{'Content-Type':_0x50ec1d(0x23e),'Authorization':_0x50ec1d(0x29b)+_0x15c4dd},'body':_0x2709f6,'isProxy':![]};}function parseTextResponse(_0x459690,_0x5566b3){const _0x15ede5=a12_0x1c38,_0x500ea3='',_0x18e70f=_0x459690['length'],_0x4f5b8f=_0x459690['slice'](0x0,0x190),_0x4c7047=_0x459690[_0x15ede5(0x209)](Math[_0x15ede5(0x29d)](0x0,_0x18e70f-0x190)),_0x152d0f=/<!doctype\s+html|<html[\s>]/i[_0x15ede5(0x289)](_0x4f5b8f),_0x5ad4e8=_0x459690[_0x15ede5(0x21d)](/^\uFEFF/,'')['trim']();let _0x53892b;try{_0x53892b=JSON[_0x15ede5(0x248)](_0x5ad4e8);}catch(_0x108da0){const _0x3c7bf3=_0x5ad4e8[_0x15ede5(0x249)]('{'),_0x5a3f15=_0x5ad4e8[_0x15ede5(0x200)]('}');if(_0x3c7bf3!==-0x1&&_0x5a3f15>_0x3c7bf3)try{_0x53892b=JSON[_0x15ede5(0x248)](_0x5ad4e8[_0x15ede5(0x209)](_0x3c7bf3,_0x5a3f15+0x1));}catch{}if(!_0x53892b){const _0x148497=_0x5ad4e8['split']('\x0a')[_0x15ede5(0x284)](_0x5f46bd=>_0x5f46bd[_0x15ede5(0x2b2)]()['startsWith']('data:'));if(_0x148497[_0x15ede5(0x2ba)]>0x0){const _0xab79cb=_0x148497[_0x148497['length']-0x1][_0x15ede5(0x21d)](/^data:\s*/,'')[_0x15ede5(0x2b2)]();if(_0xab79cb==='[DONE]'){const _0x5da1ad=_0x148497[_0x15ede5(0x284)](_0x50dcec=>_0x50dcec[_0x15ede5(0x21d)](/^data:\s*/,'')['trim']()!==_0x15ede5(0x2b9));if(_0x5da1ad[_0x15ede5(0x2ba)]>0x0){const _0x32a201=_0x5da1ad[_0x5da1ad[_0x15ede5(0x2ba)]-0x1][_0x15ede5(0x21d)](/^data:\s*/,'')[_0x15ede5(0x2b2)]();_0x53892b=JSON[_0x15ede5(0x248)](_0x32a201);}else throw new ApiError({'type':_0x15ede5(0x21c),'message':_0x15ede5(0x27d),'status':_0x5566b3,'retryable':![]});}else try{_0x53892b=JSON[_0x15ede5(0x248)](_0xab79cb);}catch(_0x3ae5cf){throw new ApiError({'type':_0x15ede5(0x21c),'message':'无法解析服务端响应:\x20'+_0x3ae5cf[_0x15ede5(0x235)],'status':_0x5566b3,'retryable':![]});}}else throw new ApiError({'type':_0x15ede5(0x21c),'message':_0x15ede5(0x202)+_0x5566b3+(_0x500ea3?'\x20('+_0x500ea3+')':'')+'，长度\x20'+_0x18e70f+'。\x0a'+(_0x152d0f?_0x15ede5(0x269):'')+_0x15ede5(0x2a5)+_0x4f5b8f+_0x15ede5(0x291)+_0x4c7047,'status':_0x5566b3,'retryable':![]});}}return _0x53892b;}function extractTextContent(_0xbe5fb5){const _0x11bc47=a12_0x1c38,_0x26cdca=_0xbe5fb5?.[_0x11bc47(0x2b3)]||_0xbe5fb5?.[_0x11bc47(0x1f6)]?.[_0x11bc47(0x2b3)];let _0x17c7ab=_0x26cdca?.[0x0]?.[_0x11bc47(0x235)]?.[_0x11bc47(0x245)];!_0x17c7ab&&_0xbe5fb5?.[_0x11bc47(0x1f6)]?.[_0x11bc47(0x26a)]?.[0x0]?.[_0x11bc47(0x245)]?.[_0x11bc47(0x29c)]?.[0x0]?.['text']&&(_0x17c7ab=_0xbe5fb5[_0x11bc47(0x1f6)][_0x11bc47(0x26a)][0x0]['content'][_0x11bc47(0x29c)][0x0][_0x11bc47(0x2ae)]);!_0x17c7ab&&_0xbe5fb5?.[_0x11bc47(0x26a)]?.[0x0]?.[_0x11bc47(0x245)]?.['parts']?.[0x0]?.[_0x11bc47(0x2ae)]&&(_0x17c7ab=_0xbe5fb5[_0x11bc47(0x26a)][0x0]['content'][_0x11bc47(0x29c)][0x0]['text']);if(!_0x17c7ab){const _0x5904d8=Array[_0x11bc47(0x242)](_0xbe5fb5?.[_0x11bc47(0x286)])?_0xbe5fb5[_0x11bc47(0x286)]:Array[_0x11bc47(0x242)](_0xbe5fb5?.[_0x11bc47(0x1f6)]?.[_0x11bc47(0x286)])?_0xbe5fb5[_0x11bc47(0x1f6)]['results']:[];_0x17c7ab=pickFirstNonEmptyString(_0x5904d8[_0x11bc47(0x2aa)](_0x1a5acd=>_0x1a5acd?.['text']))||pickFirstNonEmptyString([_0xbe5fb5?.[_0x11bc47(0x2ae)],_0xbe5fb5?.['output'],typeof _0xbe5fb5?.[_0x11bc47(0x245)]===_0x11bc47(0x24b)?_0xbe5fb5[_0x11bc47(0x245)]:'',_0xbe5fb5?.[_0x11bc47(0x2b6)],_0xbe5fb5?.['caption'],_0xbe5fb5?.[_0x11bc47(0x1f6)]?.[_0x11bc47(0x2ae)],_0xbe5fb5?.[_0x11bc47(0x1f6)]?.['output'],typeof _0xbe5fb5?.[_0x11bc47(0x1f6)]?.['content']===_0x11bc47(0x24b)?_0xbe5fb5[_0x11bc47(0x1f6)][_0x11bc47(0x245)]:'']);}return _0x17c7ab;}async function pollRunningHubTextTask(_0x29c309,_0x1ec133,_0x731f17){const _0x553d0b=a12_0x1c38,_0x5c71d4=Date[_0x553d0b(0x280)]();while(Date[_0x553d0b(0x280)]()-_0x5c71d4<GENERATION_TIMEOUT){await sleep(RUNNINGHUB_POLL_INTERVAL_MS);const _0x54968b=await fetchWithTimeout(buildApiUrl(_0x553d0b(0x237)),{'method':_0x553d0b(0x236),'headers':{'Content-Type':_0x553d0b(0x23e)},'body':JSON['stringify']({'apiUrl':_0x553d0b(0x25d),'apiKey':_0x1ec133,'taskId':_0x29c309})},0x7530);if(!_0x54968b['ok']){const _0x357089=await _0x54968b[_0x553d0b(0x2ae)]()[_0x553d0b(0x2b5)](()=>'');let _0x11d069;try{_0x11d069=JSON[_0x553d0b(0x248)](_0x357089);}catch{_0x11d069={'error':_0x357089};}throw parseError(_0x731f17,_0x11d069,_0x54968b[_0x553d0b(0x210)]);}const _0x49b071=parseRunningHubResponseData(await _0x54968b[_0x553d0b(0x2ae)]()),_0x430ad3=Number(_0x49b071?.[_0x553d0b(0x252)]);if(Number['isFinite'](_0x430ad3)){if(_0x430ad3===0x324||_0x430ad3===0x32d)continue;if(_0x430ad3!==0x0)throw new Error(getRunningHubTextErrorMessage(_0x49b071,_0x553d0b(0x276)));}const _0x2856d1=_0x49b071?.['data']&&typeof _0x49b071[_0x553d0b(0x1f6)]===_0x553d0b(0x27f)?_0x49b071[_0x553d0b(0x1f6)]:_0x49b071,_0x38f4c4=String(_0x2856d1?.[_0x553d0b(0x210)]||'')[_0x553d0b(0x214)]();if([_0x553d0b(0x203),_0x553d0b(0x23d),'COMPLETED'][_0x553d0b(0x244)](_0x38f4c4))return _0x2856d1;if([_0x553d0b(0x21e),_0x553d0b(0x2ad),_0x553d0b(0x285),_0x553d0b(0x216),_0x553d0b(0x221)][_0x553d0b(0x244)](_0x38f4c4))throw new Error(getRunningHubTextErrorMessage(_0x2856d1,_0x553d0b(0x230)));}throw new Error('文本任务超时，请稍后重试');}export async function generateText(_0x1e0f5a){const _0xa3f39=a12_0x1c38,_0x2108d4=await buildGenerateTextRequest(_0x1e0f5a),_0x5f3bc7=_0x1e0f5a[_0xa3f39(0x231)]===_0xa3f39(0x278)?_0xa3f39(0x27c):_0x1e0f5a[_0xa3f39(0x231)]||'grsai';let _0x1adbb2;try{const _0x5e53ff=_0x2108d4[_0xa3f39(0x1fa)]?buildApiUrl(_0x2108d4['url']):_0x2108d4[_0xa3f39(0x232)];_0x1adbb2=await fetchWithTimeout(_0x5e53ff,{'method':'POST','headers':_0x2108d4[_0xa3f39(0x294)],'body':JSON[_0xa3f39(0x1f5)](_0x2108d4[_0xa3f39(0x211)])},GENERATION_TIMEOUT);}catch(_0x4d9f8a){throw parseNetworkError(_0x5f3bc7,_0x4d9f8a,GENERATION_TIMEOUT);}if(!_0x1adbb2['ok']){const _0x20b60d=await _0x1adbb2[_0xa3f39(0x2ae)]()[_0xa3f39(0x2b5)](()=>'');let _0x482847;try{_0x482847=JSON['parse'](_0x20b60d);}catch{_0x482847={'error':_0x20b60d};}throw parseError(_0x5f3bc7,_0x482847,_0x1adbb2[_0xa3f39(0x210)]);}const _0x202ee8=await _0x1adbb2['text']();if(isRunningHubTextModel(_0x5f3bc7,_0x1e0f5a['model'])){const _0x28b121=parseRunningHubResponseData(_0x202ee8),_0x555fff=Number(_0x28b121?.['code']);if(Number['isFinite'](_0x555fff)&&_0x555fff!==0x0)throw new Error(getRunningHubTextErrorMessage(_0x28b121,'文本任务创建失败'));let _0x274b64=_0x28b121;const _0xf91afb=String(_0x28b121?.[_0xa3f39(0x210)]||_0x28b121?.[_0xa3f39(0x1f6)]?.[_0xa3f39(0x210)]||'')[_0xa3f39(0x214)](),_0xeaa53d=getRunningHubTaskId(_0x28b121);if([_0xa3f39(0x27e),_0xa3f39(0x293),_0xa3f39(0x261),_0xa3f39(0x2b8)][_0xa3f39(0x244)](_0xf91afb)||_0xeaa53d&&!['SUCCESS','SUCCEEDED','COMPLETED']['includes'](_0xf91afb)){if(!_0xeaa53d)throw new Error(_0xa3f39(0x241));_0x274b64=await pollRunningHubTextTask(_0xeaa53d,_0x2108d4[_0xa3f39(0x211)][_0xa3f39(0x26c)],_0x5f3bc7);}else{if(['FAILED',_0xa3f39(0x2ad),_0xa3f39(0x285),_0xa3f39(0x216),_0xa3f39(0x221)][_0xa3f39(0x244)](_0xf91afb))throw new Error(getRunningHubTextErrorMessage(_0x28b121,_0xa3f39(0x1fb)));}const _0x2f826d=extractTextContent(_0x274b64);if(!_0x2f826d)throw new ApiError({'type':_0xa3f39(0x21c),'provider':_0x5f3bc7,'message':_0xa3f39(0x1fe),'raw':_0x274b64,'retryable':![]});return{'text':sanitizeGeneratedText(_0x2f826d)};}const _0x1d3b0a=parseTextResponse(_0x202ee8,_0x1adbb2['status']),_0x497080=extractTextContent(_0x1d3b0a);if(!_0x497080)throw new ApiError({'type':_0xa3f39(0x21c),'provider':_0x5f3bc7,'message':_0xa3f39(0x283),'raw':_0x1d3b0a,'retryable':![]});return{'text':sanitizeGeneratedText(_0x497080)};}
+import * as ApimartAdapter from "./adapters/ApimartAdapter.js";
+import * as GeminiAdapter from "./adapters/GeminiAdapter.js";
+import * as PpioAdapter from "./adapters/PpioAdapter.js";
+import { ensureConfig, getProviderConfig } from "./configApi.js";
+import { applyCameraAngleToPrompt } from "./cameraPromptApi.js";
+import { buildApiUrl, fetchWithTimeout, fetchWithTimeoutWithSignal } from "./apiBase.js";
+import { processInputImages, uploadToRunningHub } from "./imageUploadApi.js";
+import { get as fetchRemoteBlob } from "./requester.js";
+import { ApiError, parseError, parseNetworkError } from "./errors/index.js";
+
+const GENERATION_TIMEOUT = 10 * 60 * 1000;
+const RUNNINGHUB_POLL_INTERVAL_MS = 3000;
+const IMAGE_MENTION_RE = /@图片\d+/g;
+const RUNNINGHUB_CONTACT_SHEET_MAX_SIDE_PX = 2048;
+const RUNNINGHUB_CONTACT_SHEET_GAP_PX = 24;
+const RUNNINGHUB_CONTACT_SHEET_MIN_CELL_PX = 256;
+const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
+
+function normalizeInputUrls(values) {
+  return Array.isArray(values)
+    ? values.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createAbortError() {
+  const error = new Error("aborted");
+  error.name = "AbortError";
+  return error;
+}
+
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    throw createAbortError();
+  }
+}
+
+function isAbortError(error) {
+  return error?.name === "AbortError" || String(error?.message || "").toLowerCase().includes("abort");
+}
+
+async function sleepWithSignal(ms, signal) {
+  if (!signal) {
+    await sleep(ms);
+    return;
+  }
+
+  throwIfAborted(signal);
+  await new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      signal.removeEventListener("abort", abortListener);
+      resolve();
+    }, ms);
+    const abortListener = () => {
+      clearTimeout(timeoutId);
+      signal.removeEventListener("abort", abortListener);
+      reject(createAbortError());
+    };
+    signal.addEventListener("abort", abortListener, { once: true });
+  });
+}
+
+function pickFirstNonEmptyString(values) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+}
+
+function isRunningHubTextModel(provider, model) {
+  return provider === "runninghub" && String(model || "").startsWith("runninghub-model/");
+}
+
+function parseRunningHubResponseData(value) {
+  if (!value) {
+    return {};
+  }
+  if (typeof value === "object") {
+    return value;
+  }
+
+  const text = String(value || "").trim();
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {}
+
+  const sseLines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"));
+  if (sseLines.length > 0) {
+    const lastPayload = sseLines[sseLines.length - 1].replace(/^data:\s*/, "");
+    try {
+      return JSON.parse(lastPayload);
+    } catch {}
+  }
+
+  throw new Error("无法解析 RunningHUB 文本接口响应");
+}
+
+function getRunningHubTaskId(payload) {
+  return String(
+    payload?.taskId ||
+      payload?.task_id ||
+      payload?.data?.taskId ||
+      payload?.data?.task_id ||
+      payload?.data?.id ||
+      payload?.id ||
+      ""
+  ).trim();
+}
+
+function stringifyRunningHubReason(value) {
+  if (value == null) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  if (typeof value === "object") {
+    const direct = pickFirstNonEmptyString([
+      value.message,
+      value.msg,
+      value.errorMessage,
+      value.failedReason,
+      value.reason,
+      value.detail,
+    ]);
+    if (direct) {
+      return direct;
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {}
+  }
+  return String(value || "").trim();
+}
+
+function getRunningHubTextErrorMessage(payload, fallback = "文本生成失败") {
+  return (
+    pickFirstNonEmptyString([
+      payload?.msg,
+      payload?.message,
+      payload?.errorMessage,
+      payload?.failedReason,
+      stringifyRunningHubReason(payload?.reason),
+      stringifyRunningHubReason(payload?.detail),
+    ]) || fallback
+  );
+}
+
+function sanitizeGeneratedText(value) {
+  return String(value || "").replace(/<think>[\s\S]*?<\/think>\n?/g, "").trim();
+}
+
+function hasImageMentions(prompt) {
+  return /@图片\d+/.test(String(prompt || ""));
+}
+
+function guessImageMimeType(url) {
+  const normalized = String(url || "").trim().toLowerCase();
+  if (normalized.startsWith("data:")) {
+    const match = normalized.match(/^data:(image\/[^;,]+)[;,]/i);
+    return match?.[1] || "image/png";
+  }
+  if (normalized.endsWith(".png")) return "image/png";
+  if (normalized.includes(".jpg") || normalized.includes(".jpeg")) return "image/jpeg";
+  if (normalized.endsWith(".webp")) return "image/webp";
+  if (normalized.endsWith(".bmp")) return "image/bmp";
+  if (normalized.endsWith(".gif")) return "image/gif";
+  if (normalized.includes(".avif")) return "image/avif";
+  if (normalized.endsWith(".svg")) return "image/svg+xml";
+  return "image/jpeg";
+}
+
+function arrayBufferToBase64(buffer) {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(buffer).toString("base64");
+  }
+
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  if (typeof btoa === "function") {
+    return btoa(binary);
+  }
+  throw new Error("当前环境不支持图片 Base64 编码");
+}
+
+function resolveInputFetchUrl(url) {
+  const normalized = String(url || "").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (/^(?:https?:|data:|blob:)/i.test(normalized)) {
+    return normalized;
+  }
+  if (normalized.startsWith("/")) {
+    return buildApiUrl(normalized);
+  }
+  return normalized;
+}
+
+function loadCanvasImageFromObjectUrl(objectUrl) {
+  return new Promise((resolve, reject) => {
+    const ImageCtor = globalThis?.Image;
+    if (typeof ImageCtor !== "function") {
+      reject(new Error("当前环境不支持图片加载"));
+      return;
+    }
+
+    const image = new ImageCtor();
+    if ("crossOrigin" in image) {
+      image.crossOrigin = "anonymous";
+    }
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("图片加载失败"));
+    image.src = objectUrl;
+  });
+}
+
+async function loadCanvasImageSource(blob) {
+  if (typeof globalThis?.createImageBitmap === "function") {
+    const bitmap = await globalThis.createImageBitmap(blob);
+    const width = Number(bitmap?.width || 0);
+    const height = Number(bitmap?.height || 0);
+    if (width > 0 && height > 0) {
+      return {
+        handle: bitmap,
+        width,
+        height,
+        dispose: () => bitmap?.close?.(),
+      };
+    }
+    bitmap?.close?.();
+  }
+
+  const urlApi = globalThis?.URL;
+  if (typeof urlApi?.createObjectURL !== "function") {
+    throw new Error("当前环境不支持图片加载");
+  }
+
+  const objectUrl = urlApi.createObjectURL(blob);
+  try {
+    const image = await loadCanvasImageFromObjectUrl(objectUrl);
+    const width = Number(image?.naturalWidth || image?.width || 0);
+    const height = Number(image?.naturalHeight || image?.height || 0);
+    if (!(width > 0 && height > 0)) {
+      throw new Error("图片尺寸无效");
+    }
+    return {
+      handle: image,
+      width,
+      height,
+      dispose: () => urlApi.revokeObjectURL?.(objectUrl),
+    };
+  } catch (error) {
+    urlApi.revokeObjectURL?.(objectUrl);
+    throw error;
+  }
+}
+
+function createCanvasTarget(width, height) {
+  if (typeof globalThis?.OffscreenCanvas === "function") {
+    const canvas = new globalThis.OffscreenCanvas(width, height);
+    return {
+      canvas,
+      toBlob: async () => {
+        if (typeof canvas.convertToBlob === "function") {
+          return await canvas.convertToBlob({ type: "image/png" });
+        }
+        return null;
+      },
+    };
+  }
+
+  if (typeof document !== "undefined" && typeof document.createElement === "function") {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return {
+      canvas,
+      toBlob: async () =>
+        await new Promise((resolve) => {
+          if (typeof canvas.toBlob !== "function") {
+            resolve(null);
+            return;
+          }
+          canvas.toBlob((blob) => resolve(blob), "image/png");
+        }),
+    };
+  }
+
+  throw new Error("当前环境不支持多图合成");
+}
+
+function resolveRunningHubContactSheetGrid(count) {
+  const safeCount = Math.max(1, Math.trunc(Number(count) || 1));
+  const cols = safeCount === 2 ? 2 : Math.ceil(Math.sqrt(safeCount));
+  const rows = Math.ceil(safeCount / cols);
+  return { cols, rows };
+}
+
+function resolveRunningHubContactSheetCellSize(cols, rows) {
+  const maxSide = RUNNINGHUB_CONTACT_SHEET_MAX_SIDE_PX;
+  const gap = RUNNINGHUB_CONTACT_SHEET_GAP_PX;
+  const byCols = Math.floor((maxSide - gap * (cols + 1)) / cols);
+  const byRows = Math.floor((maxSide - gap * (rows + 1)) / rows);
+  return Math.max(RUNNINGHUB_CONTACT_SHEET_MIN_CELL_PX, Math.min(byCols, byRows));
+}
+
+async function composeRunningHubMultiImageBlob(urls) {
+  const normalizedUrls = normalizeInputUrls(urls);
+  const images = [];
+
+  for (const url of normalizedUrls) {
+    try {
+      const blob = await fetchRemoteBlob(resolveInputFetchUrl(url), {
+        provider: "remote",
+        buildUrl: false,
+        responseType: "blob",
+      });
+      const source = await loadCanvasImageSource(blob);
+      images.push({ blob, source });
+    } catch {}
+  }
+
+  if (images.length === 0) {
+    throw new Error("参考图片处理失败，无法合成多图输入");
+  }
+  if (images.length === 1) {
+    const blob = images[0].blob;
+    images[0].source?.dispose?.();
+    return blob;
+  }
+
+  try {
+    const { cols, rows } = resolveRunningHubContactSheetGrid(images.length);
+    const gap = RUNNINGHUB_CONTACT_SHEET_GAP_PX;
+    const cellSize = resolveRunningHubContactSheetCellSize(cols, rows);
+    const width = cols * cellSize + gap * (cols + 1);
+    const height = rows * cellSize + gap * (rows + 1);
+    const { canvas, toBlob } = createCanvasTarget(width, height);
+    const context = canvas?.getContext?.("2d");
+    if (!context || typeof context.drawImage !== "function") {
+      throw new Error("当前环境不支持多图合成");
+    }
+
+    context.fillStyle = "#f5f7fb";
+    context.fillRect?.(0, 0, width, height);
+
+    const badgeSize = Math.max(30, Math.round(cellSize * 0.14));
+    const badgeFontSize = Math.max(16, Math.round(badgeSize * 0.48));
+
+    images.forEach((entry, index) => {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+      const x = gap + col * (cellSize + gap);
+      const y = gap + row * (cellSize + gap);
+
+      context.fillStyle = "#ffffff";
+      context.fillRect?.(x, y, cellSize, cellSize);
+
+      const srcWidth = Math.max(1, Number(entry.source.width || 1));
+      const srcHeight = Math.max(1, Number(entry.source.height || 1));
+      const scale = Math.min(cellSize / srcWidth, cellSize / srcHeight);
+      const drawWidth = Math.max(1, Math.round(srcWidth * scale));
+      const drawHeight = Math.max(1, Math.round(srcHeight * scale));
+      const drawX = x + Math.round((cellSize - drawWidth) / 2);
+      const drawY = y + Math.round((cellSize - drawHeight) / 2);
+
+      context.drawImage(entry.source.handle, drawX, drawY, drawWidth, drawHeight);
+      context.strokeStyle = "#d8dee8";
+      context.lineWidth = 2;
+      context.strokeRect?.(x + 1, y + 1, cellSize - 2, cellSize - 2);
+
+      context.fillStyle = "rgba(15, 23, 42, 0.82)";
+      context.fillRect?.(x + 12, y + 12, badgeSize, badgeSize);
+      context.fillStyle = "#f5f7fb";
+      context.font = `600 ${badgeFontSize}px sans-serif`;
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText?.(String(index + 1), x + 12 + badgeSize / 2, y + 12 + badgeSize / 2);
+    });
+
+    const resultBlob = await toBlob();
+    if (!resultBlob) {
+      throw new Error("多图合成失败");
+    }
+    return resultBlob;
+  } finally {
+    images.forEach((entry) => entry.source?.dispose?.());
+  }
+}
+
+async function buildRunningHubTextImageUrl(inputImageUrls, apiKey) {
+  const normalizedUrls = normalizeInputUrls(inputImageUrls);
+  if (normalizedUrls.length === 0) {
+    return "";
+  }
+  if (normalizedUrls.length === 1) {
+    const processed = await processInputImages(normalizedUrls, apiKey, {
+      applyInputQualityProfile: true,
+      provider: "runninghub",
+      preferFree: false,
+    });
+    return String(processed[0] || "").trim();
+  }
+
+  const mergedBlob = await composeRunningHubMultiImageBlob(normalizedUrls);
+  return String(await uploadToRunningHub(mergedBlob, apiKey)).trim();
+}
+
+function mergeAdjacentTextParts(parts, { createTextPart, isTextPart }) {
+  const merged = [];
+  let bufferedText = "";
+
+  const flush = () => {
+    if (!bufferedText) {
+      return;
+    }
+    merged.push(createTextPart(bufferedText));
+    bufferedText = "";
+  };
+
+  for (const part of parts) {
+    if (!part) {
+      continue;
+    }
+    if (isTextPart(part)) {
+      bufferedText += String(part.text || "");
+      continue;
+    }
+    flush();
+    merged.push(part);
+  }
+
+  flush();
+  return merged;
+}
+
+function buildPromptMediaParts(prompt, mediaParts, { createTextPart, isTextPart }) {
+  const sourcePrompt = String(prompt || "");
+  const normalizedMediaParts = Array.isArray(mediaParts) ? mediaParts.filter(Boolean) : [];
+
+  if (normalizedMediaParts.length === 0) {
+    return sourcePrompt ? [createTextPart(sourcePrompt)] : [];
+  }
+
+  const parts = [];
+  let cursor = 0;
+  let mediaIndex = 0;
+  let match;
+
+  IMAGE_MENTION_RE.lastIndex = 0;
+  while ((match = IMAGE_MENTION_RE.exec(sourcePrompt))) {
+    const prefix = sourcePrompt.slice(cursor, match.index);
+    if (prefix) {
+      parts.push(createTextPart(prefix));
+    }
+    const mediaPart = normalizedMediaParts[mediaIndex++];
+    if (mediaPart) {
+      parts.push(mediaPart);
+    } else {
+      parts.push(createTextPart(match[0]));
+    }
+    cursor = match.index + match[0].length;
+  }
+
+  const suffix = sourcePrompt.slice(cursor);
+  if (suffix) {
+    parts.push(createTextPart(suffix));
+  }
+
+  while (mediaIndex < normalizedMediaParts.length) {
+    parts.push(normalizedMediaParts[mediaIndex++]);
+  }
+
+  if (parts.length === 0) {
+    return normalizedMediaParts.slice();
+  }
+
+  return mergeAdjacentTextParts(parts, { createTextPart, isTextPart });
+}
+
+async function fetchInlineImagePart(url) {
+  const dataUrlMatch = String(url || "")
+    .trim()
+    .match(/^data:(image\/[^;,]+);base64,(.+)$/i);
+  if (dataUrlMatch) {
+    return {
+      inline_data: {
+        mime_type: dataUrlMatch[1],
+        data: dataUrlMatch[2],
+      },
+    };
+  }
+
+  const blob = await fetchRemoteBlob(url, {
+    provider: "remote",
+    buildUrl: false,
+    responseType: "blob",
+  });
+  const mimeType = String(blob?.type || "").trim() || guessImageMimeType(url);
+  if (!mimeType.startsWith("image/")) {
+    return null;
+  }
+
+  const buffer = await blob.arrayBuffer();
+  return {
+    inline_data: {
+      mime_type: mimeType,
+      data: arrayBufferToBase64(buffer),
+    },
+  };
+}
+
+async function buildGeminiUserParts(prompt, inputUrls) {
+  const mediaParts = [];
+  for (const inputUrl of inputUrls) {
+    try {
+      const inlinePart = await fetchInlineImagePart(inputUrl);
+      if (inlinePart) {
+        mediaParts.push(inlinePart);
+      }
+    } catch {}
+  }
+
+  if (hasImageMentions(prompt) && inputUrls.length > 0 && mediaParts.length === 0) {
+    throw new Error("参考图片处理失败，无法映射 @图片 引用");
+  }
+
+  return buildPromptMediaParts(prompt, mediaParts, {
+    createTextPart: (text) => ({ text }),
+    isTextPart: (part) => !!part && typeof part.text === "string",
+  });
+}
+
+async function buildChatCompletionUserContent(prompt, inputUrls, apiKey, provider) {
+  const processedUrls = await processInputImages(inputUrls, apiKey, {
+    applyInputQualityProfile: true,
+    provider,
+    preferFree: true,
+  });
+  const imageParts = processedUrls.map((url) => ({
+    type: "image_url",
+    image_url: { url },
+  }));
+
+  if (hasImageMentions(prompt) && inputUrls.length > 0 && imageParts.length === 0) {
+    throw new Error("参考图片处理失败，无法映射 @图片 引用");
+  }
+
+  const content = buildPromptMediaParts(prompt, imageParts, {
+    createTextPart: (text) => ({ type: "text", text }),
+    isTextPart: (part) => !!part && part.type === "text",
+  });
+  if (content.length === 1 && content[0]?.type === "text") {
+    return content[0].text;
+  }
+  return content.length > 0 ? content : String(prompt || "");
+}
+
+function resolveProxyApiUrl(provider, baseApiUrl, model, isGeminiModel) {
+  if (provider === "ppio") {
+    return PpioAdapter.getTextProxyApiUrl(baseApiUrl);
+  }
+  if (provider === "apimart") {
+    return ApimartAdapter.getTextProxyApiUrl(baseApiUrl, model, isGeminiModel);
+  }
+  if (provider === "openai") {
+    if (baseApiUrl.endsWith("/v1")) {
+      return baseApiUrl;
+    }
+    return `${baseApiUrl}/v1`;
+  }
+
+  if (
+    baseApiUrl.includes("/api/") ||
+    baseApiUrl.endsWith("/chat/completions") ||
+    (baseApiUrl.includes("/api/") && baseApiUrl.split("/api/").length > 1)
+  ) {
+    return baseApiUrl;
+  }
+  if (baseApiUrl.endsWith("/v1")) {
+    return baseApiUrl;
+  }
+  return `${baseApiUrl}/v1/chat/completions`;
+}
+
+function resolveDirectApiUrl(baseApiUrl) {
+  if (
+    baseApiUrl.includes(":generateContent") ||
+    baseApiUrl.includes("/v1beta/models") ||
+    baseApiUrl.endsWith("/chat/completions") ||
+    (baseApiUrl.includes("/api/") && baseApiUrl.split("/api/").length > 1)
+  ) {
+    return baseApiUrl;
+  }
+  if (baseApiUrl.endsWith("/api")) {
+    return `${baseApiUrl}/v1/chat/completions`;
+  }
+  if (baseApiUrl.endsWith("/v1")) {
+    return `${baseApiUrl}/chat/completions`;
+  }
+  return `${baseApiUrl}/v1/chat/completions`;
+}
+
+export async function buildGenerateTextRequest(payload) {
+  await ensureConfig();
+
+  const prompt = applyCameraAngleToPrompt(payload?.prompt, payload?.cameraAngle);
+  const promptLength = prompt.length;
+  if (promptLength > 50000) {
+    throw new Error(
+      `提示词过长（${promptLength} 字符）。为避免接口/代理返回异常，请分段生成：先让模型输出大纲，再按章节逐段生成。`
+    );
+  }
+
+  let model = payload?.model || "gpt-4o-mini";
+  model = ApimartAdapter.normalizeTextModel(model);
+
+  const provider = payload?.provider === "custom" ? "openai" : payload?.provider || "grsai";
+  const providerConfig = getProviderConfig(provider);
+  const baseApiUrl = providerConfig.apiUrl.replace(/\/v1\/?$/, "");
+  const apiKey = isRunningHubTextModel(provider, model)
+    ? providerConfig.modelApiKey || payload?.apiKey || providerConfig.apiKey
+    : payload?.apiKey || providerConfig.apiKey;
+
+  if (!apiKey) {
+    throw ApiError.authError(provider, null, `API Key 未配置（厂商：${provider}）`);
+  }
+
+  const isGeminiModel = ApimartAdapter.isGeminiTextModel(provider, model);
+  const inputUrls = normalizeInputUrls(payload?.inputUrls);
+  const inputImageUrls = normalizeInputUrls(payload?.inputImageUrls);
+
+  if (isRunningHubTextModel(provider, model)) {
+    if (inputImageUrls.length === 0) {
+      throw new Error("该模型需要图片参考");
+    }
+
+    const imageUrl = await buildRunningHubTextImageUrl(inputImageUrls, apiKey);
+    if (!imageUrl) {
+      throw new Error("参考图片处理失败，无法上传到 RunningHUB");
+    }
+
+    return {
+      url: "/api/v2/proxy/image",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        apiUrl: `https://www.runninghub.cn/openapi/v2/${String(model).replace(/^runninghub-model\//, "")}`,
+        apiKey,
+        prompt,
+        imageUrl,
+      },
+      isProxy: true,
+    };
+  }
+
+  let body;
+  if (isGeminiModel) {
+    const parts = await buildGeminiUserParts(prompt, inputUrls);
+    body = GeminiAdapter.buildGenerateContentBody(parts.length > 0 ? parts : prompt, payload?.systemPrompt);
+  } else {
+    const userContent = await buildChatCompletionUserContent(prompt, inputUrls, apiKey, provider);
+    body = {
+      model,
+      stream: false,
+      messages: [
+        {
+          role: "system",
+          content: payload?.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+        },
+        {
+          role: "user",
+          content: userContent,
+        },
+      ],
+    };
+  }
+
+  if (provider === "ppio" || provider === "runninghub" || provider === "apimart" || provider === "openai") {
+    return {
+      url: "/api/v2/proxy/completions",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        apiUrl: resolveProxyApiUrl(provider, baseApiUrl, model, isGeminiModel),
+        apiKey,
+        ...body,
+      },
+      isProxy: true,
+    };
+  }
+
+  return {
+    url: resolveDirectApiUrl(baseApiUrl),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body,
+    isProxy: false,
+  };
+}
+
+function parseTextResponse(text, status) {
+  const length = text.length;
+  const head = text.slice(0, 400);
+  const tail = text.slice(Math.max(0, length - 400));
+  const looksLikeHtml = /<!doctype\s+html|<html[\s>]/i.test(head);
+  const normalized = text.replace(/^\uFEFF/, "").trim();
+
+  let payload;
+  try {
+    payload = JSON.parse(normalized);
+  } catch (firstError) {
+    const start = normalized.indexOf("{");
+    const end = normalized.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      try {
+        payload = JSON.parse(normalized.slice(start, end + 1));
+      } catch {}
+    }
+
+    if (!payload) {
+      const sseLines = normalized
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.startsWith("data:"));
+      if (sseLines.length > 0) {
+        const lastPayload = sseLines[sseLines.length - 1].replace(/^data:\s*/, "").trim();
+        if (lastPayload === "[DONE]") {
+          const meaningfulLines = sseLines
+            .map((line) => line.replace(/^data:\s*/, "").trim())
+            .filter((line) => line && line !== "[DONE]");
+          if (meaningfulLines.length > 0) {
+            payload = JSON.parse(meaningfulLines[meaningfulLines.length - 1]);
+          } else {
+            throw new ApiError({
+              type: "PARSE_ERROR",
+              message: "服务端返回了空响应",
+              status,
+              retryable: false,
+            });
+          }
+        } else {
+          try {
+            payload = JSON.parse(lastPayload);
+          } catch (error) {
+            throw new ApiError({
+              type: "PARSE_ERROR",
+              message: `无法解析服务端响应: ${error.message}`,
+              status,
+              retryable: false,
+            });
+          }
+        }
+      } else {
+        throw new ApiError({
+          type: "PARSE_ERROR",
+          message:
+            `服务端返回的不是可解析的 JSON。HTTP ${status}，长度 ${length}。\n` +
+            (looksLikeHtml
+              ? "响应看起来像 HTML（常见原因：网关/防火墙拦截、API 地址错误、上游返回了错误页）。\n"
+              : "") +
+            `响应片段(截断)：\n[开头]\n${head}\n[结尾]\n${tail}`,
+          status,
+          retryable: false,
+        });
+      }
+    }
+  }
+
+  return payload;
+}
+
+function extractTextContent(payload) {
+  const choiceList = payload?.choices || payload?.data?.choices;
+  let text = choiceList?.[0]?.message?.content;
+
+  if (!text && payload?.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+    text = payload.data.candidates[0].content.parts[0].text;
+  }
+  if (!text && payload?.candidates?.[0]?.content?.parts?.[0]?.text) {
+    text = payload.candidates[0].content.parts[0].text;
+  }
+
+  if (!text) {
+    const results = Array.isArray(payload?.results)
+      ? payload.results
+      : Array.isArray(payload?.data?.results)
+        ? payload.data.results
+        : [];
+    text =
+      pickFirstNonEmptyString(results.map((entry) => entry?.text)) ||
+      pickFirstNonEmptyString([
+        payload?.text,
+        payload?.output,
+        typeof payload?.content === "string" ? payload.content : "",
+        payload?.markdown,
+        payload?.caption,
+        payload?.data?.text,
+        payload?.data?.output,
+        typeof payload?.data?.content === "string" ? payload.data.content : "",
+      ]);
+  }
+
+  return text;
+}
+
+async function pollRunningHubTextTask(taskId, apiKey, provider, options = {}) {
+  const startedAt = Date.now();
+  const signal = options?.signal;
+  const doFetch = signal ? fetchWithTimeoutWithSignal : fetchWithTimeout;
+
+  while (Date.now() - startedAt < GENERATION_TIMEOUT) {
+    await sleepWithSignal(RUNNINGHUB_POLL_INTERVAL_MS, signal);
+
+    const response = await doFetch(
+      buildApiUrl("/api/v2/proxy/image"),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          apiUrl: "https://www.runninghub.cn/openapi/v2/query",
+          apiKey,
+          taskId,
+        }),
+      },
+      30000,
+      signal
+    );
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      let errorBody;
+      try {
+        errorBody = JSON.parse(text);
+      } catch {
+        errorBody = { error: text };
+      }
+      throw parseError(provider, errorBody, response.status);
+    }
+
+    const payload = parseRunningHubResponseData(await response.text());
+    const code = Number(payload?.code);
+    if (Number.isFinite(code)) {
+      if (code === 804 || code === 813) {
+        continue;
+      }
+      if (code !== 0) {
+        throw new Error(getRunningHubTextErrorMessage(payload, "文本任务轮询失败"));
+      }
+    }
+
+    const taskPayload = payload?.data && typeof payload.data === "object" ? payload.data : payload;
+    const status = String(taskPayload?.status || "").toUpperCase();
+    if (["SUCCESS", "SUCCEEDED", "COMPLETED"].includes(status)) {
+      return taskPayload;
+    }
+    if (["FAILED", "FAIL", "ERROR", "CANCELED", "CANCELLED"].includes(status)) {
+      throw new Error(getRunningHubTextErrorMessage(taskPayload, "文本任务执行失败"));
+    }
+  }
+
+  throw new Error("文本任务超时，请稍后重试");
+}
+
+export async function generateText(payload, options = {}) {
+  const request = await buildGenerateTextRequest(payload);
+  const provider = payload?.provider === "custom" ? "openai" : payload?.provider || "grsai";
+  const signal = options?.signal;
+  const doFetch = signal ? fetchWithTimeoutWithSignal : fetchWithTimeout;
+
+  let response;
+  try {
+    const url = request.isProxy ? buildApiUrl(request.url) : request.url;
+    response = await doFetch(
+      url,
+      {
+        method: "POST",
+        headers: request.headers,
+        body: JSON.stringify(request.body),
+      },
+      GENERATION_TIMEOUT,
+      signal
+    );
+  } catch (error) {
+    if (signal?.aborted || isAbortError(error)) {
+      throw createAbortError();
+    }
+    throw parseNetworkError(provider, error, GENERATION_TIMEOUT);
+  }
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    let errorBody;
+    try {
+      errorBody = JSON.parse(text);
+    } catch {
+      errorBody = { error: text };
+    }
+    throw parseError(provider, errorBody, response.status);
+  }
+
+  const text = await response.text();
+  if (isRunningHubTextModel(provider, payload?.model)) {
+    const createPayload = parseRunningHubResponseData(text);
+    const createCode = Number(createPayload?.code);
+    if (Number.isFinite(createCode) && createCode !== 0) {
+      throw new Error(getRunningHubTextErrorMessage(createPayload, "文本任务创建失败"));
+    }
+
+    let taskPayload = createPayload;
+    const status = String(createPayload?.status || createPayload?.data?.status || "").toUpperCase();
+    const taskId = getRunningHubTaskId(createPayload);
+    if (taskId) {
+      options?.onTaskMeta?.({
+        taskId,
+        apiKey: request.body.apiKey,
+        useOpenapiQuery: true,
+        provider,
+      });
+      options?.onTaskId?.(taskId);
+    }
+
+    if (
+      ["SUBMITTED", "QUEUED", "RUNNING", "PENDING"].includes(status) ||
+      (taskId && !["SUCCESS", "SUCCEEDED", "COMPLETED"].includes(status))
+    ) {
+      if (!taskId) {
+        throw new Error("RunningHUB 文本任务创建成功但未返回 taskId");
+      }
+      taskPayload = await pollRunningHubTextTask(taskId, request.body.apiKey, provider, options);
+    } else if (["FAILED", "FAIL", "ERROR", "CANCELED", "CANCELLED"].includes(status)) {
+      throw new Error(getRunningHubTextErrorMessage(createPayload, "文本任务创建失败"));
+    }
+
+    const outputText = extractTextContent(taskPayload);
+    if (!outputText) {
+      throw new ApiError({
+        type: "PARSE_ERROR",
+        provider,
+        message: "RunningHUB 未返回文本内容",
+        raw: taskPayload,
+        retryable: false,
+      });
+    }
+
+    return {
+      text: sanitizeGeneratedText(outputText),
+    };
+  }
+
+  const parsed = parseTextResponse(text, response.status);
+  const outputText = extractTextContent(parsed);
+  if (!outputText) {
+    throw new ApiError({
+      type: "PARSE_ERROR",
+      provider,
+      message: "服务端未返回文本内容",
+      raw: parsed,
+      retryable: false,
+    });
+  }
+
+  return {
+    text: sanitizeGeneratedText(outputText),
+  };
+}

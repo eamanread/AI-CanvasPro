@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "huanying-live-8779",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["server.py", "--port=8779"],
+      "port": 8779
+    },
+    {
+      "name": "huanying-vimax-8779",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-u", "server.py", "--port=8779"],
+      "port": 8779,
+      "env": {
+        "HY_VIMAX_HOME": "D:\\Aic\\ViMax"
+      }
+    },
+    {
+      "name": "huanying-director-8779",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-u", "server.py", "--port=8779"],
+      "port": 8779,
+      "env": {
+        "HY_QMAI_PROJECT_DIR": "D:\\tmp\\qmai-flywheel-project"
+      }
+    }
+  ]
+}

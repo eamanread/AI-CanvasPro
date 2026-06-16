@@ -32,23 +32,16 @@ function normalizePresetItem(value, { allowSubItems }) {
   }
 
   const normalized = { title };
-  const icon = String(value.icon || "");
   const desc = String(value.desc || "");
-  if (icon.trim()) {
-    normalized.icon = icon;
-  }
   if (desc.trim()) {
     normalized.desc = desc;
   }
 
-  if (allowSubItems && Array.isArray(value.subItems) && value.subItems.length) {
-    const subItems = value.subItems
+  if (allowSubItems && Array.isArray(value.subItems)) {
+    normalized.subItems = value.subItems
       .map((item) => normalizePresetItem(item, { allowSubItems: false }))
       .filter(Boolean);
-    if (subItems.length) {
-      normalized.subItems = subItems;
-      return normalized;
-    }
+    return normalized;
   }
 
   const template = String(value.template || "");
@@ -162,6 +155,11 @@ export function getPromptPresets(nodeType) {
 
 export function openCustomPresetsManager(nodeType = DEFAULT_MANAGER_NODE_TYPE) {
   if (typeof window === "undefined") {
+    return null;
+  }
+  // 优先应用内弹窗(presetManagerModal.autoload.js); 不可用时回退外部窗口。业务逻辑不变。
+  if (typeof window.openPresetManagerModal === "function") {
+    window.openPresetManagerModal(nodeType);
     return null;
   }
   const url = buildPresetManagerUrl(nodeType);

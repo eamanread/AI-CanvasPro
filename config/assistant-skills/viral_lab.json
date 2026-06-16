@@ -1,0 +1,42 @@
+{
+  "id": "viral_lab",
+  "name": "Huanying Viral Lab",
+  "version": "0.1.0",
+  "enabled": true,
+  "priority": 88,
+  "injectMode": "when_matched",
+  "triggers": ["viral", "viral lab", "reference video", "remake", "deconstruct", "爆款", "爆款实验室", "复刻", "拆解", "参考视频"],
+  "allowedActions": ["create_node", "connect_nodes", "layout_nodes", "create_group", "focus_nodes", "queue_generation_task", "run_prompt_preset_generation"],
+  "forbiddenActions": ["delete_nodes", "overwrite_user_content", "fetch_url", "download_url", "queue_generation_task:ai-video"],
+  "requiredContext": ["context.attachments.items", "context.references.items", "context.selection.selectedNodeIds", "context.assets.items"],
+  "body": "Goal: deconstruct user-provided reference video, image, or article material into a safe reusable remake workflow. Use only attachments, references, selected nodes, or assets already present in Huanying context; do not fetch external URLs. Output workflowKind=viral_lab nodes with viralReferenceId, viralSourceType, viralHook, viralPacing, viralStructure, viralRemakeAngle, viralRisk, viralReplicationStep, and optional viralBeatIndex. The workflow should include a reference analysis node, one or more remake script/keyframe branches, and video prep nodes only when useful. Queue text/image generation only when policy allows it. Do not copy logos, faces, music, watermarks, exact edit timing, captions, or proprietary claims. Do not start video generation without explicit authorization.",
+  "compactBody": "viral_lab: use provided refs only; no URL fetch. Create workflowKind=viral_lab with viralReferenceId/sourceType/hook/pacing/structure/remakeAngle/risk. Text/image ok; video gated.",
+  "qualityRubric": [
+    "The remake angle is specific and legally safer than direct copying.",
+    "Hook, pacing, structure, and risk are visible in metadata or node content.",
+    "The workflow is editable and connected, not just a chat summary.",
+    "Video generation remains gated."
+  ],
+  "decisionGuide": [
+    "Prefer explicit attachments or @ references over guessing from chat text.",
+    "If a URL is pasted, ask the user to upload or reference the material instead of fetching it.",
+    "Separate analysis, remake plan, keyframes, and video prep so users can edit each step."
+  ],
+  "antiPatterns": [
+    "Downloading or browsing an external reference URL.",
+    "Copying logos, exact captions, watermarks, faces, voices, or music.",
+    "Claiming the video is generated when only prep nodes exist."
+  ],
+  "examples": [
+    {
+      "type": "create_node",
+      "nodeType": "ai-text",
+      "data": {
+        "workflowKind": "viral_lab",
+        "workflowStep": "reference_analysis",
+        "viralReferenceId": "att_reference",
+        "viralSourceType": "video"
+      }
+    }
+  ]
+}

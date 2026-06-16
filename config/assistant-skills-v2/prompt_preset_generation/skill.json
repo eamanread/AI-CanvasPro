@@ -1,0 +1,58 @@
+{
+  "id": "prompt_preset_generation",
+  "name": "预设提示词生成",
+  "version": "1.0.0",
+  "type": "scenario",
+  "enabled": true,
+  "priority": 94,
+  "injectMode": "when_matched",
+  "triggers": [
+    "预设提示词",
+    "用预设生成",
+    "用预设生成图片",
+    "用预设生成文本",
+    "输入/",
+    "slash preset",
+    "preset image",
+    "preset text"
+  ],
+  "requiredContext": [
+    "context.promptPresets",
+    "context.canvas.nodes",
+    "context.selection.selectedNodeIds"
+  ],
+  "allowedActions": [
+    "create_node",
+    "connect_nodes",
+    "focus_nodes",
+    "run_prompt_preset_generation"
+  ],
+  "forbiddenActions": [
+    "write_file",
+    "shell_command",
+    "delete_nodes",
+    "expose_prompt_template",
+    "queue_generation_task:ai-video"
+  ],
+  "qualityRules": [
+    "必须通过 presetId 或 presetName 调用预设，不得把隐藏模板粘贴给用户。",
+    "文本和图片预设可以自动执行。",
+    "视频预设只能准备草稿，真实视频生成必须授权视频。"
+  ],
+  "riskLevel": "low",
+  "requiresConfirmation": false,
+  "qualityChecks": [
+    {
+      "type": "requiresActionType",
+      "action": "run_prompt_preset_generation"
+    },
+    {
+      "type": "forbidsActionType",
+      "action": "delete_nodes"
+    },
+    {
+      "type": "maxActions",
+      "value": 6
+    }
+  ]
+}

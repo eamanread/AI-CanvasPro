@@ -1,0 +1,74 @@
+{
+  "id": "storyboard_director",
+  "name": "Huanying Storyboard Director",
+  "version": "0.2.1",
+  "enabled": true,
+  "priority": 95,
+  "injectMode": "when_matched",
+  "triggers": [
+    "分镜",
+    "镜头",
+    "故事短片",
+    "故事视频",
+    "短片故事",
+    "15秒短片",
+    "做成视频故事",
+    "story_to_video"
+  ],
+  "allowedActions": [
+    "create_node",
+    "connect_nodes",
+    "layout_nodes",
+    "create_group",
+    "focus_nodes",
+    "queue_generation_task",
+    "run_prompt_preset_generation",
+    "update_node_data",
+    "rename_node"
+  ],
+  "forbiddenActions": [
+    "delete_nodes",
+    "overwrite_user_content",
+    "queue_generation_task:ai-video"
+  ],
+  "requiredContext": [
+    "context.canvas.nodes",
+    "context.selection.selectedNodeIds",
+    "context.assets",
+    "context.project.preferences"
+  ],
+  "body": "Goal: turn a script, idea, or one-sentence story short request into a complete story_to_video production line. For story_to_video, do not collapse the result into one text_to_image_video chain. Create exactly one story_outline ai-text node, exactly one style_bible ai-text node, and multiple shot-level chains. Each shot has one shot_script ai-text node, one shot_keyframe ai-image node, and one shot_video ai-video prep node. Each shot node must carry workflowKind=story_to_video, a shared workflowGroupId, workflowStep, shotIndex, shotDurationSec, shotPrompt, and shotVideoPrompt. Text and image generation may auto-run through queue_generation_task or run_prompt_preset_generation. Video prep nodes may be created and connected, but video generation itself must not be queued unless the user explicitly authorizes video generation in the same request. Layout follows shotIndex with storyboard_grid; outline and style bible stay on the left, shot rows continue to the right. Fine-edit mode: when the user asks to only modify shot N, do not rebuild the storyboard. Only update nodes whose shotIndex equals N, usually with update_node_data. Set metadata storyboardEditScope=single_shot and targetShotIndex=N on every edit action. Preserve or revise shotVisual, shotCamera, shotStyle, shotPrompt, shotVideoPrompt, and shotContinuity, and do not rewrite unrelated shots.",
+  "compactBody": "story_to_video: 1 story_outline, 1 style_bible, 3-8 shot_script->shot_keyframe->shot_video prep; text/image ok, video gated. Fine edit: only modify shot N; storyboardEditScope=single_shot; targetShotIndex=N; shotContinuity.",
+  "qualityRubric": [
+    "There is one outline, one style bible, and multiple ordered shots.",
+    "Every shot has script, keyframe, and video prep nodes.",
+    "Visual style and character continuity remain consistent.",
+    "Video generation remains gated.",
+    "Single-shot edits only touch nodes with the requested shotIndex.",
+    "Shot continuity metadata explains how the edit stays consistent with neighboring shots."
+  ],
+  "decisionGuide": [
+    "Infer duration and shot count from the user request; default to 3-5 seconds per shot.",
+    "Use selected assets as continuity references when present.",
+    "Preserve explicit style phrases, including English visual style fragments.",
+    "For fine edits, only update the requested shotIndex and preserve continuity with neighboring shots.",
+    "Add storyboardEditScope=single_shot and targetShotIndex when editing only one shot."
+  ],
+  "antiPatterns": [
+    "Creating a single generic text_to_image_video chain for a story short.",
+    "Duplicating the story outline once per shot.",
+    "Queueing ai-video generation without explicit authorization.",
+    "Rewriting the whole storyboard when the user asked to only change one shot.",
+    "Changing neighboring shot prompts while doing a single-shot edit."
+  ],
+  "examples": [
+    {
+      "type": "create_node",
+      "nodeType": "ai-text",
+      "data": {
+        "workflowKind": "story_to_video",
+        "workflowStep": "story_outline"
+      }
+    }
+  ]
+}

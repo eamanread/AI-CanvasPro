@@ -112,6 +112,31 @@ function createPromptEl(text = "hello world") {
   };
 }
 
+function createButtonStub() {
+  return {
+    disabled: false,
+    title: "",
+    innerHTML: "",
+    style: {
+      color: "",
+    },
+    _attrs: new Map(),
+    setAttribute(name, value) {
+      this._attrs.set(String(name || ""), String(value ?? ""));
+    },
+    removeAttribute(name) {
+      this._attrs.delete(String(name || ""));
+    },
+    getAttribute(name) {
+      return this._attrs.get(String(name || ""));
+    },
+    classList: {
+      add() {},
+      remove() {},
+    },
+  };
+}
+
 function createTaskModuleContext({
   targetId,
   nodeData,
@@ -173,6 +198,62 @@ function createTaskModuleContext({
     ctx: context,
   };
 }
+
+test("aigenImage task orchestration: runninghub generation shows a visible stop affordance", async () => {
+  const targetId = "node-ai-image-runninghub-stop";
+  const { proto, ctx } = createTaskModuleContext({
+    targetId,
+    nodeData: {
+      id: targetId,
+      model: "runninghub/1994711386552999938",
+      provider: "runninghubwf",
+      aspectRatio: "1:1",
+      imageSize: "2K",
+      batchSize: 1,
+    },
+    promptText: "stop test prompt",
+  });
+
+  ctx.btnEl = createButtonStub();
+  ctx._isGenerating = true;
+  ctx._rhAbortController = new AbortController();
+
+  proto._updateSubmitButtonState.call(ctx);
+
+  assert.equal(ctx._isGenerating, true);
+  assert.equal(ctx.btnEl.disabled, false);
+  assert.equal(ctx.btnEl.title, "停止生成");
+  assert.equal(ctx.btnEl.getAttribute("data-tooltip"), "点击即可停止当前生成");
+  assert.match(ctx.btnEl.innerHTML, /<rect[^>]*x="7"[^>]*width="10"/);
+});
+
+test("aigenImage task orchestration: any generating image node shows a visible stop affordance", async () => {
+  const targetId = "node-ai-image-generic-stop";
+  const { proto, ctx } = createTaskModuleContext({
+    targetId,
+    nodeData: {
+      id: targetId,
+      model: "nano-banana-2",
+      provider: "grsai",
+      aspectRatio: "1:1",
+      imageSize: "2K",
+      batchSize: 1,
+    },
+    promptText: "stop test prompt",
+  });
+
+  ctx.btnEl = createButtonStub();
+  ctx._isGenerating = true;
+  ctx._rhAbortController = null;
+
+  proto._updateSubmitButtonState.call(ctx);
+
+  assert.equal(ctx._isGenerating, true);
+  assert.equal(ctx.btnEl.disabled, false);
+  assert.equal(ctx.btnEl.title, "\u505c\u6b62\u751f\u6210");
+  assert.equal(ctx.btnEl.getAttribute("data-generation-action"), "stop");
+  assert.match(ctx.btnEl.innerHTML, /<rect[^>]*x="7"[^>]*width="10"/);
+});
 
 test("aigenImage task orchestration: selectedModelId 可解析时改走 registry 模型", async () => {
   await withConfig(

@@ -4,6 +4,8 @@ import os
 import re
 from urllib.parse import unquote
 
+from services.library_storage import atomic_replace_with_retry
+
 
 class LibraryFileRouteService:
     _DEFAULT_PRESET_TYPES = ("ai-image", "ai-text", "ai-video", "ai-audio")
@@ -16,6 +18,8 @@ class LibraryFileRouteService:
         asset_thumbs_dir_getter,
         workflow_thumbs_dir_getter,
         preset_definitions_path_getter=None,
+        preset_definitions_seed_path_getter=None,
+        preset_root_getter=None,
     ):
         self._get_user_dir = user_dir_getter
         self._get_asset_thumbs_dir = asset_thumbs_dir_getter
@@ -23,12 +27,27 @@ class LibraryFileRouteService:
         self._get_preset_definitions_path = (
             preset_definitions_path_getter or self._default_preset_definitions_path
         )
+        self._get_preset_definitions_seed_path = (
+            preset_definitions_seed_path_getter or self._default_preset_definitions_path
+        )
+        self._get_preset_root = (
+            preset_root_getter or self._default_preset_root
+        )
 
     @staticmethod
     def _default_preset_definitions_path():
         service_dir = os.path.abspath(os.path.dirname(__file__))
         project_root = os.path.dirname(service_dir)
         return os.path.join(project_root, "config", "prompt-presets.json")
+
+    def _default_preset_root(self):
+        return os.path.join(self._get_user_dir(), "prompt")
+
+    def _resolve_preset_root(self):
+        raw = str(self._get_preset_root() or "").strip()
+        if not raw:
+            raw = self._default_preset_root()
+        return os.path.abspath(raw)
 
     @staticmethod
     def _json_ok(data):
@@ -70,7 +89,17 @@ class LibraryFileRouteService:
         return ".jpg"
 
     def _preset_definitions_path(self):
-        return os.path.abspath(str(self._get_preset_definitions_path() or "").strip())
+        return self._normalize_optional_path(self._get_preset_definitions_path())
+
+    def _preset_definitions_seed_path(self):
+        return self._normalize_optional_path(self._get_preset_definitions_seed_path())
+
+    @staticmethod
+    def _normalize_optional_path(path):
+        raw = str(path or "").strip()
+        if not raw:
+            return ""
+        return os.path.abspath(raw)
 
     def _normalize_preset_definition_item(self, value, *, allow_subitems, path):
         if not isinstance(value, dict):
@@ -91,7 +120,7 @@ class LibraryFileRouteService:
             normalized["desc"] = desc
 
         raw_subitems = value.get("subItems")
-        if allow_subitems and isinstance(raw_subitems, list) and raw_subitems:
+        if allow_subitems and isinstance(raw_subitems, list):
             normalized["subItems"] = self._normalize_preset_definition_items(
                 raw_subitems,
                 allow_subitems=False,
@@ -147,6 +176,8 @@ class LibraryFileRouteService:
     def _read_preset_definitions(self):
         path = self._preset_definitions_path()
         if not path or not os.path.exists(path):
+            path = self._preset_definitions_seed_path()
+        if not path or not os.path.exists(path):
             return {node_type: [] for node_type in self._DEFAULT_PRESET_TYPES}
         try:
             with open(path, "r", encoding="utf-8") as file:
@@ -157,19 +188,50 @@ class LibraryFileRouteService:
         except Exception as exc:
             raise ValueError(f"Failed to read preset definitions: {exc}") from exc
 
-    def _write_preset_definitions(self, definitions):
+    def _write_preset_definitions(self, definitions, *, _attempts=5, _base_delay=0.05):
+        import time
         path = self._preset_definitions_path()
         if not path:
             raise ValueError("Preset definitions path is not configured")
         parent = os.path.dirname(path)
         if parent:
             os.makedirs(parent, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as file:
-            json.dump(definitions, file, ensure_ascii=False, indent=2)
-            file.write("\n")
+        tmp_path = path + ".tmp"
+        last_exc = None
+        for attempt in range(_attempts):
+            try:
+                with open(tmp_path, "w", encoding="utf-8") as file:
+                    json.dump(definitions, file, ensure_ascii=False, indent=2)
+                    file.write("\n")
+                    file.flush()
+                    os.fsync(file.fileno())
+                atomic_replace_with_retry(tmp_path, path)
+                return
+            except PermissionError as exc:
+                last_exc = exc
+                try:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except OSError:
+                    pass
+                if attempt + 1 < _attempts:
+                    time.sleep(_base_delay * (2 ** attempt))
+            except Exception:
+                try:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except OSError:
+                    pass
+                raise
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except OSError:
+            pass
+        raise last_exc
 
     def _read_presets(self):
-        prompt_dir = os.path.join(self._get_user_dir(), "prompt")
+        prompt_dir = self._resolve_preset_root()
         for preset_type in self._DEFAULT_PRESET_TYPES:
             os.makedirs(os.path.join(prompt_dir, preset_type), exist_ok=True)
 
@@ -199,7 +261,7 @@ class LibraryFileRouteService:
         return result
 
     def _preset_root_dir(self):
-        prompt_dir = os.path.join(self._get_user_dir(), "prompt")
+        prompt_dir = self._resolve_preset_root()
         os.makedirs(prompt_dir, exist_ok=True)
         for preset_type in self._DEFAULT_PRESET_TYPES:
             os.makedirs(os.path.join(prompt_dir, preset_type), exist_ok=True)
@@ -312,9 +374,12 @@ class LibraryFileRouteService:
         raw_definitions = data.get("definitions", data)
         try:
             normalized = self._normalize_preset_definitions(raw_definitions)
-            self._write_preset_definitions(normalized)
         except ValueError as exc:
             return self._json_err(400, str(exc))
+        try:
+            self._write_preset_definitions(normalized)
+        except (OSError, ValueError) as exc:
+            return self._json_err(500, f"Failed to write preset definitions: {exc}")
 
         return self._json_ok(
             {

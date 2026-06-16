@@ -8,11 +8,13 @@ import {
   extractTextResponseContent,
   hasCompleteModelConfig,
 } from "../../modules/modelValidationService.js";
+import { getModelMenuSubtitle } from "../../modules/modelMenuDescriptions.js";
+import { filterSelectableTextModels } from "../../modules/modelRegistryFilters.js";
 
 export const REGISTRY_TEXT_PROVIDER = "registry-openai";
 
 const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
-const GENERATION_TIMEOUT_MS = 5 * 60 * 1000;
+const GENERATION_TIMEOUT_MS = 10 * 60 * 1000;
 const IMAGE_MENTION_RE = /@图片\d+/g;
 
 function trimText(value) {
@@ -153,7 +155,11 @@ async function buildOpenAICompatibleUserContent(prompt, inputUrls, apiKey) {
 }
 
 function getTextModels() {
-  return getModelsByNodeType("text");
+  return filterSelectableTextModels(getModelsByNodeType("text"));
+}
+
+export function getSelectableTextModels() {
+  return getTextModels();
 }
 
 export function buildTextModelSelectionPatch(model) {
@@ -273,7 +279,7 @@ function buildTextMenuHtml(models, selectedModelId) {
   return models
     .map((model) => {
       const isActive = trimText(model.id) === trimText(selectedModelId);
-      const subText = trimText(model.modelId) || "未配置";
+      const subText = getModelMenuSubtitle(model, { nodeType: "text" });
       return `
         <div
           class="floating-menu-item${isActive ? " active" : ""}"
@@ -288,6 +294,33 @@ function buildTextMenuHtml(models, selectedModelId) {
       `;
     })
     .join("");
+}
+
+function buildTextMenuSignature(models, selectedModelId) {
+  return JSON.stringify({
+    selectedModelId: trimText(selectedModelId),
+    models: models.map((model) => [
+      model.id,
+      model.modelName,
+      trimText(model.modelId),
+      trimText(model.baseUrl),
+    ]),
+  });
+}
+
+function syncTextMenuActiveState(menuEl, selectedModelId) {
+  const nextSelectedModelId = trimText(selectedModelId);
+  const items = menuEl?.querySelectorAll?.(".floating-menu-item") || [];
+  for (const itemEl of items) {
+    const isActive = trimText(itemEl?.dataset?.modelId) === nextSelectedModelId;
+    if (typeof itemEl?.classList?.toggle === "function") {
+      itemEl.classList.toggle("active", isActive);
+    } else if (isActive) {
+      itemEl?.classList?.add?.("active");
+    } else {
+      itemEl?.classList?.remove?.("active");
+    }
+  }
 }
 
 export function applyTextModelSelectorUi({ node, data, store }) {
@@ -314,21 +347,19 @@ export function applyTextModelSelectorUi({ node, data, store }) {
   triggerEl.style.opacity = models.length > 0 ? "" : "0.6";
   triggerEl.disabled = models.length === 0;
 
-  const signature = JSON.stringify({
-    selectedModelId,
-    models: models.map((model) => [
-      model.id,
-      model.modelName,
-      trimText(model.modelId),
-      trimText(model.baseUrl),
-    ]),
-  });
+  const signature = buildTextMenuSignature(models, selectedModelId);
 
   if (menuEl.dataset.registrySignature !== signature) {
     menuEl.innerHTML = buildTextMenuHtml(models, selectedModelId);
     menuEl.dataset.registrySignature = signature;
   }
   menuEl.__registryModels = models;
+  menuEl.__registryContext = {
+    node,
+    store,
+    labelEl,
+    triggerEl,
+  };
 
   if (menuEl.dataset.registryBound === "true") {
     menuEl.dataset.registryNodeId = node.nodeId;
@@ -351,9 +382,21 @@ export function applyTextModelSelectorUi({ node, data, store }) {
       return;
     }
 
-    applyTextNodeSelectionPatch(node, store, buildTextModelSelectionPatch(model));
-    labelEl.textContent = model.modelName;
-    triggerEl.title = model.modelName;
+    const context = menuEl.__registryContext || {};
+    const currentNode = context.node || node;
+    const currentStore = context.store || store;
+    const currentLabelEl = context.labelEl || labelEl;
+    const currentTriggerEl = context.triggerEl || triggerEl;
+
+    applyTextNodeSelectionPatch(
+      currentNode,
+      currentStore,
+      buildTextModelSelectionPatch(model)
+    );
+    currentLabelEl.textContent = model.modelName;
+    currentTriggerEl.title = model.modelName;
+    syncTextMenuActiveState(menuEl, model.id);
+    menuEl.dataset.registrySignature = buildTextMenuSignature(availableModels, model.id);
     menuEl.classList.remove("show");
   });
 }
@@ -397,7 +440,7 @@ export function buildRegistryTextPayload(basePayload, model) {
   };
 }
 
-export async function generateTextWithRegistryModel(payload) {
+export async function generateTextWithRegistryModel(payload, options = {}) {
   const apiUrl = resolveRegistryTextApiUrl(payload?.apiUrl);
   const apiKey = trimText(payload?.apiKey);
   const modelId = trimText(payload?.model);
@@ -416,6 +459,7 @@ export async function generateTextWithRegistryModel(payload) {
     method: "POST",
     provider: "openai",
     buildUrl: false,
+    signal: options?.signal,
     timeout: GENERATION_TIMEOUT_MS,
     responseType: "auto",
     headers: {

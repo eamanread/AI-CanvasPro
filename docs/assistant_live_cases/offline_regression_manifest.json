@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "purpose": "Offline regression manifest for Claw assistant handoff and live-smoke artifacts.",
+  "servicePolicy": {
+    "developerMustNotManage8777": true,
+    "requiresUserManagedServiceForLiveSmoke": true
+  },
+  "artifacts": [
+    {
+      "id": "story_to_video_cases",
+      "path": "docs/assistant_live_cases/story_to_video_cases.md",
+      "type": "golden_cases"
+    },
+    {
+      "id": "story_to_video_expected_actions",
+      "path": "docs/assistant_live_cases/story_to_video_expected_actions.json",
+      "type": "expected_actions"
+    },
+    {
+      "id": "live_error_ledger",
+      "path": "docs/assistant_live_cases/live_error_ledger.md",
+      "type": "error_ledger"
+    },
+    {
+      "id": "action_contract_matrix",
+      "path": "docs/assistant_action_contract_matrix.md",
+      "type": "contract_matrix"
+    },
+    {
+      "id": "browser_acceptance_script",
+      "path": "docs/CLAW_ASSISTANT_BROWSER_ACCEPTANCE_SCRIPT.md",
+      "type": "browser_acceptance"
+    },
+    {
+      "id": "model_output_quality_scorecard",
+      "path": "docs/assistant_live_cases/model_output_quality_scorecard.md",
+      "type": "scorecard"
+    },
+    {
+      "id": "scorecard_trend_contract",
+      "path": "docs/assistant_live_cases/scorecard_trend_contract.md",
+      "type": "scorecard_trend"
+    },
+    {
+      "id": "visual_diff_contract",
+      "path": "docs/assistant_live_cases/visual_diff_contract.md",
+      "type": "visual_diff_contract"
+    },
+    {
+      "id": "p0_p4_completion_audit",
+      "path": "docs/PI_CANVAS_AGENT_P0_P4_COMPLETION_AUDIT.md",
+      "type": "p0_p4_completion_audit"
+    },
+    {
+      "id": "p0_p4_completion_audit_tool",
+      "path": "tools/audit_pi_canvas_agent_p0_p4_completion.py",
+      "type": "completion_audit_tool"
+    },
+    {
+      "id": "live_artifact_validator",
+      "path": "tools/assistant_live_artifact_validator.mjs",
+      "type": "artifact_validator"
+    },
+    {
+      "id": "model_output_quality_score_tool",
+      "path": "tools/score_assistant_live_run.py",
+      "type": "scorecard_tool"
+    },
+    {
+      "id": "story_to_video_live_run_pass_sample",
+      "path": "docs/assistant_live_cases/samples/story_to_video_live_run_pass.json",
+      "type": "scorecard_sample"
+    },
+    {
+      "id": "story_to_video_live_run_schema_fail_sample",
+      "path": "docs/assistant_live_cases/samples/story_to_video_live_run_schema_fail.json",
+      "type": "scorecard_sample"
+    }
+  ]
+}

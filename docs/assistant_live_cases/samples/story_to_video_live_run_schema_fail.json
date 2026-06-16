@@ -1,0 +1,253 @@
+{
+  "caseId": "STV-LIVE-001",
+  "actions": [
+    {
+      "type": "create_node",
+      "nodeId": "outline",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "story_outline"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "style",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "style_bible"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "script_1",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_script",
+        "shotIndex": 1,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 1 keyframe",
+        "shotVideoPrompt": "shot 1 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "keyframe_1",
+      "nodeType": "ai-image",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_keyframe",
+        "shotIndex": 1,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 1 keyframe",
+        "shotVideoPrompt": "shot 1 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "video_1",
+      "nodeType": "ai-video",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_video",
+        "shotIndex": 1,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 1 keyframe",
+        "shotVideoPrompt": "shot 1 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "script_2",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_script",
+        "shotIndex": 2,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 2 keyframe",
+        "shotVideoPrompt": "shot 2 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "keyframe_2",
+      "nodeType": "ai-image",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_keyframe",
+        "shotIndex": 2,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 2 keyframe",
+        "shotVideoPrompt": "shot 2 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "video_2",
+      "nodeType": "ai-video",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_video",
+        "shotIndex": 2,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 2 keyframe",
+        "shotVideoPrompt": "shot 2 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "script_3",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_script",
+        "shotIndex": 3,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 3 keyframe",
+        "shotVideoPrompt": "shot 3 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "keyframe_3",
+      "nodeType": "ai-image",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_keyframe",
+        "shotIndex": 3,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 3 keyframe",
+        "shotVideoPrompt": "shot 3 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "video_3",
+      "nodeType": "ai-video",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_video",
+        "shotIndex": 3,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 3 keyframe",
+        "shotVideoPrompt": "shot 3 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "script_4",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_script",
+        "shotIndex": 4,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 4 keyframe",
+        "shotVideoPrompt": "shot 4 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "keyframe_4",
+      "nodeType": "ai-image",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_keyframe",
+        "shotIndex": 4,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 4 keyframe",
+        "shotVideoPrompt": "shot 4 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "video_4",
+      "nodeType": "ai-video",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_video",
+        "shotIndex": 4,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 4 keyframe",
+        "shotVideoPrompt": "shot 4 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "script_5",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_script",
+        "shotIndex": 5,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 5 keyframe",
+        "shotVideoPrompt": "shot 5 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "keyframe_5",
+      "nodeType": "ai-image",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_keyframe",
+        "shotIndex": 5,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 5 keyframe",
+        "shotVideoPrompt": "shot 5 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "video_5",
+      "nodeType": "ai-video",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_schema_fail",
+        "workflowStep": "shot_video",
+        "shotIndex": 5,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 5 keyframe",
+        "shotVideoPrompt": "shot 5 camera motion"
+      }
+    },
+    {
+      "type": "queue_generation_task",
+      "nodeId": "script_1",
+      "nodeType": "ai-text"
+    },
+    {
+      "type": "queue_generation_task",
+      "nodeId": "keyframe_1",
+      "nodeType": "ai-image"
+    }
+  ],
+  "schema": {
+    "valid": false,
+    "warnings": [],
+    "errors": [
+      "action[0] missing required field nodeIds",
+      "action[45] unsupported layout storyboard_grid"
+    ]
+  }
+}

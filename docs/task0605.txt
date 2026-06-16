@@ -1,0 +1,368 @@
+ 在 D:\Aic\huanying-source-windows-20260430-122116 项目中，基于 Claw-code 助手最新规划与历史最终实现，完成 Pi
+  Canvas Agent 对齐 Claw-code 的 P0/P1 可交付闭环开发。
+
+  请全程使用专业 AI 创作工具、节点画布、Agent 安全执行、生成任务系统、产品验收的默会知识处理，不要只做 prompt demo，不要只做文档，不要只做离线 mock。最终目标是让 Pi 助手达到“用户可真实使用、可验收、可回归、可继续接力维护”的状态。
+
+  一、权威参考文档
+
+  必须优先阅读并以最晚方案为准：
+
+  1. docs/PI_CANVAS_AGENT_CLAW_PARITY_FULL_PRODUCT_SPEC.md
+  2. docs/PI_CANVAS_AGENT_P0_P1_EXECUTION_LOG.md
+  3. docs/superpowers/plans/2026-06-04-pi-canvas-agent-p0-p1-execution-plan.md
+  4. docs/CLAW_ASSISTANT_NEAR_TERM_EXECUTION_PLAN_123.md
+  5. docs/CLAW_CODE_ASSISTANT_WOW_FEATURE_ROADMAP.md
+  6. docs/CLAW_CODE_ASSISTANT_IMPLEMENTATION_HANDOFF.md
+  7. docs/canvas_agent_r5_product_requirements.md
+  8. docs/canvas_agent_r5_development_plan.md
+  9. docs/assistant_live_cases/story_to_video_cases.md
+  10. docs/assistant_live_cases/story_to_video_expected_actions.json
+  11. docs/assistant_live_cases/live_error_ledger.md
+  12. docs/assistant_live_cases/model_output_quality_scorecard.md
+  13. docs/assistant_action_contract_matrix.md
+
+  如果文档之间冲突，以 2026-06-04 Pi parity spec、2026-06-04 P0/P1 execution plan/log、2026-05-30 Claw 近期 1/2/3 方案和Claw handoff 最新章节为准。
+
+  二、本次目标范围
+
+  本次只完成 P0/P1，不把 P2/P3 全部强塞进同一轮。
+
+  本次必须完成：
+
+  1. Pi 助手基础真实闭环
+     - 使用设置里的文本模型，不新增单独 Pi 模型配置入口。
+     - 面板可发送消息、接收流式响应、展示 delta/warning/done。
+     - actions 只能来自 final message.done。
+     - delta/action.proposed 不能触发画布变更。
+     - Pi 只能 proposal，Huanying 负责 validate、preview、confirm、execute。
+     - 不允许 Pi 获得 shell/file/browser/MCP/package 权限。
+
+  2. story_to_video P0 标杆闭环
+     - 用户输入类似“做一个 15 秒雨夜赛博追逐故事短片”时，Pi 应稳定输出 story_to_video 工作流 actions。
+     - 结构必须包含：
+       - 1 个 story_outline 节点。
+       - 1 个 style_bible 节点。
+       - 3 到 8 个 shot_script 节点。
+       - 每个 shot_script 对应 1 个 shot_keyframe ai-image 节点。
+       - 每个 shot_keyframe 对应 1 个 shot_video ai-video 准备节点。
+     - metadata 至少支持：
+       - workflowKind=story_to_video
+       - workflowGroupId
+       - workflowStep
+       - storyDurationSec
+       - shotIndex
+       - shotDurationSec
+       - shotTitle
+       - shotPrompt
+       - shotVideoPrompt
+     - 文本/图片生成可 queue 或进入 pending/running。
+     - 视频只创建准备节点；未强确认前绝不启动视频生成。
+     - preview 和 receipt 必须明确说明“故事视频工作流”“视频生成需要确认”“当前只是准备视频节点，不是已生成视频”。
+
+  3. 真实模型 action 稳定性治理
+     - 支持真实模型常见 action 形状：
+       - type/action/actionType/operation
+       - nodeId/targetNodeId/id
+       - nodeType/data.nodeType/data.type
+       - data.metadata.workflowKind
+       - root metadata
+       - fenced JSON
+       - JSON 前后带自然语言
+     - 支持 same-batch created node id 映射。
+     - 支持缺 nodeType 时从同批 create_node 或当前 canvas context 推断目标节点类型。
+     - 空 create_group/connect_nodes placeholder 只能在安全 workflow batch 中 warning 忽略。
+     - shell/file/browser/network/package/MCP/delete 等危险动作必须 fail closed。
+     - 视频生成如果没有 videoAuthorized=true 必须 fail closed 或前端强确认拦截。
+     - 每个 live 失败或模型输出异常都必须沉淀为 fixture/test，不允许只靠手改 prompt。
+
+  4. Action preview / apply / receipt 产品化
+     - preview 必须分组展示：
+       - diagnostics
+       - create_nodes
+       - connect_nodes
+       - update_nodes
+       - layout
+       - generation
+       - workflow
+       - other
+     - 支持逐条勾选/跳过。
+     - 支持 medium/high risk badge 或说明。
+     - apply 前必须重新 validate。
+     - applying 期间防重复点击。
+     - apply 后 receipt 显示：
+       - appliedCount
+       - createdNodeIds
+       - createdEdgeIds
+       - updatedNodeIds
+       - queuedGenerationNodeIds
+       - skippedVideoGenerationNodeIds
+       - warnings
+       - trace/conversation/message 关联信息。
+     - 部分失败时保留失败信息，不吞错误。
+
+  5. 强确认和视频双保险
+     - 高风险 action 和 ai-video generation 必须强确认。
+     - 前端 preview 层要显示强确认。
+     - 后端 validate 层要检查 videoAuthorized。
+     - executor 层即使绕过后端也要根据目标节点类型拦截 ai-video generation。
+     - 模型输出 requiresConfirmation=false 不能降低本地风险判断。
+     - 文案必须区分“视频准备节点”和“启动视频生成”。
+
+  6. 附件和 @ 引用 P1 闭环
+     - 附件 store 支持 image/video/document。
+     - 上传或添加附件后写入 context 时必须脱敏：
+       - 不传本地绝对路径。
+       - 不传 blob/data URL。
+       - 不传真实 token/key/signed URL。
+     - 附件 usage 至少支持：
+       - style
+       - character
+       - composition
+       - product
+       - firstFrame
+       - mask
+       - general/reference
+     - 面板需要可见附件 chip。
+     - 至少实现基础 usage 选择或明确的可操作交互。
+     - @ 引用至少支持把节点/附件/素材引用写入 context.references。
+     - 如果完整搜索弹层来不及，至少完成一个可验证 MVP：通过 UI 或 state API 选择引用，并在请求 context 中体现。
+
+  7. Conversation / History P1 闭环
+     - 自动创建 conversation。
+     - 保存 user/assistant message。
+     - 保存 context snapshot。
+     - 保存 pending actions / transaction。
+     - 保存 receipt。
+     - 保存 generation tasks。
+     - 历史列表可见、可搜索、可恢复。
+     - 恢复 pending actions 时不能自动执行。
+     - 支持删除。
+     - 支持 rename/export 的后端或 API 能力；如果 UI 未做完，需记录为 P1 剩余项。
+     - 导出或 debug snapshot 不得泄露 key/token/local path/blob/data URL。
+
+  8. Generation lifecycle P1 闭环
+     - 支持 queued/running/completed/failed/cancelled。
+     - 支持 idempotencyKey，防重复点击重复入队。
+     - renderer 未挂载时保持 pending/queued，不直接失败。
+     - 文本/图片 generation 可走真实 renderer runner 或 pending fallback。
+     - 失败时进入 failed，并可记录 retry 入口或后续待办。
+     - receipt/history 能看到 generation task 状态。
+
+  9. Canvas Doctor MVP 产品化
+     - context 暴露 diagnostics：
+       - failedNodeIds
+       - missingPromptNodeIds
+       - danglingEdgeIds
+       - isolatedNodeIds
+       - duplicateNameGroups
+       - recommendedFocusNodeIds
+     - doctor 模式只允许诊断、注释、聚焦，不允许自动生成、删除、覆盖 prompt/model。
+     - preview 能展示诊断类型、严重程度、节点、建议。
+     - 如果能落画布，优先用 comment/source-text 注释。
+     - 如果落画布未完成，必须至少做到结构化 diagnostic preview + focus_nodes 可执行。
+
+  10. Auto Layout MVP 产品化
+      - 自动整理模式只允许：
+        - layout_nodes
+        - move_nodes
+        - create_group
+        - rename_node
+        - focus_nodes
+        - set_viewport
+      - 禁止修改 prompt/model/assets/generation。
+      - 支持布局策略：
+        - single_chain
+        - branch_flow
+        - storyboard_grid
+        - asset_lane
+        - problem_lane
+      - story_to_video 必须使用 storyboard_grid 或等价语义布局。
+      - 节点不能明显堆叠。
+      - 布局动作必须可 receipt、可回归。
+
+  11. 后端/API 数据闭环
+      - `/api/v2/canvas-agent/status`
+        - 使用统一文本模型配置。
+        - 返回 runtime/provider/model 可用状态。
+        - 不泄露 secret。
+      - `/api/v2/canvas-agent/chat`
+        - 保持非流式兜底。
+      - `/api/v2/canvas-agent/chat/stream`
+        - 返回 NDJSON。
+        - final-only actions。
+        - 错误 frame 友好。
+      - `/api/v2/canvas-agent/actions/validate`
+        - latest context validation。
+        - videoAuthorized 双保险。
+        - action alias repair。
+        - dangerous action fail-closed。
+      - `/api/v2/canvas-agent/context/preview`
+        - 输出脱敏上下文预览。
+      - `/api/v2/canvas-agent/conversations*`
+        - 支持 list/create/get/rename/delete/export/messages/receipts/context-snapshots/transactions/generation-tasks。
+      - `/api/v2/canvas-agent/generation-tasks*`
+        - 支持 list/create/update
+      - 所有输出都必须脱敏
+
+  12. Live / Offline 回归
+      - 必须跑 Node 单测。
+      - 必须跑 Python 单测。
+      - 必须跑 source preflight。
+      - 必须跑 Pi offline fixture regression。
+      - 必须覆盖：
+        - story_to_video fixture
+        - invalid delta actions do not execute
+        - generation permission gate
+        - history restore pending actions
+        - r5 basic create/connect/layout/focus
+      - 如果 8777 可用，则跑真实 8777 浏览器验收
+      - 8777 验收要产出 artifact：
+        - screenshot
+        - console/network issue summary
+        - panel state
+        - graph before/after
+        - receipt
+        - scorecard/summary
+      - 未经用户允许，不要启动、重启、停止、探测 8777
+
+  三、本轮非目标
+
+  本次不做：
+
+  1. 团队模板市场。
+  2. 完整模板权限/版本/审核/回滚治理
+  3. 自动启动真实视频生成
+  4. Pi shell/file/browser/MCP/package 能力
+  5. 大规模 UI 重写
+  6. 本地模型支持
+  7. 完整爆款实验室
+  8. 完整 Prompt 手术台高级 diff 编辑器
+  9. 完整 LLM Wiki 迁移
+  10. P2/P3 全量功能一次性实现
+  如果发现这些能力相关代码已有雏形，可以修安全边界和文档，但不要把它们作为本轮完成定义。
+
+  四、执行顺序
+
+  按下面顺序，不要跳跃：
+
+  Phase 0：重新建立当前事实基线
+  - 阅读上述文档
+  - 检查当前 Pi 代码实现
+  - 列出已实现、半实现、未实现
+  - 不要重复实现已经完成且测试通过的 P0/P1 能力
+  - 更新或新建本轮执行日志
+
+  Phase 1：story_to_video 协议和 schema
+  - 补 Pi prompt/skill/rules
+  - 补 action schema metadata 白名单
+  - 补 action alias repair
+  - 补 video node type inference
+  - 补 Python tests
+
+  Phase 2：story_to_video executor / layout / preview / receipt
+  - 补 storyboard_grid 语义布局
+  - 补 workflow preview/receipt 文案
+  - 补 generation/video boundary
+  - 补 Node tests
+  Phase 3：真实模型输出治理
+  - 补 fenced JSON / surrounding JSON parser
+  - 补 placeholder repair
+  - 补 nested metadata preservation
+  - 补 live error ledger 机制或 fixture candidate
+  - 补 scorecard 规则
+
+  Phase 4：P1 交互补齐
+  - 附件 usage。
+  - @ references。
+  - history restore/pending safety。
+  - generation lifecycle UI/receipt/history。
+  - friendly error/copy trace。
+  - stop/retry 显性能力。
+
+  Phase 5：集成验收
+  - 跑 P0/P1 Node tests。
+  - 跑 P0/P1 Python tests。
+  - 跑 source preflight。
+  - 跑 offline fixture regression。
+  - 如用户授权，跑 8777 browser live validation。
+  - 修复失败，失败必须先落测试再修。
+
+  Phase 6：文档收口
+  - 更新实现日志。
+  - 更新缺失清单。
+  - 更新当前已实现能力。
+  - 更新踩坑合集。
+  - 更新后续 P2/P3 backlog。
+  - 明确本轮完成口径和剩余风险。
+
+  五、苏格拉底式提问规则
+
+  如果需求仍有不明确，不要无限追问。最多只问 3 个定界问题：
+
+  1. 是否允许本轮实际跑 8777 页面验收？
+  2. story_to_video 是否作为本轮 P0 标杆闭环？
+  3. 是否确认 P2/P3 不在本轮强行全部实现？
+
+  如果用户没有回答，默认采用：
+  - 允许在用户明确授权后跑 8777。
+  - story_to_video 是本轮 P0 标杆。
+  - P2/P3 只更新缺口和后续计划，不本轮开发。
+
+  六、禁止事项
+
+  严禁：
+
+  1. 泄露 API key、Bearer token、proxy token。
+  2. 泄露 Windows 本地绝对路径。
+  3. 把 blob/data URL 传给模型或写入 artifact。
+  4. 让 Pi 执行 shell/file/browser/MCP/package。
+  5. delta actions 触发画布变更。
+  6. 未确认启动视频生成。
+  7. 绕过 `/actions/validate` 直接执行。
+  8. 用“测试通过”代替“浏览器实际可用”。
+  9. 文档说完成但代码没有实现。
+  10. 代码实现后不更新测试和文档。
+
+  七、验收命令建议
+
+  根据当前项目已有命令，至少执行：
+
+  ```powershell
+  D:\Aic\node.exe--test modules\assistant\assistantProtocol.test.js modules\assistant\assistantStreamingClient.test.js
+  modules\assistant\assistantActionContract.test.js modules\assistant\assistantConfirmationPolicy.test.js
+  api\canvasAgentApi.test.js api\canvasAgentApi.streaming.test.js
+
+  D:\Aic\node.exe --test modules\assistant\assistantActionPreviewModel.test.js
+  modules\assistant\assistantAttachmentStore.test.js modules\assistant\assistantConversationStore.test.js
+  modules\assistant\assistantGenerationTaskStore.test.js modules\assistant\assistantContextBuilder.test.js
+  modules\assistant\assistantActionExecutor.test.js modules\app\appAssistantPanel.test.js
+  modules\app\appAssistantPanel.streaming.test.js modules\app\appAssistantPanel.context.test.js
+  modules\app\appAssistantPanel.p1Ui.test.js modules\app\appAssistantPanel.autoload.test.js
+
+  python -m unittest canvas_agent_action_schema_test canvas_agent_context_service_test
+  canvas_agent_conversation_service_test canvas_agent_route_service_test pi_runtime_service_test pi_bridge_service_test
+  http_route_dispatcher_test
+
+  python tools\check_pi_canvas_agent_source_tree.py
+
+  python tools\run_pi_canvas_agent_offline_regression.py
+
+
+  八、完成定义
+
+  只有同时满足以下条件，才可以声明本次 /goal 完成：
+
+  1. Pi 助手使用设置里的文本模型，不再依赖单独配置入口。
+  2. 流式聊天可用，final-only actions 成立。
+  3. story_to_video 能生成完整结构并通过 schema/preview/apply/receipt/history。
+  4. 视频生成未授权时绝不启动。
+  5. Action preview 支持分组、勾选、强确认、apply、receipt。
+  6. 附件/reference/context 脱敏正确。
+  7. generation task 生命周期进入 receipt/history。
+  8. Canvas Doctor MVP 和 Auto Layout MVP 可用且不越权。
+  9. P0/P1 Node/Python/offline regression 通过。
+  10. 如授权跑 8777，必须产出 artifact 并说明结果。
+  11. 文档更新当前实现、剩余缺口、踩坑和后续 P2/P3 backlog。
+
+  ```text
+  执行时先做事实核查，不要假设之前文档里的“已完成”仍然成立；以当前代码、测试和 8777 实际验收为准。遇到“文档说完成但代码没有”的情况，以代码为准修复，并更新文档。

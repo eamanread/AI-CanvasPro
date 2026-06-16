@@ -6,12 +6,26 @@ export {
   resumeRunningHubImageTask,
 } from "./aiImageApi.js";
 
+import {
+  generateVideo as generateVideoBase,
+} from "./aiVideoApi.js";
+import {
+  runSeedanceWebVideoGeneration,
+  shouldUseSeedanceWebVideoBridge,
+} from "./seedanceWebVideoBridge.js";
+
 export {
   buildGenerateVideoRequest,
-  generateVideo,
   resumeAsyncVideoTask,
   resumeRunningHubVideoTask,
 } from "./aiVideoApi.js";
+
+export async function generateVideo(payload = {}, options = {}) {
+  if (shouldUseSeedanceWebVideoBridge(payload, payload?.provider)) {
+    return await runSeedanceWebVideoGeneration(payload, options);
+  }
+  return await generateVideoBase(payload, options);
+}
 
 export { buildGenerateTextRequest, generateText } from "./aiTextApi.js";
 
@@ -40,13 +54,19 @@ export {
 export {
   fetchDreaminaCliStatusFromServer,
   fetchDreaminaCliLoginRuntimeFromServer,
-  startDreaminaHeadlessLoginFromServer,
-  startDreaminaHeadlessReloginFromServer,
   startDreaminaWebLoginFromServer,
+  cancelDreaminaLoginFromServer,
   importDreaminaLoginResponseFromServer,
   logoutDreaminaFromServer,
-  buildDreaminaQrImageUrl,
 } from "./dreaminaCliApi.js";
+
+export {
+  fetchSeedanceWebStatusFromServer,
+  startSeedanceWebLoginFromServer,
+  logoutSeedanceWebFromServer,
+  submitSeedanceWebVideoTask,
+  querySeedanceWebResult,
+} from "./seedanceWebApi.js";
 
 export {
   normalizeDreaminaTaskSnapshot,
@@ -114,6 +134,7 @@ export {
 export {
   fetchUserSettingsFromServer,
   saveUserSettingsToServer,
+  fetchLibraryStatusFromServer,
 } from "./userSettingsApi.js";
 
 export { fetchSubscriptionStatus, activateCdkey } from "./subscriptionApi.js";

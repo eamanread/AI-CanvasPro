@@ -46,6 +46,42 @@ const PROVIDER_LABELS = {
   openai: "OpenAI",
 };
 
+function normalizeErrorMessage(value) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  const nestedValues = [
+    value.message,
+    value.errorMessage,
+    value.error_description,
+    value.description,
+    value.reason,
+    value.error?.message,
+    value.error?.errorMessage,
+    value.data?.message,
+    value.data?.error?.message,
+  ];
+  for (const nestedValue of nestedValues) {
+    const nestedMessage = normalizeErrorMessage(nestedValue);
+    if (nestedMessage) {
+      return nestedMessage;
+    }
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "";
+  }
+}
+
 export class ApiError extends Error {
   constructor(options = {}) {
     const {
@@ -65,7 +101,8 @@ export class ApiError extends Error {
       generationScope,
       nodeType,
     } = options;
-    super(message || ERROR_MESSAGES[type] || ERROR_MESSAGES[ErrorType.UNKNOWN]);
+    const normalizedMessage = normalizeErrorMessage(message);
+    super(normalizedMessage || ERROR_MESSAGES[type] || ERROR_MESSAGES[ErrorType.UNKNOWN]);
     this.name = "ApiError";
     this.type = type || ErrorType.UNKNOWN;
     this.provider = provider || "unknown";
