@@ -9,10 +9,15 @@
 
 import {
   fetchUserSettingsFromServer,
-  saveUserSettingsToServer,
   fetchLibraryStatusFromServer,
 } from "../../api/index.js";
+import { post } from "../../api/requester.js";
 import { showError, showSuccess } from "../../services/toastService.js";
+
+// 首次设库会同步把本机素材/工作流/预设/输出/上传 copy-missing 迁入 NAS，
+// 大库经 SMB 复制可能很久；用 600s 超时，别让 30s 默认（DEFAULT_TIMEOUT）把迁移打断。
+const LIBRARY_SAVE_TIMEOUT_MS = 600000;
+const USER_SETTINGS_ENDPOINT = "/api/v2/user/settings.json";
 
 /**
  * 刷新 #libraryStatusLine 的状态文案与 CSS class。
@@ -76,7 +81,12 @@ export function initLibrarySettings() {
     btn.textContent = "保存中...";
     try {
       const cur = await fetchUserSettingsFromServer().catch(() => ({}));
-      await saveUserSettingsToServer({ ...(cur || {}), libraryDir });
+      // 等价于 saveUserSettingsToServer，但带 600s 超时以容纳首次设库的大库迁移
+      await post(
+        USER_SETTINGS_ENDPOINT,
+        { ...(cur || {}), libraryDir },
+        { provider: "local", timeout: LIBRARY_SAVE_TIMEOUT_MS },
+      );
       showSuccess("共享库目录已更新");
       await refreshStatus(statusLine, libraryDir);
     } catch (err) {
