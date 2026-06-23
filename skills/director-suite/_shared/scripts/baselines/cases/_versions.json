@@ -1,0 +1,4 @@
+{
+  "id": "config-versions", "kind": "versions", "final_text": "",
+  "_desc": "D13 余项：扫带『契约版本』标记的契约文件，校验都在 VERSIONS.md 台账且版本一致。"
+}

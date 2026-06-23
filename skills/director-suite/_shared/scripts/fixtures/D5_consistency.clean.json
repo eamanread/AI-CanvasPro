@@ -1,0 +1,6 @@
+{
+  "_desc": "clean 正例：候选与基线一致（色相212/头身比8.0）→ 期望 PASS / GO / exit0",
+  "baseline": { "asset_id": "[Element_ZhaoShanhe]", "hue_deg": 212, "headbody_ratio": 8.0 },
+  "candidate": { "hue_deg": 212, "headbody_ratio": 8.0 },
+  "final_text": "镜头组5 时长：12s 场景：翡翠楼包厢 夜 内 切镜方式：硬切"
+}

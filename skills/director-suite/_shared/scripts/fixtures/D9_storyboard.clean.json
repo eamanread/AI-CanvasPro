@@ -1,0 +1,12 @@
+{
+  "_desc": "clean 正例（武戏）：字段齐/无5级中景/无时码/无泄漏/特征命中1.0/无红线 → PASS / exit0",
+  "pass_rule": 0.85,
+  "final_text": "镜头组3 时长：12s\n场景：荒山隘口 日 外 尘土飞扬\n情绪强度：4（强情绪）\n镜头3-1 时长：2s 主情绪：临战的紧 节奏：武戏·急\n景别：全景\n运镜：手持（Handheld）——临场不安\n切镜方式：动作匹配\n镜头3-2 时长：2s 主情绪：交手的爆 节奏：武戏·急\n景别：近景\n运镜：斯坦尼康（Steadicam）——沉浸跟随\n切镜方式：硬切",
+  "expected_features": [
+    { "id": "F1-手持", "pattern": "手持|Handheld", "weight": 1 },
+    { "id": "F2-斯坦尼康", "pattern": "斯坦尼康|Steadicam", "weight": 1 },
+    { "id": "F3-动作匹配", "pattern": "动作匹配", "weight": 1 },
+    { "id": "F4-急", "pattern": "急", "weight": 1 }
+  ],
+  "red_lines": []
+}

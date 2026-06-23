@@ -1,0 +1,24 @@
+{
+  "_desc": "poison 反例：① G5 est_duration=20(>15) ② G5 final_prompt 含『自检确认/Σ镜时长/0-3s』(泄漏+绝对时码) ③ G6 引用 [Element_Ghost] 不在 key_elements(引用闭合破) ④ degrade_chain to nano-banana-pro(跨族) ⑤ dependencies 含 G5↔G6 环(非DAG) → 多 FAIL / NO-GO / exit1。证明执行契约审计是真闸。",
+  "contract": {
+    "contract_version": "1.0",
+    "key_elements": [
+      { "id": "[Element_ZhaoShanhe]", "category": "character" },
+      { "id": "[Element_PrivateRoom_BanquetWarm]", "category": "scene" }
+    ],
+    "shots": [
+      { "id": "G5", "order": 1, "est_duration": 20,
+        "refs": ["[Element_ZhaoShanhe]"],
+        "final_prompt": "0-3s 缓推，3-6s 硬切。自检确认：Σ镜时长=20s ✓" },
+      { "id": "G6", "order": 2, "est_duration": 10,
+        "refs": ["[Element_Ghost]"],
+        "final_prompt": "近景叠化。 no subtitles" }
+    ],
+    "dependencies": [
+      { "from": "G5", "to": "G6" },
+      { "from": "G6", "to": "G5" }
+    ],
+    "pause_gates": [ { "gate_id": "storyboard_review", "mandatory": true, "escalate": "stop_and_ask" } ],
+    "degrade_chain": ["seedance-2.0", "nano-banana-pro"]
+  }
+}

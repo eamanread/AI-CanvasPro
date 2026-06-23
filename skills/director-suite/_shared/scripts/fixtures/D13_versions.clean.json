@@ -1,0 +1,5 @@
+{
+  "_desc": "clean：每个带标记的契约都在台账且版本一致 → PASS",
+  "ledger": { "storyboard/output-contract.md": "v2.0", "production-bible/scene-roster.md": "v1.1" },
+  "markers": { "storyboard/output-contract.md": "v2.0", "production-bible/scene-roster.md": "v1.1" }
+}

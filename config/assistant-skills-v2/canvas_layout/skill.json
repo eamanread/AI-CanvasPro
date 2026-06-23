@@ -1,0 +1,62 @@
+{
+  "id": "canvas_layout",
+  "name": "高级画布整理",
+  "version": "1.0.0",
+  "type": "scenario",
+  "enabled": true,
+  "priority": 90,
+  "injectMode": "when_matched",
+  "triggers": [
+    "整理画布",
+    "整理选区",
+    "自动排版",
+    "画布太乱",
+    "整理节点",
+    "layout canvas"
+  ],
+  "requiredContext": [
+    "context.canvas.nodes",
+    "context.canvas.edges",
+    "context.canvas.layoutHints",
+    "context.selection.selectedNodeIds",
+    "context.canvas.diagnostics"
+  ],
+  "allowedActions": [
+    "layout_nodes",
+    "move_nodes",
+    "create_group",
+    "rename_node",
+    "focus_nodes",
+    "set_viewport"
+  ],
+  "forbiddenActions": [
+    "delete_nodes",
+    "queue_generation_task",
+    "run_prompt_preset_generation",
+    "write_file",
+    "shell_command"
+  ],
+  "qualityRules": [
+    "优先整理当前选区，再考虑全画布。",
+    "保持输入、处理、输出从左到右清晰流动。",
+    "同一镜头、同一工作流或同一资产链路的节点应相邻。",
+    "减少节点重叠和连线交叉。",
+    "不得修改 prompt、模型、资产、生成结果。"
+  ],
+  "riskLevel": "low",
+  "requiresConfirmation": false,
+  "qualityChecks": [
+    {
+      "type": "requiresActionType",
+      "action": "layout_nodes"
+    },
+    {
+      "type": "forbidsActionType",
+      "action": "queue_generation_task"
+    },
+    {
+      "type": "maxActions",
+      "value": 8
+    }
+  ]
+}

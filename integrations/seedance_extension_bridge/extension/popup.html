@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 420px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 16px;
+    }
+    h1 {
+      font-size: 16px;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h1::before {
+      content: '🎬';
+    }
+    .section {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 13px;
+      color: #8b8fa3;
+      margin-bottom: 8px;
+    }
+    .preset-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .preset-tag {
+      background: #0f3460;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      color: #a8d8ea;
+    }
+    .upload-area {
+      border: 2px dashed #0f3460;
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+    .upload-area:hover {
+      border-color: #e94560;
+      background: rgba(233, 69, 96, 0.05);
+    }
+    .upload-area .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .upload-area .text {
+      font-size: 13px;
+      color: #8b8fa3;
+    }
+    .upload-area .hint {
+      font-size: 11px;
+      color: #555;
+      margin-top: 4px;
+    }
+    #fileInput {
+      display: none;
+    }
+    .file-list {
+      max-height: 150px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+    .file-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .file-list::-webkit-scrollbar-thumb {
+      background: #0f3460;
+      border-radius: 2px;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: #16213e;
+      border-radius: 4px;
+      margin-bottom: 2px;
+    }
+    .file-item .name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: 8px;
+    }
+    .file-item .remove {
+      color: #e94560;
+      cursor: pointer;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .count {
+      font-size: 13px;
+      color: #a8d8ea;
+    }
+    .clear-btn {
+      font-size: 12px;
+      color: #e94560;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #e94560, #c23152);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-preset {
+      background: linear-gradient(135deg, #0f3460, #16213e);
+      color: #a8d8ea;
+      margin-bottom: 8px;
+      border: 1px solid #0f3460;
+    }
+    .btn-preset:hover {
+      border-color: #a8d8ea;
+    }
+    .progress {
+      margin-top: 12px;
+      display: none;
+    }
+    .progress.active {
+      display: block;
+    }
+    .progress-bar {
+      background: #0f3460;
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #e94560, #c23152);
+      border-radius: 4px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+    .progress-text {
+      font-size: 12px;
+      color: #8b8fa3;
+      text-align: center;
+    }
+    .log {
+      margin-top: 8px;
+      max-height: 100px;
+      overflow-y: auto;
+      font-size: 11px;
+      color: #8b8fa3;
+      background: #111;
+      border-radius: 4px;
+      padding: 6px;
+      display: none;
+    }
+    .log.active {
+      display: block;
+    }
+    .log p { margin-bottom: 2px; }
+    .log .success { color: #4caf50; }
+    .log .error { color: #e94560; }
+    .prompt-section {
+      margin-bottom: 12px;
+    }
+    .prompt-input {
+      width: 100%;
+      height: 60px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      color: #e0e0e0;
+      padding: 8px;
+      font-size: 12px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .prompt-input::placeholder {
+      color: #555;
+    }
+    .prompt-input:focus {
+      outline: none;
+      border-color: #a8d8ea;
+    }
+    .cfg-select {
+      width: 100%;
+      background: #0f3460;
+      color: #a8d8ea;
+      border: 1px solid #16213e;
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 12px;
+      margin-top: 2px;
+      cursor: pointer;
+    }
+    .cfg-select:focus {
+      outline: none;
+      border-color: #a8d8ea;
+    }
+    .btn-sm {
+      padding: 4px 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      background: #e94560;
+      color: #fff;
+    }
+    .btn-sm:hover { opacity: 0.9; }
+    .btn-sm-cancel {
+      background: #0f3460;
+      color: #a8d8ea;
+    }
+    .conn-status {
+      font-size: 11px;
+      text-align: center;
+      padding: 4px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      display: none;
+    }
+    .conn-status.connected {
+      display: block;
+      background: rgba(76, 175, 80, 0.15);
+      color: #4caf50;
+    }
+    .conn-status.disconnected {
+      display: block;
+      background: rgba(233, 69, 96, 0.15);
+      color: #e94560;
+    }
+    .task-delay-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #8b8fa3;
+    }
+    .task-delay-input {
+      width: 60px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      color: #e0e0e0;
+      padding: 4px 6px;
+      font-size: 12px;
+      text-align: center;
+    }
+    .task-delay-input:focus {
+      outline: none;
+      border-color: #a8d8ea;
+    }
+  </style>
+</head>
+<body>
+  <h1>Seedance 2.0 批量生成</h1>
+
+  <div class="section">
+    <div class="section-title">预设参数 <span id="presetEditToggle" style="float:right;cursor:pointer;font-size:11px;color:#a8d8ea;">✏️ 编辑</span></div>
+    <div class="preset-info" id="presetDisplay">
+      <div class="preset-tag" id="tagModel">🤖 Seedance 2.0</div>
+      <div class="preset-tag" id="tagRefMode">⚡ 首尾帧</div>
+      <div class="preset-tag" id="tagRatio">📐 16:9</div>
+      <div class="preset-tag" id="tagDuration">⏱️ 5s</div>
+    </div>
+    <div id="presetEditor" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <label style="font-size:11px;color:#8b8fa3;">
+          模型
+          <select id="cfgModel" class="cfg-select">
+            <option value="Seedance 2.0">Seedance 2.0</option>
+            <option value="Seedance 2.0 Fast">Seedance 2.0 Fast</option>
+            <option value="视频 3.5 Pro">视频 3.5 Pro</option>
+            <option value="视频 3.0 Pro">视频 3.0 Pro</option>
+            <option value="视频 3.0 Fast">视频 3.0 Fast</option>
+            <option value="视频 3.0">视频 3.0</option>
+          </select>
+        </label>
+        <label style="font-size:11px;color:#8b8fa3;">
+          参考模式
+          <select id="cfgRefMode" class="cfg-select">
+            <option value="全能参考">全能参考</option>
+            <option value="首尾帧">首尾帧</option>
+            <option value="智能多帧">智能多帧</option>
+            <option value="主体参考">主体参考</option>
+          </select>
+        </label>
+        <label style="font-size:11px;color:#8b8fa3;">
+          画面比例
+          <select id="cfgRatio" class="cfg-select">
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="1:1">1:1</option>
+            <option value="4:3">4:3</option>
+            <option value="3:4">3:4</option>
+            <option value="21:9">21:9</option>
+          </select>
+        </label>
+        <label style="font-size:11px;color:#8b8fa3;">
+          视频时长
+          <select id="cfgDuration" class="cfg-select">
+            <option value="5s">5s</option>
+            <option value="4s">4s</option>
+            <option value="6s">6s</option>
+            <option value="7s">7s</option>
+            <option value="8s">8s</option>
+            <option value="9s">9s</option>
+            <option value="10s">10s</option>
+            <option value="11s">11s</option>
+            <option value="12s">12s</option>
+            <option value="13s">13s</option>
+            <option value="14s">14s</option>
+            <option value="15s">15s</option>
+          </select>
+        </label>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button class="btn-sm" id="presetSave" style="flex:1;">💾 保存</button>
+        <button class="btn-sm btn-sm-cancel" id="presetCancel" style="flex:1;">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:6px;margin-bottom:12px;">
+    <button class="btn btn-preset" id="btnPreset" style="flex:1;margin-bottom:0;">🔧 应用预设参数</button>
+    <button class="btn btn-preset" id="btnCheckPage" style="flex:0 0 auto;margin-bottom:0;padding:10px 14px;" title="检查页面连接">🔗</button>
+  </div>
+
+  <div class="conn-status" id="connStatus"></div>
+
+  <div class="prompt-section">
+    <div class="section-title" style="margin-bottom: 6px;">提示词（可选）</div>
+    <textarea class="prompt-input" id="promptInput" placeholder="输入生成提示词，所有任务共用此提示词..."></textarea>
+  </div>
+
+  <div class="task-delay-section">
+    <span>任务间隔:</span>
+    <input type="number" class="task-delay-input" id="taskDelay" value="2" min="1" max="30">
+    <span>秒</span>
+  </div>
+
+  <div class="upload-area" id="uploadArea">
+    <div class="icon">📁</div>
+    <div class="text">点击或拖拽添加参考图</div>
+    <div class="hint">支持 JPG / PNG / WEBP，最多30张</div>
+  </div>
+  <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp">
+
+  <div class="status-bar" id="statusBar" style="display:none;">
+    <span class="count" id="fileCount">0 / 30 张</span>
+    <button class="clear-btn" id="btnClear">清空</button>
+  </div>
+
+  <div class="file-list" id="fileList"></div>
+
+  <button class="btn btn-primary" id="btnGenerate" disabled>🚀 开始批量生成（0 个任务）</button>
+
+  <div class="progress" id="progress">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-text" id="progressText">准备中...</div>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+[
+  {
+    "input": "拿这个资产做图",
+    "matchedSkill": "asset_usage",
+    "actions": [
+      "create_node",
+      "update_node_data",
+      "connect_nodes"
+    ]
+  }
+]

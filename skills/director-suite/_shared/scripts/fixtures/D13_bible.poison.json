@@ -1,0 +1,17 @@
+{
+  "_desc": "poison：①G5引[Element_Ghost]悬空 ②焦点[Element_Unused]未用 ③烛状态G5=s3/G6=s1逆序 ④G5 ZhaoShanhe hair#FF0000≠锚#2A2622漂移 → 四不变量全破/NO-GO",
+  "bible": {
+    "characters": [
+      { "id": "[Element_ZhaoShanhe]", "anchor": { "hair": "#2A2622" }, "focus": true },
+      { "id": "[Element_Unused]", "anchor": { "hair": "#000000" }, "focus": true }
+    ],
+    "scenes": [ { "id": "[Element_PrivateRoom_BanquetWarm]", "focus": true } ],
+    "props": [ { "id": "[Prop_Candle_Banquet_01]", "states": ["s1", "s2", "s3"] } ],
+    "storyboard": [
+      { "group": "G5", "refs": ["[Element_ZhaoShanhe]", "[Element_Ghost]", "[Prop_Candle_Banquet_01]@s3"],
+        "looks": { "[Element_ZhaoShanhe]": { "hair": "#FF0000" } } },
+      { "group": "G6", "refs": ["[Element_PrivateRoom_BanquetWarm]", "[Prop_Candle_Banquet_01]@s1"] }
+    ],
+    "final_text": "镜头组5 切镜方式：硬切"
+  }
+}

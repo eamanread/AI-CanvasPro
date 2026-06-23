@@ -1,0 +1,16 @@
+{
+  "id": "case-nirenhua",
+  "kind": "storyboard",
+  "_genre": "拟人风格化（原创）",
+  "pass_rule": 0.85,
+  "final_text": "镜头组1 时长：10s\n场景：迷你办公室 日 内 暖光\n情绪强度：2（日常微动）\n镜头1-1 时长：5s 主情绪：忙碌的萌 节奏：文戏·中\n景别：中景\n运镜：跟前（Lead）——跟随上班的小猫前行\n切镜方式：硬切\n镜头1-2 时长：5s 主情绪：得意的萌 节奏：文戏·缓\n景别：中近景\n运镜：固定（Static）——定格卖萌\n切镜方式：叠化",
+  "expected_features": [
+    { "id": "F1-拟人萌宠", "pattern": "小猫|拟人|萌", "weight": 1 },
+    { "id": "F2-跟前", "pattern": "跟前|Lead|跟随", "weight": 1 },
+    { "id": "F3-中景", "pattern": "中景|中近景", "weight": 1 },
+    { "id": "F4-暖光", "pattern": "暖光|暖", "weight": 1 }
+  ],
+  "red_lines": [
+    { "id": "R-拟人-伤害", "pattern": "虐待|受伤|血腥|变成人类", "fix": "拟人萌宠禁虐待/受伤/血腥/变人类" }
+  ]
+}

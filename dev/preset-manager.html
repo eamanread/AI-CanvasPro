@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>幻映 · 预设管理器</title>
+    <link rel="stylesheet" href="./preset-manager.css" />
+  </head>
+  <body>
+    <div class="preset-shell">
+      <div class="toolbar">
+        <label class="toolbar-field">
+          <span>节点类型</span>
+          <select id="node-type-select"></select>
+        </label>
+        <div class="toolbar-actions">
+          <input
+            id="import-file-input"
+            type="file"
+            accept=".hy-presets,.json,application/json,text/plain"
+            hidden
+          />
+          <button id="import-button" class="ghost-button" type="button">导入文件</button>
+          <button id="export-button" class="ghost-button" type="button">导出文件</button>
+          <button id="refresh-button" class="ghost-button" type="button">重新读取</button>
+          <button id="new-system-group-button" class="ghost-button" type="button">新建系统分组</button>
+          <button id="new-system-button" class="ghost-button" type="button">新建系统叶子</button>
+        </div>
+      </div>
+
+      <div class="workspace">
+        <aside class="preset-list-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>当前预设</h2>
+            </div>
+            <span id="preset-count" class="count-pill">系统 0 · 自定义 0</span>
+          </div>
+          <div id="preset-list" class="preset-list"></div>
+        </aside>
+
+        <main class="editor-panel">
+          <div class="panel-heading">
+            <div>
+              <h2 id="editor-title">系统预设</h2>
+            </div>
+            <div class="editor-heading-actions">
+              <span id="source-chip" class="source-chip">系统预设</span>
+              <span id="status-chip" class="status-chip">已同步</span>
+            </div>
+          </div>
+
+          <label class="editor-field">
+            <span>预设标题</span>
+            <input id="preset-title-input" type="text" placeholder="例如：多宫格 / 电影海报" />
+          </label>
+
+          <div id="system-fields" class="system-fields">
+            <label class="editor-field">
+              <span>图标或 SVG</span>
+              <input
+                id="preset-icon-input"
+                type="text"
+                placeholder="可以填 emoji，也可以填内联 SVG 字符串"
+              />
+            </label>
+
+            <label class="editor-field">
+              <span>描述</span>
+              <input
+                id="preset-desc-input"
+                type="text"
+                placeholder="例如：一键生成剧情连续的多宫格图片"
+              />
+            </label>
+          </div>
+
+          <label id="template-field" class="editor-field editor-field-large">
+            <span>提示词模板（已隐藏）</span>
+            <textarea
+              id="preset-template-input"
+              placeholder="提示词内容已隐藏，不在此页面展示"
+              readonly
+            ></textarea>
+          </label>
+
+          <div class="editor-actions">
+            <button id="new-subitem-button" class="ghost-button" type="button" disabled>
+              为当前分组新增子预设
+            </button>
+            <button id="delete-button" class="danger-button" type="button" disabled>删除</button>
+            <button id="save-button" class="primary-button" type="button">保存并同步</button>
+          </div>
+        </main>
+      </div>
+
+      <div id="page-message" class="page-message" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="./preset-manager.js"></script>
+  </body>
+</html>

@@ -1,1 +1,478 @@
-(function(_0x5718c6,_0x29943a){const _0x474a1c=a63_0x1833,_0x4acf15=_0x5718c6();while(!![]){try{const _0x409647=parseInt(_0x474a1c(0x1fd))/0x1*(parseInt(_0x474a1c(0x213))/0x2)+parseInt(_0x474a1c(0x229))/0x3*(-parseInt(_0x474a1c(0x218))/0x4)+parseInt(_0x474a1c(0x20a))/0x5*(parseInt(_0x474a1c(0x221))/0x6)+-parseInt(_0x474a1c(0x227))/0x7+-parseInt(_0x474a1c(0x210))/0x8+parseInt(_0x474a1c(0x219))/0x9+-parseInt(_0x474a1c(0x1f5))/0xa;if(_0x409647===_0x29943a)break;else _0x4acf15['push'](_0x4acf15['shift']());}catch(_0x131da0){_0x4acf15['push'](_0x4acf15['shift']());}}}(a63_0x3339,0xaa682));import{buildApiUrl}from'./apiUrl.js';import{ApiError}from'./errors/ApiError.js';import{parseError,parseNetworkError}from'./errors/ErrorParser.js';import{logDiagnosticEvent}from'../src/services/diagnosticsService.js';const DEFAULT_TIMEOUT=0x7530;function isAbsoluteUrl(_0x8d81d8){const _0x41bb06=a63_0x1833;return/^https?:\/\//i[_0x41bb06(0x1fa)](_0x8d81d8);}function a63_0x1833(_0x5cc063,_0x347629){const _0x3339cc=a63_0x3339();return a63_0x1833=function(_0x18335e,_0x5e3dba){_0x18335e=_0x18335e-0x1f2;let _0x24195c=_0x3339cc[_0x18335e];return _0x24195c;},a63_0x1833(_0x5cc063,_0x347629);}function getRuntimeDeviceId(){const _0x45035d=a63_0x1833;return String(globalThis[_0x45035d(0x224)]?.[_0x45035d(0x21e)]||globalThis[_0x45035d(0x21e)]||'')[_0x45035d(0x1f9)]();}function shouldAttachDeviceIdHeader(_0x455917,_0x2cacd0,_0x32f8c8){const _0x2d6e15=a63_0x1833;if(String(_0x2cacd0||'')['trim']()[_0x2d6e15(0x216)]()===_0x2d6e15(0x1fe))return!![];if(_0x32f8c8===![])return![];return!isAbsoluteUrl(String(_0x455917||''));}function withDeviceIdHeader(_0x3ec476,_0x5e4797,_0x595208,_0x62f0bf){const _0x13cdb2=a63_0x1833,_0x4a2001=getRuntimeDeviceId();if(!_0x4a2001||!shouldAttachDeviceIdHeader(_0x5e4797,_0x595208,_0x62f0bf))return _0x3ec476||{};const _0x3f20e1=_0x13cdb2(0x200);if(typeof Headers!==_0x13cdb2(0x203)&&_0x3ec476 instanceof Headers){const _0x19e5de=new Headers(_0x3ec476);if(!_0x19e5de[_0x13cdb2(0x1f4)](_0x3f20e1))_0x19e5de[_0x13cdb2(0x222)](_0x3f20e1,_0x4a2001);return _0x19e5de;}const _0x3e278d={..._0x3ec476||{}},_0x59fd1c=Object['keys'](_0x3e278d)[_0x13cdb2(0x207)](_0x252036=>String(_0x252036||'')[_0x13cdb2(0x216)]()===_0x3f20e1[_0x13cdb2(0x216)]());if(!_0x59fd1c)_0x3e278d[_0x3f20e1]=_0x4a2001;return _0x3e278d;}function sleep(_0x4d0302){return new Promise(_0x5d1f31=>setTimeout(_0x5d1f31,_0x4d0302));}function fetchWithTimeout(_0x3753e0,_0x1500e4={},_0x349b32=DEFAULT_TIMEOUT){const _0x192621=a63_0x1833,_0x224624=new AbortController(),_0x2e5a72=setTimeout(()=>_0x224624[_0x192621(0x201)](),_0x349b32);return fetch(_0x3753e0,{..._0x1500e4,'signal':_0x224624[_0x192621(0x21d)]})[_0x192621(0x206)](()=>clearTimeout(_0x2e5a72));}function fetchWithTimeoutWithSignal(_0x2e1fb2,_0x2b1d19={},_0x14b89b=DEFAULT_TIMEOUT,_0xbadb17){const _0x1f9395=a63_0x1833,_0x2d8d7b=new AbortController(),_0x4c91b2=setTimeout(()=>_0x2d8d7b['abort'](),_0x14b89b);let _0x5651f6=null;if(_0xbadb17){if(_0xbadb17[_0x1f9395(0x1f3)])_0x2d8d7b[_0x1f9395(0x201)]();else _0x5651f6=()=>_0x2d8d7b[_0x1f9395(0x201)](),_0xbadb17[_0x1f9395(0x202)]('abort',_0x5651f6,{'once':!![]});}return fetch(_0x2e1fb2,{..._0x2b1d19,'signal':_0x2d8d7b[_0x1f9395(0x21d)]})[_0x1f9395(0x206)](()=>{const _0x160b5b=_0x1f9395;clearTimeout(_0x4c91b2);if(_0xbadb17&&_0x5651f6)_0xbadb17[_0x160b5b(0x220)](_0x160b5b(0x201),_0x5651f6);});}function shouldRetryError(_0x242896,_0x56a74b,_0x50f872,_0xc72844){const _0x24312c=a63_0x1833;if(_0xc72844?.[_0x24312c(0x1f3)])return![];return!!_0x242896?.['retryable']&&_0x56a74b<_0x50f872;}function a63_0x3339(){const _0x296ba8=['http://local.invalid','API\x20request\x20failed','get','5812528jDHvGI','origin','text','2642018TZXLcV','renderer','split','toLowerCase','parse','200336Eilomw','3556998JsmKkq','GET','includes','api.request_failed','signal','__aicDeviceId','startsWith','removeEventListener','2697546iwPQOI','set','stack','window','statusCode','headers','5127346Obuidm','warn','3QsjbWn','Content-Type','retryable','aborted','has','8578900TxiCjf','application/json','type','string','trim','test','auto','blob','1ATXbXZ','local','HTTP\x20','X-AIC-Device-Id','abort','addEventListener','undefined','name','json','finally','some','content-type','function','15LqraXi','status','pathname'];a63_0x3339=function(){return _0x296ba8;};return a63_0x3339();}function safeUrlForDiagnostics(_0x49b10d){const _0x25aefa=a63_0x1833,_0x18d179=String(_0x49b10d||'');try{const _0x6be294=new URL(_0x18d179,_0x25aefa(0x20d));if(_0x18d179[_0x25aefa(0x21f)]('/')||_0x18d179[_0x25aefa(0x21f)](_0x25aefa(0x20d)))return _0x6be294[_0x25aefa(0x20c)];return''+_0x6be294[_0x25aefa(0x211)]+_0x6be294['pathname'];}catch{return _0x18d179[_0x25aefa(0x215)](/[?#]/,0x1)[0x0]||'';}}function reportRequestFailure({fullUrl:_0x57082a,method:_0x581ff2,provider:_0x1014ff,apiErr:_0x2e80f0,attempt:_0x2dd9a1,retries:_0x3f9d42}){const _0x457a0a=a63_0x1833;void logDiagnosticEvent({'type':_0x457a0a(0x21c),'level':_0x457a0a(0x228),'source':_0x457a0a(0x214),'message':_0x2e80f0?.['message']||_0x457a0a(0x20e),'context':{'method':_0x581ff2,'url':safeUrlForDiagnostics(_0x57082a),'provider':_0x1014ff,'status':_0x2e80f0?.[_0x457a0a(0x20b)]||_0x2e80f0?.[_0x457a0a(0x225)]||0x0,'errorType':_0x2e80f0?.[_0x457a0a(0x1f7)]||_0x2e80f0?.[_0x457a0a(0x204)]||'','retryable':Boolean(_0x2e80f0?.[_0x457a0a(0x1f2)]),'attempts':_0x2dd9a1+0x1,'retries':_0x3f9d42},'stack':_0x2e80f0?.[_0x457a0a(0x223)]||''});}async function parseResponseBody(_0x5ce0e0,_0x549b43){const _0x3d19a5=a63_0x1833;if(_0x549b43==='blob')return await _0x5ce0e0[_0x3d19a5(0x1fc)]();if(_0x549b43===_0x3d19a5(0x212))return await _0x5ce0e0[_0x3d19a5(0x212)]();if(_0x549b43===_0x3d19a5(0x1fb)){const _0x65fb7e=_0x5ce0e0['headers'][_0x3d19a5(0x20f)](_0x3d19a5(0x208))||'';if(_0x65fb7e[_0x3d19a5(0x21b)](_0x3d19a5(0x1f6)))return await _0x5ce0e0[_0x3d19a5(0x205)]();const _0x13ed31=await _0x5ce0e0['text']();try{return JSON[_0x3d19a5(0x217)](_0x13ed31);}catch{return _0x13ed31;}}return await _0x5ce0e0['json']();}async function parseErrorBody(_0x1bbe7c){const _0x58e3ab=a63_0x1833;try{const _0x833a12=await _0x1bbe7c[_0x58e3ab(0x212)]();try{const _0x5cda45=JSON['parse'](_0x833a12);return _0x5cda45;}catch{return{'error':_0x833a12||'HTTP\x20'+_0x1bbe7c[_0x58e3ab(0x20b)]};}}catch{return{'error':_0x58e3ab(0x1ff)+_0x1bbe7c[_0x58e3ab(0x20b)]};}}export async function requester(_0x37fa02){const _0x28bd03=a63_0x1833,{url:_0x195e1f,method:method=_0x28bd03(0x21a),headers:headers={},body:_0x5184ee,timeout:timeout=DEFAULT_TIMEOUT,signal:_0x302d07,retries:retries=0x0,retryDelay:retryDelay=0x258,responseType:responseType=_0x28bd03(0x1fb),allow404Null:allow404Null=![],provider:provider='unknown',errorParser:_0x125cef,buildUrl:buildUrl=!![],returnMeta:returnMeta=![]}=_0x37fa02||{};let _0x30fe76=_0x195e1f||'';buildUrl&&!isAbsoluteUrl(_0x30fe76)&&(_0x30fe76=buildApiUrl(_0x30fe76));const _0x33d6f5=withDeviceIdHeader(headers,_0x195e1f,provider,buildUrl),_0x45dd6c=_0x302d07?fetchWithTimeoutWithSignal:fetchWithTimeout;let _0x457649=0x0;while(!![]){try{const _0x12c3da=await _0x45dd6c(_0x30fe76,{'method':method,'headers':_0x33d6f5,'body':_0x5184ee},timeout,_0x302d07);if(_0x12c3da[_0x28bd03(0x20b)]===0x194&&allow404Null)return returnMeta?{'data':null,'status':0x194,'headers':_0x12c3da[_0x28bd03(0x226)]}:null;if(!_0x12c3da['ok']){const _0x2c611c=await parseErrorBody(_0x12c3da),_0x480138=typeof _0x125cef===_0x28bd03(0x209)?_0x125cef(provider,_0x2c611c,_0x12c3da[_0x28bd03(0x20b)]):parseError(provider,_0x2c611c,_0x12c3da[_0x28bd03(0x20b)]);if(_0x480138&&shouldRetryError(_0x480138,_0x457649,retries,_0x302d07)){_0x457649++,await sleep(retryDelay*_0x457649);continue;}reportRequestFailure({'fullUrl':_0x30fe76,'method':method,'provider':provider,'apiErr':_0x480138,'attempt':_0x457649,'retries':retries});throw _0x480138||ApiError['fromHttpStatus'](_0x12c3da[_0x28bd03(0x20b)],provider);}const _0x302f7f=await parseResponseBody(_0x12c3da,responseType);return returnMeta?{'data':_0x302f7f,'status':_0x12c3da[_0x28bd03(0x20b)],'headers':_0x12c3da[_0x28bd03(0x226)]}:_0x302f7f;}catch(_0x3da932){const _0x251f71=_0x3da932 instanceof ApiError?_0x3da932:parseNetworkError(provider,_0x3da932,timeout);if(shouldRetryError(_0x251f71,_0x457649,retries,_0x302d07)){_0x457649++,await sleep(retryDelay*_0x457649);continue;}reportRequestFailure({'fullUrl':_0x30fe76,'method':method,'provider':provider,'apiErr':_0x251f71,'attempt':_0x457649,'retries':retries});throw _0x251f71;}}}export function get(_0x13d340,_0x11d908={}){const _0x306feb=a63_0x1833;return requester({'url':_0x13d340,'method':_0x306feb(0x21a),..._0x11d908});}export function del(_0x20ba45,_0x1dfbab={}){return requester({'url':_0x20ba45,'method':'DELETE',..._0x1dfbab});}export function post(_0x5c1a4f,_0x402bbb,_0x3260ef={}){const _0x15e76e=a63_0x1833,_0x5064c5={..._0x3260ef[_0x15e76e(0x226)]||{}};let _0x42a29c=_0x402bbb;return _0x402bbb!==undefined&&!(_0x402bbb instanceof FormData)&&!(_0x402bbb instanceof Blob)&&!(_0x402bbb instanceof ArrayBuffer)&&(_0x5064c5[_0x15e76e(0x22a)]=_0x5064c5[_0x15e76e(0x22a)]||_0x15e76e(0x1f6),_0x42a29c=typeof _0x402bbb===_0x15e76e(0x1f8)?_0x402bbb:JSON['stringify'](_0x402bbb)),requester({'url':_0x5c1a4f,'method':'POST','headers':_0x5064c5,'body':_0x42a29c,..._0x3260ef});}
+import { buildApiUrl } from "./apiUrl.js";
+import { ApiError } from "./errors/ApiError.js";
+import { parseError, parseNetworkError } from "./errors/ErrorParser.js";
+
+const DEFAULT_TIMEOUT = 30000;
+const INSTALL_ID_KEY = "aic-install-id";
+const SUBSCRIPTION_REQUIRED_CODE = "SUBSCRIPTION_REQUIRED";
+const GENERATION_ROUTE_PATHS = new Set([
+  "/api/v2/proxy/completions",
+  "/api/v2/proxy/image",
+  "/api/v2/runninghubwf/run",
+  "/api/v2/dreamina/text2image",
+  "/api/v2/dreamina/image2image",
+  "/api/v2/dreamina/text2video",
+  "/api/v2/dreamina/image2video",
+  "/api/v2/dreamina/frames2video",
+  "/api/v2/dreamina/multiframe2video",
+  "/api/v2/dreamina/multimodal2video",
+]);
+
+function isAbsoluteUrl(url) {
+  return /^https?:\/\//i.test(url);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function fetchWithTimeout(url, options = {}, timeout = DEFAULT_TIMEOUT) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
+function fetchWithTimeoutWithSignal(url, options = {}, timeout = DEFAULT_TIMEOUT, signal) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  let abortListener = null;
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      abortListener = () => controller.abort();
+      signal.addEventListener("abort", abortListener, { once: true });
+    }
+  }
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => {
+    clearTimeout(timeoutId);
+    if (signal && abortListener) {
+      signal.removeEventListener("abort", abortListener);
+    }
+  });
+}
+
+function shouldRetryError(error, retryCount, maxRetries, signal) {
+  if (signal?.aborted) {
+    return false;
+  }
+  return Boolean(error?.retryable) && retryCount < maxRetries;
+}
+
+async function parseResponseBody(response, responseType) {
+  if (responseType === "blob") {
+    return await response.blob();
+  }
+  if (responseType === "text") {
+    return await response.text();
+  }
+  if (responseType === "auto") {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      return await response.json();
+    }
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  }
+  return await response.json();
+}
+
+async function parseErrorBody(response) {
+  try {
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: text || `HTTP ${response.status}` };
+    }
+  } catch {
+    return { error: `HTTP ${response.status}` };
+  }
+}
+
+function resolveUrl(url) {
+  try {
+    const base =
+      typeof location !== "undefined" && location?.origin
+        ? location.origin
+        : "http://127.0.0.1:8777";
+    return new URL(String(url || ""), base);
+  } catch {
+    return null;
+  }
+}
+
+function isLocalApiRequest(url) {
+  const parsed = resolveUrl(url);
+  if (!parsed || !parsed.pathname.startsWith("/api/")) {
+    return false;
+  }
+  if (!isAbsoluteUrl(String(url || ""))) {
+    return true;
+  }
+  return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+}
+
+function isGenerationRoute(url) {
+  const parsed = resolveUrl(url);
+  if (!parsed) {
+    return false;
+  }
+  return GENERATION_ROUTE_PATHS.has(parsed.pathname);
+}
+
+function inferProvider(url, fallback = "unknown") {
+  const parsed = resolveUrl(url);
+  const pathname = parsed?.pathname || "";
+  if (pathname.startsWith("/api/v2/dreamina/")) {
+    return "dreamina";
+  }
+  if (pathname === "/api/v2/runninghubwf/run") {
+    return "runninghubwf";
+  }
+  return fallback || "unknown";
+}
+
+function inferNodeType(url, fallback = "") {
+  const parsed = resolveUrl(url);
+  const pathname = parsed?.pathname || "";
+  if (pathname === "/api/v2/proxy/completions") {
+    return "text";
+  }
+  if (pathname === "/api/v2/proxy/image") {
+    return "image";
+  }
+  if (pathname === "/api/v2/runninghubwf/run") {
+    return "video";
+  }
+  if (
+    pathname === "/api/v2/dreamina/text2video" ||
+    pathname === "/api/v2/dreamina/image2video" ||
+    pathname === "/api/v2/dreamina/frames2video" ||
+    pathname === "/api/v2/dreamina/multiframe2video" ||
+    pathname === "/api/v2/dreamina/multimodal2video"
+  ) {
+    return "video";
+  }
+  if (
+    pathname === "/api/v2/dreamina/text2image" ||
+    pathname === "/api/v2/dreamina/image2image"
+  ) {
+    return "image";
+  }
+  return fallback || "";
+}
+
+function getWindowRef() {
+  if (typeof window !== "undefined") {
+    return window;
+  }
+  return globalThis;
+}
+
+function readInstallId() {
+  const runtime = getWindowRef();
+  const fromWindow = String(runtime?.__aicInstallId || "").trim();
+  if (fromWindow) {
+    return fromWindow;
+  }
+  try {
+    const fromStorage = String(globalThis.localStorage?.getItem(INSTALL_ID_KEY) || "").trim();
+    if (fromStorage) {
+      runtime.__aicInstallId = fromStorage;
+      return fromStorage;
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+function generateInstallId() {
+  const seed = `${Date.now()}-${Math.random()}`;
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = ((hash * 31) + seed.charCodeAt(index)) >>> 0;
+  }
+  return `aic-${Date.now().toString(36)}-${hash.toString(36)}`;
+}
+
+function ensureLocalInstallId() {
+  const existing = readInstallId();
+  if (existing) {
+    return existing;
+  }
+  const generated = generateInstallId();
+  const runtime = getWindowRef();
+  runtime.__aicInstallId = generated;
+  try {
+    globalThis.localStorage?.setItem(INSTALL_ID_KEY, generated);
+  } catch {
+    // Ignore local persistence failures in non-browser environments.
+  }
+  return generated;
+}
+
+function hasHeader(headers, headerName) {
+  const target = String(headerName || "").toLowerCase();
+  return Object.keys(headers || {}).some((key) => String(key || "").toLowerCase() === target);
+}
+
+function getHeaderValue(headers, headerName) {
+  const target = String(headerName || "").toLowerCase();
+  for (const [key, value] of Object.entries(headers || {})) {
+    if (String(key || "").toLowerCase() === target) {
+      return String(value || "");
+    }
+  }
+  return "";
+}
+
+function withLocalInstallIdHeader(url, headers = {}) {
+  const nextHeaders = { ...(headers || {}) };
+  if (!isLocalApiRequest(url) || hasHeader(nextHeaders, "X-AIC-Install-Id")) {
+    return nextHeaders;
+  }
+  const installId = ensureLocalInstallId();
+  if (installId) {
+    nextHeaders["X-AIC-Install-Id"] = installId;
+  }
+  return nextHeaders;
+}
+
+function withLocalInstallIdBody(url, headers = {}, body) {
+  if (!isLocalApiRequest(url) || !isGenerationRoute(url) || typeof body !== "string") {
+    return body;
+  }
+
+  const contentType = getHeaderValue(headers, "Content-Type").toLowerCase();
+  if (!contentType.includes("application/json")) {
+    return body;
+  }
+
+  const installId =
+    String(getHeaderValue(headers, "X-AIC-Install-Id") || "").trim() || ensureLocalInstallId();
+  if (!installId) {
+    return body;
+  }
+
+  try {
+    const payload = JSON.parse(body);
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return body;
+    }
+    if (String(payload.installId || "").trim()) {
+      return body;
+    }
+    return JSON.stringify({
+      ...payload,
+      installId,
+    });
+  } catch {
+    return body;
+  }
+}
+
+function getSubscriptionCode(payload) {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+  return String(payload.code || payload.errorCode || "").trim().toUpperCase();
+}
+
+function parseJsonText(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSubscriptionPayloadCandidate(payload) {
+  if (!payload) {
+    return payload;
+  }
+  if (typeof payload === "string") {
+    const parsed = parseJsonText(payload);
+    if (parsed) {
+      return parsed;
+    }
+
+    const ssePayloads = payload
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.replace(/^data:\s*/, "").trim())
+      .filter((line) => line && line !== "[DONE]");
+    for (let index = ssePayloads.length - 1; index >= 0; index -= 1) {
+      const sseParsed = parseJsonText(ssePayloads[index]);
+      if (sseParsed) {
+        return sseParsed;
+      }
+    }
+  }
+  return payload;
+}
+
+function isSubscriptionRequiredPayload(payload) {
+  return getSubscriptionCode(normalizeSubscriptionPayloadCandidate(payload)) === SUBSCRIPTION_REQUIRED_CODE;
+}
+
+function triggerSubscriptionRequired(url, provider, error) {
+  if (!isGenerationRoute(url)) {
+    return;
+  }
+  const runtime = getWindowRef();
+  const handler = runtime?.handleSubscriptionRequired;
+  if (typeof handler !== "function") {
+    return;
+  }
+  try {
+    const serverProvider = String(error?.provider || "").trim();
+    const serverNodeType = String(error?.nodeType || "").trim();
+    const resolvedProvider = serverProvider || inferProvider(url, provider);
+    const resolvedNodeType = serverNodeType || inferNodeType(url, "");
+    handler({
+      requiredModelId: error?.requiredModelId || "",
+      modelId: error?.requiredModelId || "",
+      provider: resolvedProvider,
+      nodeType: resolvedNodeType,
+      reasonCode: error?.reasonCode || "",
+      subscriptionStatus: error?.subscriptionStatus || "",
+      activationSource: error?.activationSource || "",
+      generationScope: error?.generationScope || "",
+      error,
+    });
+  } catch {
+    // Keep the request error path intact even if UI hook fails.
+  }
+}
+
+function buildSubscriptionError(url, provider, payload, status = 200) {
+  const error = ApiError.subscriptionRequired(
+    inferProvider(url, provider),
+    payload,
+    status,
+  );
+  triggerSubscriptionRequired(url, provider, error);
+  return error;
+}
+
+function maybeThrowSubscriptionRequired(url, provider, payload, status = 200) {
+  const normalizedPayload = normalizeSubscriptionPayloadCandidate(payload);
+  if (!isLocalApiRequest(url) || !isGenerationRoute(url) || !isSubscriptionRequiredPayload(normalizedPayload)) {
+    return;
+  }
+  throw buildSubscriptionError(url, provider, normalizedPayload, status);
+}
+
+export async function requester(options) {
+  const {
+    url,
+    method = "GET",
+    headers = {},
+    body,
+    timeout = DEFAULT_TIMEOUT,
+    signal,
+    retries = 0,
+    retryDelay = 600,
+    responseType = "auto",
+    allow404Null = false,
+    provider = "unknown",
+    errorParser,
+    buildUrl = true,
+    returnMeta = false,
+  } = options || {};
+
+  let finalUrl = url || "";
+  if (buildUrl && !isAbsoluteUrl(finalUrl)) {
+    finalUrl = buildApiUrl(finalUrl);
+  }
+
+  const requestHeaders = withLocalInstallIdHeader(finalUrl, headers);
+  const requestBody = withLocalInstallIdBody(finalUrl, requestHeaders, body);
+  const doFetch = signal ? fetchWithTimeoutWithSignal : fetchWithTimeout;
+  let retryCount = 0;
+
+  while (true) {
+    try {
+      const response = await doFetch(
+        finalUrl,
+        { method, headers: requestHeaders, body: requestBody },
+        timeout,
+        signal,
+      );
+
+      if (response.status === 404 && allow404Null) {
+        return returnMeta ? { data: null, status: 404, headers: response.headers } : null;
+      }
+
+      if (!response.ok) {
+        const errorBody = await parseErrorBody(response);
+        maybeThrowSubscriptionRequired(finalUrl, provider, errorBody, response.status);
+        const parsedError =
+          typeof errorParser === "function"
+            ? errorParser(provider, errorBody, response.status)
+            : parseError(provider, errorBody, response.status);
+        if (parsedError && shouldRetryError(parsedError, retryCount, retries, signal)) {
+          retryCount += 1;
+          await sleep(retryDelay * retryCount);
+          continue;
+        }
+        throw parsedError || ApiError.fromHttpStatus(response.status, provider);
+      }
+
+      const data = await parseResponseBody(response, responseType);
+      maybeThrowSubscriptionRequired(finalUrl, provider, data, response.status);
+      return returnMeta ? { data, status: response.status, headers: response.headers } : data;
+    } catch (error) {
+      const apiError =
+        error instanceof ApiError ? error : parseNetworkError(provider, error, timeout);
+      if (shouldRetryError(apiError, retryCount, retries, signal)) {
+        retryCount += 1;
+        await sleep(retryDelay * retryCount);
+        continue;
+      }
+      throw apiError;
+    }
+  }
+}
+
+export function get(url, options = {}) {
+  return requester({ url, method: "GET", ...options });
+}
+
+export function del(url, options = {}) {
+  return requester({ url, method: "DELETE", ...options });
+}
+
+export function post(url, data, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  let body = data;
+  if (
+    data !== undefined &&
+    !(data instanceof FormData) &&
+    !(data instanceof Blob) &&
+    !(data instanceof ArrayBuffer)
+  ) {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+    body = typeof data === "string" ? data : JSON.stringify(data);
+  }
+  return requester({
+    url,
+    method: "POST",
+    headers,
+    body,
+    ...options,
+  });
+}

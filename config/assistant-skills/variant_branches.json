@@ -1,0 +1,31 @@
+{
+  "id": "variant_branches",
+  "name": "Huanying Variant Branches",
+  "version": "0.1.0",
+  "enabled": true,
+  "priority": 70,
+  "injectMode": "when_matched",
+  "triggers": ["变体", "多个方向", "风格方向", "方案对比", "做几个版本", "variant"],
+  "allowedActions": ["duplicate_nodes", "create_group", "create_node", "layout_nodes", "focus_nodes"],
+  "forbiddenActions": ["queue_generation_task", "run_prompt_preset_generation", "delete_nodes", "overwrite_user_content"],
+  "requiredContext": ["context.selection.selectedNodeIds", "context.selection.subgraph", "context.canvas.nodes"],
+  "body": "Goal: prepare 3 to 5 meaningful creative directions from the selected subgraph. Each branch should state its creative difference, source nodes, and risk. Default to prepare-only branches and notes; do not auto-generate paid outputs unless the user asks and policy allows it. Use current selection first. If no clear source exists, ask for clarification instead of duplicating the whole canvas.",
+  "compactBody": "变体分支：基于选区做3-5个真实差异方向，说明差异/风险；默认只准备和排版，不自动生成。",
+  "qualityRubric": [
+    "Branches differ in concept, style, camera, or mood.",
+    "Each branch can be understood without opening hidden metadata.",
+    "Original nodes remain intact."
+  ],
+  "decisionGuide": [
+    "Use selected subgraph first.",
+    "Limit to 3-5 branches.",
+    "Layout branches so comparison is easy."
+  ],
+  "antiPatterns": [
+    "Making tiny wording changes but calling them variants.",
+    "Duplicating unrelated canvas regions.",
+    "Auto-generating paid results while the user only asked for directions."
+  ],
+  "examples": []
+}
+

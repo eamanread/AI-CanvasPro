@@ -1,0 +1,5 @@
+{
+  "_desc": "poison：缺 character-board/color-palette/keyframe 三个 mega → 3 FAIL/NO-GO",
+  "expected": ["storyboard", "character-board", "color-palette", "keyframe"],
+  "present": ["storyboard"]
+}

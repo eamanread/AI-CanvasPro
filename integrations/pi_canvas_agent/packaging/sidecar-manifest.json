@@ -1,0 +1,17 @@
+{
+  "kind": "huanying-pi-canvas-agent-sidecar",
+  "version": 1,
+  "platform": "windows-x64",
+  "node": {
+    "path": "vendor/node/windows-x64/node.exe",
+    "minimumVersion": ">=22.19.0",
+    "source": "bundled"
+  },
+  "runner": {
+    "path": "integrations/pi_canvas_agent/dist/runner.js",
+    "source": "compiled-dist"
+  },
+  "requiresGlobalNode": false,
+  "requiresGlobalPi": false,
+  "requiresDevDependencies": false
+}

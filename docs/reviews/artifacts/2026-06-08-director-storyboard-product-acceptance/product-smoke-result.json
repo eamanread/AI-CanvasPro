@@ -1,0 +1,124 @@
+{
+  "title": "幻映工作台",
+  "appLoaded": true,
+  "leftMenuHasDirector": true,
+  "leftMenuHasStoryboardScript": true,
+  "globals": {
+    "hasAppStore": false,
+    "hasGraphStore": false,
+    "hasV2Renderer": true,
+    "hasV2SidePlusUpdater": true
+  },
+  "maleAssetUrl": "http://127.0.0.1:8777/assets/characters/quaternius/universal-base/Superhero_Male_FullBody.gltf",
+  "femaleAssetUrl": "http://127.0.0.1:8777/assets/characters/quaternius/universal-base/Superhero_Female_FullBody.gltf",
+  "characterAssetProbes": [
+    {
+      "url": "http://127.0.0.1:8777/assets/characters/quaternius/universal-base/Superhero_Male_FullBody.gltf",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8777/assets/characters/quaternius/universal-base/Superhero_Female_FullBody.gltf",
+      "status": 200
+    }
+  ],
+  "registrySeed": {
+    "seeded": true,
+    "textModelIds": [
+      "mdl_text_smoke_a",
+      "mdl_text_smoke_b"
+    ]
+  },
+  "storyboardInjection": {
+    "injected": true,
+    "via": "esm-app-store",
+    "id": "smoke-storyboard-side-plus"
+  },
+  "storyboardDom": {
+    "found": true,
+    "rect": {
+      "x": 330,
+      "y": 242,
+      "width": 1126.4000244140625,
+      "height": 633.6000366210938
+    },
+    "className": "v2-node node storyboard-script-wrapper selected v2-selected"
+  },
+  "sidePlus": {
+    "buttons": [
+      {
+        "side": "left",
+        "visible": true,
+        "className": "side-plus-btn side-plus-btn--left",
+        "x": 273.890625,
+        "y": 542.296875,
+        "width": 33,
+        "height": 33
+      },
+      {
+        "side": "right",
+        "visible": true,
+        "className": "side-plus-btn side-plus-btn--right",
+        "x": 1479.5,
+        "y": 542.296875,
+        "width": 33,
+        "height": 33
+      }
+    ],
+    "hasLeft": true,
+    "hasRight": true
+  },
+  "storyboardModelSelector": {
+    "pass": true,
+    "found": true,
+    "hasWrap": true,
+    "initialLabel": "Smoke Text A",
+    "initialTitle": "Smoke Text A",
+    "selectedLabel": "Smoke Text B",
+    "selectedTitle": "Smoke Text B",
+    "itemCount": 2,
+    "activeBefore": "mdl_text_smoke_a",
+    "activeAfter": "mdl_text_smoke_b",
+    "menuClosed": true,
+    "storeSelectedModelId": "mdl_text_smoke_b",
+    "storeModel": "smoke-text-b"
+  },
+  "sceneImageFusion": {
+    "pass": true,
+    "panoramaMode": "panorama",
+    "panoramaEnvironmentEnabled": true,
+    "referenceMode": "reference",
+    "referencePlaneEnabled": true
+  },
+  "directorCharacterPlacement": {
+    "pass": true,
+    "mannequinId": "mannequin-1780933030942-1ozvz5ksq",
+    "mannequinCount": 1,
+    "selectedObjectType": "mannequin",
+    "selectedObjectId": "mannequin-1780933030942-1ozvz5ksq",
+    "transform": {
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": 2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0
+      },
+      "scale": 1.5
+    }
+  },
+  "pageErrors": [],
+  "httpErrors": [
+    {
+      "status": 404,
+      "url": "http://127.0.0.1:8777/images/volcengine.svg"
+    }
+  ],
+  "artifacts": {
+    "screenshot": "D:\\Aic\\huanying-source-windows-20260430-122116\\docs\\reviews\\artifacts\\2026-06-08-director-storyboard-product-acceptance\\storyboard-side-plus.png",
+    "result": "D:\\Aic\\huanying-source-windows-20260430-122116\\docs\\reviews\\artifacts\\2026-06-08-director-storyboard-product-acceptance\\product-smoke-result.json"
+  },
+  "pass": true
+}

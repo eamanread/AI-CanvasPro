@@ -1,0 +1,8 @@
+{
+  "_desc": "红演示用 case：候选色相 242（偏基线 30°）→ run_eval 应判 NO-GO / exit1。用 `python -m harness.run_eval baselines/cases_poison` 触发。",
+  "id": "jadepavilion-zhaoshanhe-POISON",
+  "kind": "asset",
+  "baseline_ref": "baselines/jadepavilion/baseline_ZhaoShanhe.json",
+  "candidate": { "hue_deg": 242, "headbody_ratio": 8.0 },
+  "final_text": "镜头组5 时长：12s 场景：翡翠楼包厢 夜 内 切镜方式：硬切"
+}

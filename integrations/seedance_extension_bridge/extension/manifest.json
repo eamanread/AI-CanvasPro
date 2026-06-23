@@ -1,0 +1,72 @@
+{
+  "manifest_version": 3,
+  "name": "Seedance2.0 批量生成助手",
+  "version": "1.3.30",
+  "description": "即梦AI Seedance2.0 批量添加参考图并生成任务",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "scripting",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://jimeng.jianying.com/*",
+    "https://dreamina.capcut.com/*",
+    "https://*.capcut.com/*",
+    "https://www.dreamina.ai/*",
+    "https://*.dreamina.ai/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_icon": {
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://jimeng.jianying.com/*",
+        "https://dreamina.capcut.com/*",
+        "https://*.capcut.com/*",
+        "https://www.dreamina.ai/*",
+        "https://*.dreamina.ai/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://jimeng.jianying.com/*",
+        "https://dreamina.capcut.com/*",
+        "https://*.capcut.com/*",
+        "https://www.dreamina.ai/*",
+        "https://*.dreamina.ai/*"
+      ],
+      "js": ["mention-main-world.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["panel.html"],
+      "matches": [
+        "https://jimeng.jianying.com/*",
+        "https://dreamina.capcut.com/*",
+        "https://*.capcut.com/*",
+        "https://www.dreamina.ai/*",
+        "https://*.dreamina.ai/*"
+      ]
+    }
+  ],
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

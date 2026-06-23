@@ -1,0 +1,4 @@
+{
+  "id": "config-productization", "kind": "productization", "final_text": "",
+  "_desc": "D13 术语审计 case：扫全 skill .md(排除 docs/scripts)是否含旧口径『八维/8维知识』。修过 DESIGN/README 后应 0 违规 → GO。"
+}

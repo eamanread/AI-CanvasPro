@@ -1,0 +1,14 @@
+{
+  "id": "case-shangye",
+  "kind": "storyboard",
+  "_genre": "商业/产品TVC（原创）",
+  "pass_rule": 0.85,
+  "final_text": "镜头组2 时长：10s\n场景：极简影棚 日 内 中性白光\n情绪强度：1（平静铺陈）\n镜头2-1 时长：5s 主情绪：克制的高级 节奏：文戏·缓\n景别：中景\n运镜：环绕（Orbit）——展示产品材质与卖点\n切镜方式：硬切\n镜头2-2 时长：5s 主情绪：质感聚焦 节奏：文戏·缓\n景别：特写\n运镜：固定（Static）——卖点匠心定格（破格：低情绪产品特写，动机=材质卖点）\n切镜方式：硬切",
+  "expected_features": [
+    { "id": "F1-产品卖点", "pattern": "产品|卖点|材质", "weight": 1 },
+    { "id": "F2-环绕", "pattern": "环绕|Orbit", "weight": 1 },
+    { "id": "F3-特写", "pattern": "特写", "weight": 1 },
+    { "id": "F4-克制单色", "pattern": "克制|中性白|高级", "weight": 1 }
+  ],
+  "red_lines": []
+}

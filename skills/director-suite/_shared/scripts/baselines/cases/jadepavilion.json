@@ -1,0 +1,7 @@
+{
+  "id": "jadepavilion-zhaoshanhe",
+  "kind": "asset",
+  "baseline_ref": "baselines/jadepavilion/baseline_ZhaoShanhe.json",
+  "candidate": { "hue_deg": 212, "headbody_ratio": 8.0 },
+  "final_text": "镜头组5 时长：12s 场景：翡翠楼包厢 夜 内 暖金烛光 红木圆桌\n镜头5-1 主情绪：温情藏锋 节奏：文戏·缓 景别：中近景 运镜：缓推——把笑里的凉推近 切镜方式：硬切"
+}

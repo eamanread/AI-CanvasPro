@@ -1,0 +1,22 @@
+{
+  "_desc": "poison：①Hero景别非递进 ②Detail_01卖点0 ③Detail_05 asset_id≠商品 ④成片含视频字段(运镜/Seedance) → 多FAIL/NO-GO",
+  "static": {
+    "product_asset_id": "[Prop_Watch_01]",
+    "hero": [
+      { "id": "Hero_01", "shot_type": "medium", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.9 },
+      { "id": "Hero_02", "shot_type": "establishing", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.9 },
+      { "id": "Hero_03", "shot_type": "neutral", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.92 }
+    ],
+    "detail": [
+      { "id": "Detail_01", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": [] },
+      { "id": "Detail_02", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["表盘工艺"] },
+      { "id": "Detail_03", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["机芯特写"] },
+      { "id": "Detail_04", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["卖点结构"] },
+      { "id": "Detail_05", "asset_id": "[Prop_Other_99]", "dominant_ratio": 0.88, "selling_points": ["防水验证"] },
+      { "id": "Detail_06", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["对比验证"] },
+      { "id": "Detail_07", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["尺寸规格"] },
+      { "id": "Detail_08", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["配件组合"] }
+    ],
+    "final_text": "Detail_02 运镜：环绕展示，Seedance 提示词生成动态。"
+  }
+}

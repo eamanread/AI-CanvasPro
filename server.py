@@ -1,18 +1,18 @@
 r"""
-./server.py - AI Canvas V2 本地服务
+./server.py - 幻映 V2 ????
 
-用法:
+????:
   cd v2
   venv\Scripts\python server.py
 
-访问地址: http://localhost:8777
+?????: http://localhost:8777
 
-主要目录位于 v2/ 下:
-  user/Canvas Project/  - 画布项目
-  user/shortcuts.json   - 快捷键配置
-  user/settings.json    - 应用设置
-  user/config.json      - API Key 配置
-  data/uploads/         - 上传文件
+??????? v2/ ??:
+  user/Canvas Project/  - ??????
+  user/shortcuts.json   - ?????
+  user/settings.json    - ?????
+  user/config.json      - API Key ??
+  data/uploads/         - ??????
 
 """
 
@@ -37,99 +37,114 @@ import datetime
 import hmac
 import ipaddress
 import shutil
-import tempfile
 
-CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-if CURRENT_DIR not in sys.path:
-    sys.path.insert(0, CURRENT_DIR)
-
-from backend.services.hot_update_service import HotUpdateService
-from backend.services.http_route_dispatcher import HttpRouteDispatcher
-from backend.services.config_route_service import ConfigRouteService
-from backend.services.json_file_route_service import JsonFileRouteService
-from backend.services.library_file_route_service import LibraryFileRouteService
-from backend.services.media_file_route_service import MediaFileRouteService
-from backend.services.local_media_processing_route_service import LocalMediaProcessingRouteService
-from backend.services.remote_proxy_route_service import RemoteProxyRouteService
-from backend.services.subscription_gate_service import SubscriptionGateService
-from backend.services.subscription_gate_manifest import (
-    get_runninghub_subscription_workflow_ids,
-    get_subscription_gate_model_id_by_key,
-    get_subscription_gate_model_ids,
-    get_subscription_gate_model_name_map,
-    normalize_subscription_gate_model_id,
+SOURCE_DIR = os.path.abspath(os.path.dirname(__file__))
+from services.runtime_paths import (
+    apply_private_defaults,
+    build_runtime_paths,
+    copy_missing_tree as _copy_missing_runtime_tree,
+    ensure_runtime_dirs,
+    summarize_model_registry_for_log,
 )
-from backend.services.subscription_client import SubscriptionRemoteClient
-from backend.services.dreamina_cli_service import DreaminaCliService
-from backend.services.dreamina_route_service import DreaminaRouteService
+RUNTIME_PATHS = build_runtime_paths(
+    source_root=SOURCE_DIR,
+    bundle_root=getattr(sys, "_MEIPASS", SOURCE_DIR),
+    executable_dir=os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else SOURCE_DIR,
+)
+
+
+def _startup_log(message):
+    try:
+        root = os.environ.get("LOCALAPPDATA") or os.environ.get("TEMP") or os.getcwd()
+        path = os.path.join(root, "AI-CanvasPro", "launcher.log")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"[{timestamp}] server: {message}\n")
+    except Exception:
+        pass
+
+
+_startup_log("module import start")
+IMPORT_ROOT = RUNTIME_PATHS["importRoot"]
+RESOURCE_ROOT = RUNTIME_PATHS["resourceRoot"]
+WRITABLE_ROOT = RUNTIME_PATHS["writableRoot"]
+APP_ROOT = RESOURCE_ROOT
+
+if IMPORT_ROOT not in sys.path:
+    sys.path.insert(0, IMPORT_ROOT)
+
+CURRENT_DIR = RESOURCE_ROOT
+
+def _prepend_bundled_tool_dir(*parts):
+    tool_dir = os.path.join(RESOURCE_ROOT, *parts)
+    if not os.path.isdir(tool_dir):
+        return
+    current_path = os.environ.get("PATH", "") or ""
+    normalized_tool_dir = os.path.normcase(os.path.abspath(tool_dir))
+    existing = [
+        os.path.normcase(os.path.abspath(item.strip().strip('"')))
+        for item in current_path.split(os.pathsep)
+        if item.strip()
+    ]
+    if normalized_tool_dir not in existing:
+        os.environ["PATH"] = tool_dir + os.pathsep + current_path
+
+_prepend_bundled_tool_dir("vendor", "ffmpeg", "bin")
+
+from services.hot_update_service import HotUpdateService
+from services.http_route_dispatcher import HttpRouteDispatcher
+from services.config_route_service import ConfigRouteService
+from services.json_file_route_service import JsonFileRouteService
+from services.library_file_route_service import LibraryFileRouteService
+from services.media_file_route_service import MediaFileRouteService
+from services.local_media_processing_route_service import LocalMediaProcessingRouteService
+from services.remote_proxy_route_service import RemoteProxyRouteService
+from services.subscription_gate_service import SubscriptionGateService
+from services.local_subscription_client import LocalSubscriptionClient
+from services.dreamina_cli_service import DreaminaCliService
+from services.dreamina_route_service import DreaminaRouteService
+from integrations.seedance_extension_bridge import (
+    SeedanceBrowserLauncher,
+    SeedanceWebBridgeService,
+    SeedanceWebRouteService,
+)
+from services.sam3_service import Sam3Service
+from services.sam3_route_service import Sam3RouteService
+from services.canvas_agent_action_schema import CanvasAgentActionSchema
+from services.director_bridge_service import DirectorBridgeService
+
+DIRECTOR_BRIDGE_SERVICE = DirectorBridgeService()
+from services.canvas_agent_conversation_service import CanvasAgentConversationService
+from services.canvas_agent_context_service import CanvasAgentContextService
+from services.canvas_agent_execution_service import CanvasAgentExecutionService
+from services.canvas_agent_route_service import CanvasAgentRouteService
+from services.canvas_agent_sync_service import CanvasAgentSyncService
+from services.pi_bridge_service import PiBridgeService
+from services.pi_runtime_service import PiRuntimeService
+from services.library_storage import (
+    derive_library_paths,
+    validate_library_dir,
+    library_connection_state as _lib_connection_state,
+    library_status,
+    machine_id,
+    next_gen_filename,
+    parse_gen_seq,
+    atomic_replace_with_retry,
+    resolve_startup_library_dir,
+    migrate_into_library,
+)
+from services.runtime_paths import cleanup_legacy_user_presets as _cleanup_legacy_user_presets
+
+_startup_log("service imports complete")
 
 mimetypes.add_type("text/javascript; charset=utf-8", ".js")
 mimetypes.add_type("text/javascript; charset=utf-8", ".mjs")
 mimetypes.add_type("text/css; charset=utf-8", ".css")
 
-STATIC_VIDEO_CACHE_EXTS = {
-    ".mp4",
-    ".webm",
-    ".mov",
-    ".m4v",
-    ".avi",
-    ".mkv",
-    ".mpeg",
-    ".mpg",
-}
-DERIVED_MEDIA_CACHE_CONTROL = "public, max-age=604800, immutable"
-STATIC_VIDEO_CACHE_CONTROL = "public, max-age=86400"
-NO_STORE_CACHE_CONTROL = "no-store, no-cache, must-revalidate, max-age=0"
-SMART_CLIP_MIN_SEGMENTS = 2
-SMART_CLIP_MAX_SEGMENTS = 25
-SMART_CLIP_DEFAULT_SEGMENTS = 20
-SMART_CLIP_FPS_OPTIONS = (16, 24, 30)
-SMART_CLIP_DEFAULT_FPS = 24
-SMART_CLIP_OUTPUT_MODE_SEGMENTS = "videoSegments"
-SMART_CLIP_OUTPUT_MODE_KEYFRAMES = "keyframes"
-SMART_CLIP_DEFAULT_OUTPUT_MODE = SMART_CLIP_OUTPUT_MODE_SEGMENTS
-DERIVED_STATIC_MEDIA_PREFIXES = (
-    "/data/uploads/_derived/",
-    "/data/assets/_derived/",
-    "/data/assets/derived/",
-    "/output/_derived/",
-    "/output/VideoThumbs/",
-)
 
-
-def _normalize_request_path(request_path):
-    try:
-        raw_path = urllib.parse.urlsplit(str(request_path or "")).path
-        return urllib.parse.unquote(raw_path).replace("\\", "/")
-    except Exception:
-        return ""
-
-
-def _is_cacheable_derived_media_request(request_path):
-    decoded_path = _normalize_request_path(request_path)
-    return any(decoded_path.startswith(prefix) for prefix in DERIVED_STATIC_MEDIA_PREFIXES)
-
-
-def _is_cacheable_static_video_request(request_path):
-    decoded_path = _normalize_request_path(request_path)
-    if not decoded_path:
-        return False
-    if not (
-        decoded_path.startswith("/output/")
-        or decoded_path.startswith("/data/uploads/")
-        or decoded_path.startswith("/data/assets/")
-    ):
-        return False
-    _, ext = os.path.splitext(decoded_path)
-    return ext.lower() in STATIC_VIDEO_CACHE_EXTS
-
-
-def _resolve_static_cache_control(request_path):
-    if _is_cacheable_derived_media_request(request_path):
-        return DERIVED_MEDIA_CACHE_CONTROL
-    if _is_cacheable_static_video_request(request_path):
-        return STATIC_VIDEO_CACHE_CONTROL
-    return NO_STORE_CACHE_CONTROL
+class ReusableThreadingTCPServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
 
 def _get_int_env(name, default, min_value=None):
     try:
@@ -151,39 +166,6 @@ def _split_env_list(name):
     if not raw:
         return []
     return [item.strip() for item in re.split(r"[\s,]+", raw) if item.strip()]
-
-def _get_path_env(name, fallback):
-    raw = str(os.environ.get(name, "") or "").strip()
-    if not raw:
-        return os.path.abspath(fallback)
-    return os.path.abspath(os.path.expandvars(os.path.expanduser(raw)))
-
-def _get_optional_path_env(name):
-    raw = str(os.environ.get(name, "") or "").strip()
-    if not raw:
-        return ""
-    return os.path.abspath(os.path.expandvars(os.path.expanduser(raw)))
-
-def _get_optional_path_env_list(base_name, max_items=4):
-    values = []
-    seen = set()
-    for index in range(1, max_items + 1):
-        name = base_name if index == 1 else f"{base_name}_{index}"
-        value = _get_optional_path_env(name)
-        if not value:
-            continue
-        key = os.path.normcase(os.path.abspath(value))
-        if key in seen:
-            continue
-        seen.add(key)
-        values.append(value)
-    return values
-
-def _get_executable_env(name, fallback):
-    raw = str(os.environ.get(name, "") or "").strip()
-    if not raw:
-        return fallback
-    return os.path.abspath(os.path.expandvars(os.path.expanduser(raw)))
 
 def _normalize_origin(origin):
     raw = str(origin or "").strip().rstrip("/")
@@ -208,14 +190,20 @@ LAN_MODE  = _get_bool_env("AIC_LAN_MODE") or _get_bool_env("AIC_ENABLE_LAN")
 ALLOWED_ORIGINS = tuple(
     origin for origin in (_normalize_origin(item) for item in _split_env_list("AIC_ALLOWED_ORIGINS")) if origin
 )
+SEEDANCE_WEB_ALLOWED_ORIGINS = (
+    "https://dreamina.capcut.com",
+    "https://www.dreamina.ai",
+    "https://jimeng.jianying.com",
+)
 LOCAL_ACCESS_TOKEN = str(os.environ.get("AIC_LOCAL_TOKEN", "") or "").strip()
-DIRECTORY = os.path.abspath(os.path.dirname(__file__))   # v2/ 绝对路径
-# --- 版本号 ---
-# 从 index.html 读取版本号
+DIRECTORY = APP_ROOT   # v2/ 绝对路径
+DIRECTORY = RESOURCE_ROOT
+# --- ???? ---
+# ? index.html ????
 import re
 
 def get_version_from_index_html():
-    """从 index.html 读取应用版本号。"""
+    """? index.html ??????"""
     index_path = os.path.join(DIRECTORY, "index.html")
     try:
         with open(index_path, 'r', encoding='utf-8') as f:
@@ -226,67 +214,59 @@ def get_version_from_index_html():
             return match.group(1)
     except Exception:
         pass
-    return "V0.0.7"  # 默认版本
+    return "V0.0.7"  # ????
 
-LOCAL_VERSION   = get_version_from_index_html()  # 从 index.html 读取版本号
+LOCAL_VERSION   = get_version_from_index_html()  # ? index.html ????
 _gen_seq_lock   = threading.Lock()
 _smart_clip_jobs = {}
 _smart_clip_lock = threading.Lock()
-_file_save_migration_jobs = {}
-_file_save_migration_lock = threading.Lock()
 
-def _normalize_smart_clip_max_segments(value):
-    try:
-        max_segments = int(value)
-    except Exception:
-        max_segments = SMART_CLIP_DEFAULT_SEGMENTS
-    return max(SMART_CLIP_MIN_SEGMENTS, min(SMART_CLIP_MAX_SEGMENTS, max_segments))
-
-def _normalize_smart_clip_fps(value):
-    try:
-        fps = int(round(float(value)))
-    except Exception:
-        fps = SMART_CLIP_DEFAULT_FPS
-    return fps if fps in SMART_CLIP_FPS_OPTIONS else SMART_CLIP_DEFAULT_FPS
-
-def _normalize_smart_clip_output_mode(value):
-    raw = str(value or "").strip()
-    if raw == SMART_CLIP_OUTPUT_MODE_KEYFRAMES:
-        return SMART_CLIP_OUTPUT_MODE_KEYFRAMES
-    return SMART_CLIP_DEFAULT_OUTPUT_MODE
-
-# --- 可配置的数据目录，默认位于 v2/ 下 ---
-DEFAULT_USER_DIR = _get_path_env("AIC_USER_DIR", os.path.join(DIRECTORY, "user"))
-DEFAULT_CANVAS_DIR = _get_path_env("AIC_CANVAS_DIR", os.path.join(DEFAULT_USER_DIR, "Canvas Project"))
-DEFAULT_OUTPUT_DIR = _get_path_env("AIC_OUTPUT_DIR", os.path.join(DIRECTORY, "output"))
-DEFAULT_DATA_DIR = _get_path_env("AIC_DATA_DIR", os.path.join(DIRECTORY, "data"))
-DEFAULT_UPLOADS_DIR = _get_path_env("AIC_UPLOADS_DIR", os.path.join(DEFAULT_DATA_DIR, "uploads"))
-DEFAULT_ASSETS_DIR = _get_path_env("AIC_ASSETS_DIR", os.path.join(DEFAULT_DATA_DIR, "assets"))
-DEFAULT_WORKFLOWS_DIR = _get_path_env("AIC_WORKFLOWS_DIR", os.path.join(DEFAULT_DATA_DIR, "workflows"))
-LEGACY_DEFAULT_CANVAS_DIRS = _get_optional_path_env_list("AIC_LEGACY_CANVAS_DIR")
-LEGACY_DEFAULT_OUTPUT_DIRS = _get_optional_path_env_list("AIC_LEGACY_OUTPUT_DIR")
-LEGACY_DEFAULT_DATA_DIRS = _get_optional_path_env_list("AIC_LEGACY_DATA_DIR")
-LEGACY_DEFAULT_UPLOADS_DIRS = _get_optional_path_env_list("AIC_LEGACY_UPLOADS_DIR")
-LEGACY_DEFAULT_CANVAS_DIR = LEGACY_DEFAULT_CANVAS_DIRS[0] if LEGACY_DEFAULT_CANVAS_DIRS else ""
-LEGACY_DEFAULT_OUTPUT_DIR = LEGACY_DEFAULT_OUTPUT_DIRS[0] if LEGACY_DEFAULT_OUTPUT_DIRS else ""
-LEGACY_DEFAULT_DATA_DIR = LEGACY_DEFAULT_DATA_DIRS[0] if LEGACY_DEFAULT_DATA_DIRS else ""
-LEGACY_DEFAULT_UPLOADS_DIR = LEGACY_DEFAULT_UPLOADS_DIRS[0] if LEGACY_DEFAULT_UPLOADS_DIRS else ""
-FFMPEG_EXE = _get_executable_env("AIC_FFMPEG_EXE", "ffmpeg")
-FFPROBE_EXE = _get_executable_env("AIC_FFPROBE_EXE", "ffprobe")
-SYSTEM_FILE_SAVE_PATHS_ENABLED = bool(str(os.environ.get("AIC_USER_DIR", "") or "").strip())
+# --- ???????? v2/ ?? ---
+DEFAULT_USER_DIR = os.path.join(DIRECTORY, "user")
+DEFAULT_OUTPUT_DIR = os.path.join(DIRECTORY, "output")
+DEFAULT_UPLOADS_DIR = os.path.join(DIRECTORY, "data", "uploads")
 
 USER_DIR       = DEFAULT_USER_DIR
-CANVAS_DIR     = DEFAULT_CANVAS_DIR
-DATA_DIR       = DEFAULT_DATA_DIR
-ASSETS_DIR     = DEFAULT_ASSETS_DIR
+CANVAS_DIR     = os.path.join(USER_DIR,  "Canvas Project")
+ASSETS_DIR     = os.path.join(DIRECTORY, "data", "assets")
 ASSET_THUMBS_DIR = os.path.join(ASSETS_DIR, "thumbs")
-WORKFLOWS_DIR  = DEFAULT_WORKFLOWS_DIR
-WORKFLOW_THUMBS_DIR = os.path.join(ASSETS_DIR, "workflows", "thumbs")
+WORKFLOWS_DIR  = os.path.join(DIRECTORY, "data", "workflows")
+WORKFLOW_THUMBS_DIR = os.path.join(WORKFLOWS_DIR, "thumbs")
 UPLOADS_DIR    = DEFAULT_UPLOADS_DIR
 OUTPUT_DIR     = DEFAULT_OUTPUT_DIR
 CONFIG_FILE    = os.path.join(USER_DIR, "config.json")
 SETTINGS_FILE  = os.path.join(USER_DIR, "settings.json")
+DEFAULT_USER_DIR = RUNTIME_PATHS["userDir"]
+DEFAULT_OUTPUT_DIR = RUNTIME_PATHS["outputDir"]
+DEFAULT_UPLOADS_DIR = RUNTIME_PATHS["uploadsDir"]
+USER_DIR = DEFAULT_USER_DIR
+CANVAS_DIR = RUNTIME_PATHS["canvasDir"]
+ASSETS_DIR = RUNTIME_PATHS["assetsDir"]
+ASSET_THUMBS_DIR = RUNTIME_PATHS["assetThumbsDir"]
+WORKFLOWS_DIR = RUNTIME_PATHS["workflowsDir"]
+WORKFLOW_THUMBS_DIR = RUNTIME_PATHS["workflowThumbsDir"]
+UPLOADS_DIR = DEFAULT_UPLOADS_DIR
+OUTPUT_DIR = DEFAULT_OUTPUT_DIR
+CONFIG_FILE = RUNTIME_PATHS["configFile"]
+SETTINGS_FILE = RUNTIME_PATHS["settingsFile"]
 GEN_SEQ_STATE_FILE = os.path.join(OUTPUT_DIR, ".gen_seq_state.json")
+
+# === NAS 共享库（方案乙/4.2-B）===
+LIBRARY_DIR = ""
+
+# 启动期判定为"配了库但不可达"时置 True：功能降级、UI 报错、不回退 DEFAULT_*。
+LIBRARY_DISCONNECTED = False
+
+
+def _library_enabled():
+    return bool(LIBRARY_DIR)
+
+
+def _library_connection_status():
+    """server.py 薄包装：把判定逻辑全推给 library_storage 纯函数。"""
+    return _lib_connection_state(LIBRARY_DIR)
+
+
 MAX_UPLOAD_BYTES = _get_int_env("AIC_UPLOAD_MAX_BYTES", 100 * 1024 * 1024, 1)
 IMAGE_DERIVATIVE_DISPLAY_MAX_EDGE = 1280
 IMAGE_DERIVATIVE_THUMB_MAX_EDGE = 320
@@ -294,10 +274,30 @@ IMAGE_DERIVATIVE_DISPLAY_QUALITY = 78
 IMAGE_DERIVATIVE_THUMB_QUALITY = 70
 IMAGE_DERIVATIVE_ROOT_DIRNAME = "_derived"
 
-DREAMINA_VIDEO_VIP_MODEL_ID = get_subscription_gate_model_id_by_key("dreaminaVideoVip")
-VIDEO_VIP_MODEL_IDS = get_subscription_gate_model_ids()
-VIDEO_VIP_WORKFLOW_IDS = get_runninghub_subscription_workflow_ids()
-VIDEO_VIP_MODEL_NAME_MAP = get_subscription_gate_model_name_map()
+V54_VIP_MODEL_ID = "runninghub/2041741496667348994"
+V54_VIP_WORKFLOW_ID = "2041741496667348994"
+DREAMINA_VIDEO_VIP_MODEL_ID = "dreamina/video_vip"
+VIDEO_VIP_MODEL_IDS = (
+    "runninghub/2041741496667348994",
+    "dreamina/video_vip",
+)
+VIDEO_VIP_WORKFLOW_IDS = set(
+    mid.split("/", 1)[1]
+    for mid in VIDEO_VIP_MODEL_IDS
+    if mid.startswith("runninghub/") and "/" in mid
+)
+RUNNINGHUB_WORKFLOW_NODE_TYPE_MAP = {
+    "1991510999935172610": "audio",
+    "2013613374315171841": "audio",
+    **{
+        workflow_id: "video"
+        for workflow_id in VIDEO_VIP_WORKFLOW_IDS
+    },
+}
+VIDEO_VIP_MODEL_NAME_MAP = {
+    "runninghub/2041741496667348994": "视频编辑V5.4",
+    "dreamina/video_vip": "即梦视频",
+}
 SUB_STATUS_NONE = "none"
 SUB_STATUS_ACTIVE = "active"
 SUB_STATUS_EXPIRED = "expired"
@@ -306,20 +306,32 @@ SUB_ERROR_INVALID_CDKEY = "INVALID_CDKEY"
 SUB_ERROR_CDKEY_ALREADY_USED = "CDKEY_ALREADY_USED"
 SUB_ERROR_REQUIRED = "SUBSCRIPTION_REQUIRED"
 SUB_ERROR_MODEL_NOT_ENTITLED = "SUBSCRIPTION_MODEL_NOT_ENTITLED"
-SUB_MESSAGE_V54_REQUIRED = "该模型为 VIP 模型，请先激活 CDKEY/订阅"
+SUB_MESSAGE_V54_REQUIRED = "请先完成授权激活后再继续生成"
+LOCAL_FIXED_CDKEY = "ycfh5566"
+LOCAL_ONE_TIME_CDKEY = "fcyh0012"
+# 分级一次性授权码：每台设备激活一次即作废，按各自有效期计算到期时间。
+# 原有的 ycfh5566 / fcyh0012 语义不变，本表仅做新增。
+_LOCAL_WEEK_SECONDS = 7 * 24 * 60 * 60
+_LOCAL_MONTH_SECONDS = 30 * 24 * 60 * 60
+_LOCAL_HALF_YEAR_SECONDS = 180 * 24 * 60 * 60
+LOCAL_TIERED_CDKEYS = [
+    # 周卡（7 天）
+    {"code": "wkfh0701", "duration_seconds": _LOCAL_WEEK_SECONDS},
+    {"code": "wkfh0702", "duration_seconds": _LOCAL_WEEK_SECONDS},
+    {"code": "wkfh0703", "duration_seconds": _LOCAL_WEEK_SECONDS},
+    # 月卡（30 天）
+    {"code": "mofh3001", "duration_seconds": _LOCAL_MONTH_SECONDS},
+    {"code": "mofh3002", "duration_seconds": _LOCAL_MONTH_SECONDS},
+    {"code": "mofh3003", "duration_seconds": _LOCAL_MONTH_SECONDS},
+    # 半年卡（180 天）
+    {"code": "byfh1801", "duration_seconds": _LOCAL_HALF_YEAR_SECONDS},
+]
+LOCAL_FIXED_SUBSCRIPTION_ENABLED = True
 DEFAULT_SUB_CONTACT_TEXT = os.environ.get(
     "AIC_SUB_CONTACT_TEXT",
     "联系管理员获取授权码",
 ).strip() or "联系管理员获取授权码"
-DEFAULT_SUB_CONTACT_WECHAT = os.environ.get(
-    "AIC_SUB_CONTACT_WECHAT",
-    "yumengashuo",
-).strip() or "yumengashuo"
-DEFAULT_SUB_CONTACT_IMAGE_URL = "https://api.ashuoai.com/static/contact/wechat.png"
-DEFAULT_SUB_CONTACT_URL = os.environ.get(
-    "AIC_SUB_CONTACT_URL",
-    DEFAULT_SUB_CONTACT_IMAGE_URL,
-).strip()
+DEFAULT_SUB_CONTACT_URL = os.environ.get("AIC_SUB_CONTACT_URL", "").strip()
 OFFICIAL_SUBSCRIPTION_API_BASE = "https://api.ashuoai.com"
 
 
@@ -344,10 +356,8 @@ def _get_system_state_dir():
     return os.path.join(base_dir, app_folder)
 
 
-SYSTEM_STATE_DIR = _get_system_state_dir()
-SYSTEM_SETTINGS_FILE = os.path.join(SYSTEM_STATE_DIR, "settings.json")
-DEVICE_IDENTITY_FILENAME = "device-identity.json"
-SUBSCRIPTION_AUTHORIZATION_ID_KEYS = ("installId", "install_id", "deviceId", "device_id")
+SYSTEM_STATE_DIR = RUNTIME_PATHS["systemStateDir"]
+SYSTEM_SETTINGS_FILE = RUNTIME_PATHS["systemSettingsFile"]
 
 
 def _read_json_file(path, default=None):
@@ -375,197 +385,22 @@ def _normalize_storage_dir(raw, fallback):
     value = os.path.expandvars(os.path.expanduser(value))
     return os.path.abspath(value)
 
-def _same_storage_path(a, b):
-    if not a or not b:
-        return False
-    try:
-        return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
-    except Exception:
-        return False
 
-def _unique_storage_paths(paths):
-    values = []
-    for path_value in paths or ():
-        if not path_value:
-            continue
-        if any(_same_storage_path(path_value, existing) for existing in values):
-            continue
-        values.append(os.path.abspath(path_value))
-    return values
-
-def _legacy_default_candidates(primary, additional=()):
-    return _unique_storage_paths((primary, *(additional or ())))
-
-def _replace_legacy_default_path(raw, legacy_defaults, next_default):
-    for legacy_default in legacy_defaults or ():
-        if raw and _same_storage_path(raw, legacy_default):
-            return os.path.abspath(next_default)
-    return raw
-
-def _migrate_legacy_default_file_save_paths(paths):
-    if not isinstance(paths, dict):
-        return paths
-    migrated = dict(paths)
-    replacements = (
-        ("canvasDir", _legacy_default_candidates(LEGACY_DEFAULT_CANVAS_DIR, LEGACY_DEFAULT_CANVAS_DIRS), DEFAULT_CANVAS_DIR),
-        ("outputDir", _legacy_default_candidates(LEGACY_DEFAULT_OUTPUT_DIR, LEGACY_DEFAULT_OUTPUT_DIRS), DEFAULT_OUTPUT_DIR),
-        ("dataDir", _legacy_default_candidates(LEGACY_DEFAULT_DATA_DIR, LEGACY_DEFAULT_DATA_DIRS), DEFAULT_DATA_DIR),
-        ("tempDir", _legacy_default_candidates(LEGACY_DEFAULT_UPLOADS_DIR, LEGACY_DEFAULT_UPLOADS_DIRS), DEFAULT_UPLOADS_DIR),
-    )
-    changed = False
-    for key, legacy_default, next_default in replacements:
-        raw = migrated.get(key)
-        next_value = _replace_legacy_default_path(raw, legacy_default, next_default)
-        if next_value != raw:
-            migrated[key] = next_value
-            changed = True
-    return migrated if changed else paths
-
-def _is_path_inside_system_temp(path_value):
-    if not path_value:
-        return False
-    try:
-        candidate = os.path.normcase(os.path.abspath(path_value))
-        temp_root = os.path.normcase(os.path.abspath(tempfile.gettempdir()))
-        return os.path.commonpath([candidate, temp_root]) == temp_root
-    except Exception:
-        return False
-
-def _is_path_policy_test_residue(path_value):
-    if not _is_path_inside_system_temp(path_value):
-        return False
-    normalized = os.path.normcase(os.path.abspath(path_value)).replace("\\", "/")
-    return "/aicanvas-path-policy-test/" in normalized or normalized.endswith("/aicanvas-path-policy-test")
-
-def _should_ignore_system_file_save_paths(paths):
-    if not SYSTEM_FILE_SAVE_PATHS_ENABLED or not isinstance(paths, dict):
-        return False
-    values = (
-        paths.get("canvasDir"),
-        paths.get("outputDir"),
-        paths.get("dataDir"),
-        paths.get("tempDir"),
-    )
-    return any(_is_path_policy_test_residue(value) for value in values)
-
-
-def _has_file_save_paths(settings):
-    return isinstance(settings, dict) and isinstance(settings.get("fileSavePaths"), dict)
-
-
-def _is_user_managed_file_save_paths(settings):
-    if not isinstance(settings, dict):
-        return False
-    meta = settings.get("fileSavePathsMeta")
-    if not isinstance(meta, dict):
-        return False
-    return str(meta.get("source") or "").strip().lower() == "user"
-
-
-def _read_system_file_save_paths():
-    if not SYSTEM_FILE_SAVE_PATHS_ENABLED:
-        return None
-    system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
-    paths = system_settings.get("fileSavePaths") if isinstance(system_settings, dict) else None
-    if not isinstance(paths, dict) or _should_ignore_system_file_save_paths(paths):
-        return None
-    return paths
-
-
-def _clear_system_file_save_paths():
-    if not SYSTEM_FILE_SAVE_PATHS_ENABLED:
-        return
-    try:
-        system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
-        if "fileSavePaths" not in system_settings:
-            return
-        next_system_settings = dict(system_settings)
-        next_system_settings.pop("fileSavePaths", None)
-        _write_json_file(SYSTEM_SETTINGS_FILE, next_system_settings)
-    except Exception:
-        pass
-
-
-def _migrate_system_file_save_paths_to_user_settings(local_settings, paths):
-    if not isinstance(paths, dict) or _has_file_save_paths(local_settings):
-        return
-    try:
-        next_settings = dict(local_settings) if isinstance(local_settings, dict) else {}
-        next_settings["fileSavePaths"] = _normalize_file_save_paths_for_policy(paths)
-        _write_json_file(SETTINGS_FILE, next_settings)
-        _clear_system_file_save_paths()
-    except Exception:
-        pass
-
-
-def _persist_local_file_save_paths_if_needed(local_settings, paths):
-    if not SYSTEM_FILE_SAVE_PATHS_ENABLED or not _has_file_save_paths(local_settings):
-        return
-    if not isinstance(paths, dict):
-        return
-    try:
-        next_settings = dict(local_settings) if isinstance(local_settings, dict) else {}
-        next_settings["fileSavePaths"] = _normalize_file_save_paths_for_policy(
-            paths,
-            migrate_legacy_defaults=not _is_user_managed_file_save_paths(local_settings),
-        )
-        _write_json_file(SETTINGS_FILE, next_settings)
-    except Exception:
-        pass
-
-
-def _infer_data_dir_from_temp_dir(temp_dir):
-    raw = str(temp_dir or "").strip()
-    if not raw:
-        return ""
-    normalized = os.path.abspath(raw)
-    if os.path.basename(normalized).lower() == "uploads":
-        return os.path.dirname(normalized)
-    return normalized
-
-
-def _file_save_paths_from_settings(settings, migrate_legacy_defaults=True):
+def _file_save_paths_from_settings(settings):
     src = settings.get("fileSavePaths") if isinstance(settings, dict) else {}
     if not isinstance(src, dict):
         src = {}
-    if migrate_legacy_defaults:
-        src = _migrate_legacy_default_file_save_paths(src)
-    raw_data_dir = src.get("dataDir")
-    raw_temp_dir = src.get("tempDir")
-    has_data_dir = bool(str(raw_data_dir or "").strip())
-    data_dir = _normalize_storage_dir(
-        raw_data_dir or _infer_data_dir_from_temp_dir(raw_temp_dir),
-        DEFAULT_DATA_DIR,
-    )
-    temp_dir = (
-        os.path.join(data_dir, "uploads")
-        if has_data_dir
-        else _normalize_storage_dir(raw_temp_dir, os.path.join(data_dir, "uploads"))
-    )
     return {
         "userDir": _normalize_storage_dir(src.get("userDir"), DEFAULT_USER_DIR),
-        "canvasDir": _normalize_storage_dir(src.get("canvasDir"), CANVAS_DIR),
         "outputDir": _normalize_storage_dir(src.get("outputDir"), DEFAULT_OUTPUT_DIR),
-        "dataDir": data_dir,
-        "tempDir": os.path.abspath(temp_dir),
+        "tempDir": _normalize_storage_dir(src.get("tempDir"), DEFAULT_UPLOADS_DIR),
     }
-
-
-def _normalize_file_save_paths_for_policy(paths, migrate_legacy_defaults=True):
-    normalized = _file_save_paths_from_settings(
-        {"fileSavePaths": paths},
-        migrate_legacy_defaults=migrate_legacy_defaults,
-    )
-    normalized["userDir"] = os.path.abspath(USER_DIR)
-    return normalized
 
 
 def _current_file_save_paths():
     return {
         "userDir": os.path.abspath(USER_DIR),
-        "canvasDir": os.path.abspath(CANVAS_DIR),
         "outputDir": os.path.abspath(OUTPUT_DIR),
-        "dataDir": os.path.abspath(DATA_DIR),
         "tempDir": os.path.abspath(UPLOADS_DIR),
     }
 
@@ -585,16 +420,16 @@ def _is_same_or_nested_path(a, b):
     return aa == bb or _is_path_inside(aa, bb) or _is_path_inside(bb, aa)
 
 
-def _validate_file_save_paths(paths, migrate_legacy_defaults=True):
-    normalized = _normalize_file_save_paths_for_policy(
-        paths,
-        migrate_legacy_defaults=migrate_legacy_defaults,
-    )
+def _validate_file_save_paths(paths):
+    normalized = {
+        "userDir": _normalize_storage_dir(paths.get("userDir"), DEFAULT_USER_DIR),
+        "outputDir": _normalize_storage_dir(paths.get("outputDir"), DEFAULT_OUTPUT_DIR),
+        "tempDir": _normalize_storage_dir(paths.get("tempDir"), DEFAULT_UPLOADS_DIR),
+    }
     for label, p in (
         ("用户设置保存路径", normalized["userDir"]),
-        ("画布项目保存路径", normalized["canvasDir"]),
         ("输出文件保存路径", normalized["outputDir"]),
-        ("数据文件保存路径", normalized["dataDir"]),
+        ("临时文件保存路径", normalized["tempDir"]),
     ):
         if not os.path.isabs(p):
             raise ValueError(f"{label}必须是绝对路径")
@@ -603,9 +438,8 @@ def _validate_file_save_paths(paths, migrate_legacy_defaults=True):
 
     pairs = (
         ("用户设置保存路径", normalized["userDir"], "输出文件保存路径", normalized["outputDir"]),
-        ("用户设置保存路径", normalized["userDir"], "数据文件保存路径", normalized["dataDir"]),
-        ("画布项目保存路径", normalized["canvasDir"], "数据文件保存路径", normalized["dataDir"]),
-        ("输出文件保存路径", normalized["outputDir"], "数据文件保存路径", normalized["dataDir"]),
+        ("用户设置保存路径", normalized["userDir"], "临时文件保存路径", normalized["tempDir"]),
+        ("输出文件保存路径", normalized["outputDir"], "临时文件保存路径", normalized["tempDir"]),
     )
     for left_label, left, right_label, right in pairs:
         if _is_same_or_nested_path(left, right):
@@ -613,21 +447,7 @@ def _validate_file_save_paths(paths, migrate_legacy_defaults=True):
     return normalized
 
 
-def _remove_empty_dirs(root_dir):
-    root_dir = os.path.abspath(root_dir)
-    if not os.path.isdir(root_dir):
-        return
-    for current_root, _, files in os.walk(root_dir, topdown=False):
-        if files:
-            continue
-        try:
-            if not os.listdir(current_root):
-                os.rmdir(current_root)
-        except Exception:
-            pass
-
-
-def _move_missing_tree(src, dst):
+def _copy_missing_tree(src, dst):
     src = os.path.abspath(src)
     dst = os.path.abspath(dst)
     if not os.path.isdir(src):
@@ -645,388 +465,49 @@ def _move_missing_tree(src, dst):
             if os.path.exists(dst_file):
                 continue
             try:
-                shutil.move(src_file, dst_file)
+                shutil.copy2(src_file, dst_file)
             except Exception:
                 pass
-    _remove_empty_dirs(src)
 
 
-def _is_using_default_file_save_paths(paths):
-    if not isinstance(paths, dict):
-        return False
-    return (
-        _same_storage_path(paths.get("canvasDir"), DEFAULT_CANVAS_DIR)
-        and _same_storage_path(paths.get("outputDir"), DEFAULT_OUTPUT_DIR)
-        and _same_storage_path(paths.get("dataDir"), DEFAULT_DATA_DIR)
-        and _same_storage_path(paths.get("tempDir"), DEFAULT_UPLOADS_DIR)
-    )
-
-
-def _path_at(paths, index):
-    return paths[index] if index < len(paths) else ""
-
-
-def _legacy_default_file_save_path_sets():
-    canvas_dirs = _legacy_default_candidates(LEGACY_DEFAULT_CANVAS_DIR, LEGACY_DEFAULT_CANVAS_DIRS)
-    output_dirs = _legacy_default_candidates(LEGACY_DEFAULT_OUTPUT_DIR, LEGACY_DEFAULT_OUTPUT_DIRS)
-    data_dirs = _legacy_default_candidates(LEGACY_DEFAULT_DATA_DIR, LEGACY_DEFAULT_DATA_DIRS)
-    uploads_dirs = _legacy_default_candidates(LEGACY_DEFAULT_UPLOADS_DIR, LEGACY_DEFAULT_UPLOADS_DIRS)
-    total = max(len(canvas_dirs), len(output_dirs), len(data_dirs), len(uploads_dirs), 0)
-    legacy_sets = []
-    for index in range(total):
-        data_dir = _path_at(data_dirs, index)
-        uploads_dir = _path_at(uploads_dirs, index) or (os.path.join(data_dir, "uploads") if data_dir else "")
-        paths = {
-            "userDir": DEFAULT_USER_DIR,
-            "canvasDir": _path_at(canvas_dirs, index),
-            "outputDir": _path_at(output_dirs, index),
-            "dataDir": data_dir,
-            "tempDir": uploads_dir,
-        }
-        if any(paths.get(key) for key in ("canvasDir", "outputDir", "dataDir", "tempDir")):
-            legacy_sets.append(paths)
-    return legacy_sets
-
-
-def _move_legacy_default_tree(src, dst):
-    if not src or not dst:
-        return False
-    if _same_storage_path(src, dst) or _is_same_or_nested_path(src, dst):
-        return False
-    if not os.path.isdir(src):
-        return False
-    _move_missing_tree(src, dst)
-    return True
-
-
-def _migrate_legacy_default_files_to_current(paths=None):
-    if not SYSTEM_FILE_SAVE_PATHS_ENABLED:
-        return False
-    current = paths if isinstance(paths, dict) else _current_file_save_paths()
-    if not _is_using_default_file_save_paths(current):
-        return False
-    moved = False
-    for legacy_paths in _legacy_default_file_save_path_sets():
-        moved = _move_legacy_default_tree(legacy_paths.get("canvasDir"), current.get("canvasDir")) or moved
-        moved = _move_legacy_default_tree(legacy_paths.get("outputDir"), current.get("outputDir")) or moved
-        moved_data = _move_legacy_default_tree(legacy_paths.get("dataDir"), current.get("dataDir"))
-        moved = moved_data or moved
-        if not moved_data:
-            moved = _move_legacy_default_tree(legacy_paths.get("tempDir"), current.get("tempDir")) or moved
-    return moved
-
-
-def _new_file_save_migration_job_id():
-    ts = int(time.time() * 1000)
-    return f"file-save-migration-{ts}-{random.randint(1000, 9999)}"
-
-
-def _snapshot_file_save_migration_job(job_id):
-    with _file_save_migration_lock:
-        job = _file_save_migration_jobs.get(job_id)
-        return dict(job) if isinstance(job, dict) else None
-
-
-def _update_file_save_migration_job(job_id, **kwargs):
-    with _file_save_migration_lock:
-        job = _file_save_migration_jobs.get(job_id)
-        if not job:
-            return
-        job.update(kwargs)
-        job["updatedAt"] = time.time()
-
-
-def _file_save_migration_public_job(job):
-    if not isinstance(job, dict):
-        return None
-    public = dict(job)
-    errors = public.get("errors")
-    if isinstance(errors, list):
-        public["errors"] = errors[:20]
-    return public
-
-
-def _count_file_save_migration_files(src):
-    src = os.path.abspath(src)
-    if not os.path.isdir(src):
-        return 0
-    total = 0
-    for _, _, files in os.walk(src):
-        total += len(files)
-    return total
-
-
-def _build_file_save_migration_steps(previous, normalized):
-    return [
-        {
-            "key": "canvasDir",
-            "label": "画布项目保存路径",
-            "src": os.path.abspath(previous["canvasDir"]),
-            "dst": os.path.abspath(normalized["canvasDir"]),
-        },
-        {
-            "key": "outputDir",
-            "label": "输出文件保存路径",
-            "src": os.path.abspath(previous["outputDir"]),
-            "dst": os.path.abspath(normalized["outputDir"]),
-        },
-        {
-            "key": "tempDir",
-            "label": "上传文件保存路径",
-            "src": os.path.abspath(previous["tempDir"]),
-            "dst": os.path.abspath(normalized["tempDir"]),
-        },
-        {
-            "key": "assetsDir",
-            "label": "资产库保存路径",
-            "src": os.path.abspath(os.path.join(previous["dataDir"], "assets")),
-            "dst": os.path.abspath(os.path.join(normalized["dataDir"], "assets")),
-        },
-        {
-            "key": "workflowsDir",
-            "label": "工作流保存路径",
-            "src": os.path.abspath(os.path.join(previous["dataDir"], "workflows")),
-            "dst": os.path.abspath(os.path.join(normalized["dataDir"], "workflows")),
-        },
-    ]
-
-
-def _move_missing_tree_with_file_save_progress(job_id, step):
-    src = os.path.abspath(step["src"])
-    dst = os.path.abspath(step["dst"])
-    label = str(step.get("label") or "")
-    if _same_storage_path(src, dst) or not os.path.isdir(src):
+def _migrate_legacy_packaged_storage_if_needed():
+    if RUNTIME_PATHS["distribution"] != "onefile":
         return
-
-    os.makedirs(dst, exist_ok=True)
-    for root, dirs, files in os.walk(src):
-        rel_root = os.path.relpath(root, src)
-        target_root = dst if rel_root == "." else os.path.join(dst, rel_root)
-        os.makedirs(target_root, exist_ok=True)
-        for dirname in dirs:
-            os.makedirs(os.path.join(target_root, dirname), exist_ok=True)
-        for filename in files:
-            src_file = os.path.join(root, filename)
-            dst_file = os.path.join(target_root, filename)
-            rel_file = filename if rel_root == "." else os.path.join(rel_root, filename)
-            current_file = rel_file.replace("\\", "/")
-            with _file_save_migration_lock:
-                job = _file_save_migration_jobs.get(job_id)
-                if not job:
-                    return
-                job["stage"] = f"正在迁移{label}"
-                job["currentBucket"] = step.get("key") or ""
-                job["currentFile"] = current_file
-                job["updatedAt"] = time.time()
-
-            if os.path.exists(dst_file):
-                with _file_save_migration_lock:
-                    job = _file_save_migration_jobs.get(job_id)
-                    if not job:
-                        return
-                    job["skippedCount"] = int(job.get("skippedCount") or 0) + 1
-                    job["processedFiles"] = int(job.get("processedFiles") or 0) + 1
-                    total_files = max(1, int(job.get("totalFiles") or 0))
-                    job["progress"] = min(94, 6 + int((job["processedFiles"] / total_files) * 88))
-                    job["updatedAt"] = time.time()
-                continue
-
-            try:
-                shutil.move(src_file, dst_file)
-                with _file_save_migration_lock:
-                    job = _file_save_migration_jobs.get(job_id)
-                    if not job:
-                        return
-                    job["copiedCount"] = int(job.get("copiedCount") or 0) + 1
-                    job["copiedBytes"] = int(job.get("copiedBytes") or 0) + int(os.path.getsize(dst_file) or 0)
-            except Exception as exc:
-                with _file_save_migration_lock:
-                    job = _file_save_migration_jobs.get(job_id)
-                    if not job:
-                        return
-                    job["failedCount"] = int(job.get("failedCount") or 0) + 1
-                    errors = job.get("errors")
-                    if not isinstance(errors, list):
-                        errors = []
-                        job["errors"] = errors
-                    if len(errors) < 20:
-                        errors.append(
-                            {
-                                "bucket": step.get("key") or "",
-                                "path": current_file,
-                                "error": str(exc),
-                            }
-                        )
-            finally:
-                with _file_save_migration_lock:
-                    job = _file_save_migration_jobs.get(job_id)
-                    if not job:
-                        return
-                    job["processedFiles"] = int(job.get("processedFiles") or 0) + 1
-                    total_files = max(1, int(job.get("totalFiles") or 0))
-                    job["progress"] = min(94, 6 + int((job["processedFiles"] / total_files) * 88))
-                    job["updatedAt"] = time.time()
-    _remove_empty_dirs(src)
-
-
-def _run_file_save_migration_job(job_id, settings_payload, normalized, previous):
-    try:
-        steps = _build_file_save_migration_steps(previous, normalized)
-        _update_file_save_migration_job(
-            job_id,
-            status="planning",
-            stage="正在检查旧目录",
-            progress=2,
+    legacy_root = os.path.abspath(RUNTIME_PATHS["executableDir"])
+    writable_root = os.path.abspath(RUNTIME_PATHS["writableRoot"])
+    if os.path.normcase(legacy_root) == os.path.normcase(writable_root):
+        return
+    if os.path.exists(SYSTEM_SETTINGS_FILE):
+        return
+    for relative_path in ("user", "output", os.path.join("data", "uploads")):
+        _copy_missing_runtime_tree(
+            os.path.join(legacy_root, relative_path),
+            os.path.join(writable_root, relative_path),
         )
-        for p in normalized.values():
-            os.makedirs(p, exist_ok=True)
-
-        total_files = 0
-        step_summaries = []
-        for step in steps:
-            count = 0
-            if not _same_storage_path(step["src"], step["dst"]):
-                count = _count_file_save_migration_files(step["src"])
-            total_files += count
-            step_summaries.append(
-                {
-                    "key": step["key"],
-                    "label": step["label"],
-                    "source": step["src"],
-                    "target": step["dst"],
-                    "fileCount": count,
-                }
-            )
-
-        _update_file_save_migration_job(
-            job_id,
-            status="moving",
-            stage="正在迁移文件",
-            progress=6 if total_files else 88,
-            totalFiles=total_files,
-            steps=step_summaries,
-        )
-
-        for step in steps:
-            _move_missing_tree_with_file_save_progress(job_id, step)
-
-        _update_file_save_migration_job(
-            job_id,
-            status="applying",
-            stage="正在应用新的保存位置",
-            progress=96,
-            currentFile="",
-            currentBucket="",
-        )
-        payload = dict(settings_payload) if isinstance(settings_payload, dict) else {}
-        payload["fileSavePaths"] = normalized
-        _write_user_settings(payload, migrate=False)
-        applied_paths = _current_file_save_paths()
-        _update_file_save_migration_job(
-            job_id,
-            status="done",
-            stage="迁移完成",
-            progress=100,
-            settings=_read_user_settings(),
-            targetPaths=applied_paths,
-            completedAt=time.time(),
-        )
-    except Exception as exc:
-        _update_file_save_migration_job(
-            job_id,
-            status="error",
-            stage="迁移失败",
-            error=str(exc),
-            progress=100,
-            completedAt=time.time(),
-        )
-
-
-def _start_file_save_migration(data):
-    payload = dict(data) if isinstance(data, dict) else {}
-    settings_payload = payload.get("settings")
-    if not isinstance(settings_payload, dict):
-        settings_payload = dict(payload)
-    path_payload = payload.get("fileSavePaths")
-    if not isinstance(path_payload, dict):
-        path_payload = settings_payload.get("fileSavePaths")
-    if not isinstance(path_payload, dict):
-        raise ValueError("Missing fileSavePaths")
-
-    normalized = _validate_file_save_paths(path_payload, migrate_legacy_defaults=False)
-    previous = _current_file_save_paths()
-
-    job_id = _new_file_save_migration_job_id()
-    job = {
-        "success": True,
-        "jobId": job_id,
-        "status": "pending",
-        "stage": "准备迁移文件",
-        "progress": 0,
-        "previousPaths": previous,
-        "targetPaths": normalized,
-        "totalFiles": 0,
-        "processedFiles": 0,
-        "copiedCount": 0,
-        "skippedCount": 0,
-        "failedCount": 0,
-        "copiedBytes": 0,
-        "currentBucket": "",
-        "currentFile": "",
-        "errors": [],
-        "startedAt": time.time(),
-        "updatedAt": time.time(),
-    }
-    with _file_save_migration_lock:
-        for active_job in _file_save_migration_jobs.values():
-            if str(active_job.get("status") or "") in ("pending", "planning", "moving", "copying", "applying"):
-                raise RuntimeError("文件迁移正在进行中，请等待当前迁移完成")
-        _file_save_migration_jobs[job_id] = job
-
-    thread = threading.Thread(
-        target=_run_file_save_migration_job,
-        args=(job_id, settings_payload, normalized, previous),
-        daemon=True,
-        name=f"FileSaveMigration-{job_id}",
-    )
-    thread.start()
-    return _file_save_migration_public_job(job)
-
-
-def _get_file_save_migration_status(job_id):
-    job_id = str(job_id or "").strip()
-    if not job_id:
-        raise ValueError("Missing jobId")
-    job = _snapshot_file_save_migration_job(job_id)
-    if not job:
-        raise FileNotFoundError("Migration job not found")
-    return _file_save_migration_public_job(job)
 
 
 def _refresh_storage_globals(paths):
-    global USER_DIR, CANVAS_DIR, DATA_DIR, UPLOADS_DIR, ASSETS_DIR, ASSET_THUMBS_DIR
-    global WORKFLOWS_DIR, WORKFLOW_THUMBS_DIR, OUTPUT_DIR, CONFIG_FILE, SETTINGS_FILE
+    global USER_DIR, CANVAS_DIR, UPLOADS_DIR, OUTPUT_DIR, CONFIG_FILE, SETTINGS_FILE
     global GEN_SEQ_STATE_FILE, DREAMINA_CLI_SERVICE, DREAMINA_ROUTE_SERVICE
+    global ASSETS_DIR, ASSET_THUMBS_DIR, WORKFLOWS_DIR, WORKFLOW_THUMBS_DIR
     USER_DIR = os.path.abspath(paths["userDir"])
-    CANVAS_DIR = os.path.abspath(paths.get("canvasDir") or DEFAULT_CANVAS_DIR)
-    DATA_DIR = os.path.abspath(paths["dataDir"])
-    UPLOADS_DIR = os.path.abspath(paths.get("tempDir") or os.path.join(DATA_DIR, "uploads"))
-    ASSETS_DIR = os.path.join(DATA_DIR, "assets")
-    ASSET_THUMBS_DIR = os.path.join(ASSETS_DIR, "thumbs")
-    WORKFLOWS_DIR = os.path.join(DATA_DIR, "workflows")
-    WORKFLOW_THUMBS_DIR = os.path.join(ASSETS_DIR, "workflows", "thumbs")
+    CANVAS_DIR = os.path.join(USER_DIR, "Canvas Project")
+    UPLOADS_DIR = os.path.abspath(paths["tempDir"])
     OUTPUT_DIR = os.path.abspath(paths["outputDir"])
     CONFIG_FILE = os.path.join(USER_DIR, "config.json")
     SETTINGS_FILE = os.path.join(USER_DIR, "settings.json")
     GEN_SEQ_STATE_FILE = os.path.join(OUTPUT_DIR, ".gen_seq_state.json")
+    if _library_enabled():
+        lib = derive_library_paths(LIBRARY_DIR)
+        ASSETS_DIR = os.path.abspath(lib["assetsDir"])
+        ASSET_THUMBS_DIR = os.path.abspath(lib["assetThumbsDir"])
+        WORKFLOWS_DIR = os.path.abspath(lib["workflowsDir"])
+        WORKFLOW_THUMBS_DIR = os.path.abspath(lib["workflowThumbsDir"])
+        OUTPUT_DIR = os.path.abspath(lib["outputDir"])
+        UPLOADS_DIR = os.path.abspath(lib["uploadsDir"])
+        GEN_SEQ_STATE_FILE = os.path.join(OUTPUT_DIR, ".gen_seq_state.json")
     try:
-        DREAMINA_CLI_SERVICE = DreaminaCliService(
-            CONFIG_FILE,
-            output_root_dir=OUTPUT_DIR,
-            output_dir_getter=lambda: OUTPUT_DIR,
-            uploads_dir_getter=lambda: UPLOADS_DIR,
-            assets_dir_getter=lambda: ASSETS_DIR,
-        )
+        DREAMINA_CLI_SERVICE = DreaminaCliService(CONFIG_FILE, output_root_dir=OUTPUT_DIR)
         DREAMINA_ROUTE_SERVICE = DreaminaRouteService(
             cli_service=DREAMINA_CLI_SERVICE,
             subscription_gate_service=SUBSCRIPTION_GATE_SERVICE,
@@ -1039,29 +520,107 @@ def _refresh_storage_globals(paths):
 def _ensure_storage_dirs():
     os.makedirs(USER_DIR, exist_ok=True)
     os.makedirs(CANVAS_DIR, exist_ok=True)
-    os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
-    os.makedirs(ASSETS_DIR, exist_ok=True)
-    os.makedirs(ASSET_THUMBS_DIR, exist_ok=True)
-    os.makedirs(WORKFLOWS_DIR, exist_ok=True)
-    os.makedirs(WORKFLOW_THUMBS_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    if _library_enabled():
+        os.makedirs(ASSETS_DIR, exist_ok=True)
+        os.makedirs(ASSET_THUMBS_DIR, exist_ok=True)
+        os.makedirs(WORKFLOWS_DIR, exist_ok=True)
+        os.makedirs(WORKFLOW_THUMBS_DIR, exist_ok=True)
 
 
-def _apply_file_save_paths(paths, migrate=False, migrate_legacy_defaults=True):
-    normalized = _validate_file_save_paths(
-        paths,
-        migrate_legacy_defaults=migrate_legacy_defaults,
-    )
+def _apply_file_save_paths(paths, migrate=False):
+    normalized = _validate_file_save_paths(paths)
     previous = _current_file_save_paths()
     for p in normalized.values():
         os.makedirs(p, exist_ok=True)
     if migrate:
-        for step in _build_file_save_migration_steps(previous, normalized):
-            _move_missing_tree(step["src"], step["dst"])
+        _copy_missing_tree(previous["userDir"], normalized["userDir"])
+        _copy_missing_tree(previous["outputDir"], normalized["outputDir"])
+        _copy_missing_tree(previous["tempDir"], normalized["tempDir"])
     _refresh_storage_globals(normalized)
     _ensure_storage_dirs()
     return _current_file_save_paths()
+
+
+def _persist_system_file_save_paths(paths):
+    system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
+    next_system_settings = dict(system_settings)
+    next_system_settings["fileSavePaths"] = dict(paths)
+    if system_settings.get("installId"):
+        next_system_settings["installId"] = system_settings.get("installId")
+    _write_json_file(SYSTEM_SETTINGS_FILE, next_system_settings)
+
+
+def _persist_system_library_dir(library_dir):
+    """把 libraryDir 写进 system settings（独立键，不并入 fileSavePaths）。"""
+    system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
+    next_system_settings = dict(system_settings)
+    if library_dir:
+        next_system_settings["libraryDir"] = library_dir
+    else:
+        next_system_settings.pop("libraryDir", None)
+    if system_settings.get("installId"):
+        next_system_settings["installId"] = system_settings.get("installId")
+    _write_json_file(SYSTEM_SETTINGS_FILE, next_system_settings)
+
+
+def _apply_library_dir(library_dir, migrate=False):
+    """校验库目录 -> 设 LIBRARY_DIR -> 用 derive_library_paths 覆盖存储 globals。
+
+    返回规范化绝对路径；空串表示关闭共享库，恢复到本机 fileSavePaths 推导的目录。
+    migrate=True（首次设库）：在覆盖 globals 之前，先把本机已有库 copy-missing
+    迁入共享库（Task 10 的 migrate_into_library，目标存在即跳过），迁完再调用
+    cleanup_legacy_user_presets 删本机旧预设残留（§E/§F 接线点）。
+    """
+    global LIBRARY_DIR
+    global ASSETS_DIR, ASSET_THUMBS_DIR, WORKFLOWS_DIR, WORKFLOW_THUMBS_DIR
+    global OUTPUT_DIR, UPLOADS_DIR
+
+    raw = str(library_dir or "").strip()
+    if not raw:
+        LIBRARY_DIR = ""
+        # 关闭库：按本机 fileSavePaths 重新推导（_refresh_storage_globals 在
+        # _library_enabled()==False 时把 ASSETS/WORKFLOWS/OUTPUT/UPLOADS 复位本机默认）。
+        _refresh_storage_globals(_current_file_save_paths())
+        return ""
+
+    normalized = validate_library_dir(raw, USER_DIR)
+    library_paths = derive_library_paths(normalized)
+
+    # §F 首次设库 copy-missing 迁移：必须在切换 LIBRARY_DIR 之前用"迁移前的本机全局"
+    # 组装 previous_paths，把本机 assets/workflows/presets/output/uploads 补缺式迁入库。
+    if migrate:
+        previous_paths = {
+            "userDir": USER_DIR,
+            "outputDir": OUTPUT_DIR,
+            "uploadsDir": UPLOADS_DIR,
+            "assetsDir": ASSETS_DIR,
+            "workflowsDir": WORKFLOWS_DIR,
+            "presetDefinitionsPath": os.path.join(USER_DIR, "prompt-presets.json"),
+            "presetRootDir": os.path.join(USER_DIR, "prompt"),
+        }
+        migrate_into_library(previous_paths, library_paths)  # 目标存在即跳过
+        # §E 迁移完成后真删本机旧预设残留（Task 6 纯函数）。
+        _cleanup_legacy_user_presets(WRITABLE_ROOT, dry_run=False)
+
+    LIBRARY_DIR = normalized
+    for key in (
+        "assetsDir", "assetThumbsDir", "workflowsDir", "workflowThumbsDir",
+        "outputDir", "uploadsDir", "presetRootDir",
+    ):
+        os.makedirs(library_paths[key], exist_ok=True)
+    # 先按本机 fileSavePaths 刷新 USER_DIR 等基础 globals（用户目录始终留在本机），
+    # 再用库路径覆盖共享态四件套 + 输出/上传。_refresh_storage_globals 的库覆盖逻辑
+    # 由 Task 2 实现；本函数在其后再显式覆盖一遍同名 globals 以保证本块可测，语义一致。
+    _refresh_storage_globals(_current_file_save_paths())
+    ASSETS_DIR = library_paths["assetsDir"]
+    ASSET_THUMBS_DIR = library_paths["assetThumbsDir"]
+    WORKFLOWS_DIR = library_paths["workflowsDir"]
+    WORKFLOW_THUMBS_DIR = library_paths["workflowThumbsDir"]
+    OUTPUT_DIR = library_paths["outputDir"]
+    UPLOADS_DIR = library_paths["uploadsDir"]
+    return normalized
 
 
 def _is_enabled_env(name):
@@ -1088,16 +647,72 @@ try:
     )
 except Exception:
     SUBSCRIPTION_TIMEOUT_SECONDS = 5
+ENFORCE_GENERATION_SUBSCRIPTION = (
+    True if LOCAL_FIXED_SUBSCRIPTION_ENABLED else _is_enabled_env("AIC_ENFORCE_GENERATION_SUBSCRIPTION")
+)
+REQUIRE_CDKEY_SOURCE = (
+    _is_enabled_env("AIC_REQUIRE_CDKEY_SOURCE")
+)
+INTERNAL_PROXY_CONTROL_FIELDS = {
+    "installId",
+    "provider",
+    "activationSource",
+    "activation_source",
+    "generationScope",
+    "generation_scope",
+    "entitledNodeTypes",
+    "entitled_node_types",
+    "entitledProviders",
+    "entitled_providers",
+    "entitledModelIds",
+    "entitled_model_ids",
+    "entitledModelKeys",
+    "entitled_model_keys",
+    "requireCdkeySource",
+    "require_cdkey_source",
+    "rhInstanceType",
+}
 
-SUBSCRIPTION_CLIENT = SubscriptionRemoteClient(
-    api_base_url=SUBSCRIPTION_API_BASE,
-    timeout_seconds=SUBSCRIPTION_TIMEOUT_SECONDS,
+def _normalize_local_install_id(value):
+    install = str(value or "").strip()
+    if not install or len(install) > 128:
+        return ""
+    if not re.match(r"^[A-Za-z0-9._:-]+$", install):
+        return ""
+    return install
+
+
+def _read_license_install_id():
+    license_payload = _read_json_file(os.path.join(SYSTEM_STATE_DIR, "license.json"), {})
+    if not bool(license_payload.get("activated")):
+        return ""
+    return _normalize_local_install_id(license_payload.get("lastInstallId"))
+
+
+def _read_persisted_install_id():
+    system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
+    system_install_id = _normalize_local_install_id(system_settings.get("installId"))
+    if system_install_id:
+        return system_install_id
+    legacy_settings = _read_json_file(os.path.join(DEFAULT_USER_DIR, "settings.json"), {})
+    legacy_install_id = _normalize_local_install_id(legacy_settings.get("installId"))
+    if legacy_install_id:
+        return legacy_install_id
+    return _read_license_install_id()
+
+SUBSCRIPTION_CLIENT = LocalSubscriptionClient(
+    state_dir=SYSTEM_STATE_DIR,
+    fixed_cdkey=LOCAL_FIXED_CDKEY,
+    one_time_cdkey=LOCAL_ONE_TIME_CDKEY,
+    tiered_cdkeys=LOCAL_TIERED_CDKEYS,
     status_active=SUB_STATUS_ACTIVE,
     err_required=SUB_ERROR_REQUIRED,
     required_message=SUB_MESSAGE_V54_REQUIRED,
     contact_text=DEFAULT_SUB_CONTACT_TEXT,
     contact_url=DEFAULT_SUB_CONTACT_URL,
-    contact_wechat=DEFAULT_SUB_CONTACT_WECHAT,
+    invalid_cdkey_error_code=SUB_ERROR_INVALID_CDKEY,
+    cdkey_already_used_error_code=SUB_ERROR_CDKEY_ALREADY_USED,
+    local_install_id_resolver=_read_persisted_install_id,
 )
 SUBSCRIPTION_GATE_SERVICE = SubscriptionGateService(
     client=SUBSCRIPTION_CLIENT,
@@ -1105,56 +720,114 @@ SUBSCRIPTION_GATE_SERVICE = SubscriptionGateService(
     status_none=SUB_STATUS_NONE,
     error_model_not_entitled=SUB_ERROR_MODEL_NOT_ENTITLED,
     model_name_map=VIDEO_VIP_MODEL_NAME_MAP,
-    model_id_normalizer=normalize_subscription_gate_model_id,
-    success_logger=lambda decision: print("[subscription][vip_gate] first VIP verification passed"),
+    success_logger=lambda decision: print(
+        "[subscription][generation_gate] first generation access verification passed"
+    ),
+    enforce_generation_subscription=ENFORCE_GENERATION_SUBSCRIPTION,
+    require_cdkey_source=REQUIRE_CDKEY_SOURCE,
 )
-os.makedirs(SYSTEM_STATE_DIR, exist_ok=True)
+_startup_log("subscription services ready")
+ensure_runtime_dirs(RUNTIME_PATHS)
+_startup_log("runtime dirs ready")
+_migrate_legacy_packaged_storage_if_needed()
+_startup_log("legacy storage migration checked")
+try:
+    _private_defaults_result = apply_private_defaults(
+        os.path.join(RESOURCE_ROOT, "private_defaults"),
+        WRITABLE_ROOT,
+        logger=_startup_log,
+    )
+    _startup_log(
+        "private defaults status: "
+        f"found={_private_defaults_result.get('found')} "
+        f"applied={_private_defaults_result.get('applied')} "
+        f"reason={_private_defaults_result.get('reason')} "
+        f"copied={_private_defaults_result.get('copied')} "
+        f"overwritten={_private_defaults_result.get('overwritten')} "
+        f"skipped={_private_defaults_result.get('skipped')}"
+    )
+except Exception as exc:
+    _startup_log(f"private defaults failed: {exc}")
 _startup_system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
 _startup_local_settings = _read_json_file(os.path.join(DEFAULT_USER_DIR, "settings.json"), {})
 _startup_settings = dict(_startup_local_settings)
-_startup_system_file_save_paths = _read_system_file_save_paths()
-if not _has_file_save_paths(_startup_settings) and _startup_system_file_save_paths:
-    _startup_settings["fileSavePaths"] = _startup_system_file_save_paths
+if isinstance(_startup_system_settings.get("fileSavePaths"), dict):
+    _startup_settings["fileSavePaths"] = _startup_system_settings.get("fileSavePaths")
+# 先解析库目录（PRD §8.9）：LIBRARY_DIR 必须在 try/except 前就绪，
+# 使 _library_enabled() 在 except 块内能正确判定"是否配了库"。
+LIBRARY_DIR = resolve_startup_library_dir(_startup_system_settings, USER_DIR)
 try:
-    _startup_applied_file_save_paths = _apply_file_save_paths(
-        _normalize_file_save_paths_for_policy(
-            _startup_settings.get("fileSavePaths"),
-            migrate_legacy_defaults=not _is_user_managed_file_save_paths(_startup_settings),
-        ),
-        migrate=False,
-        migrate_legacy_defaults=False,
-    )
-    _migrate_legacy_default_files_to_current(_startup_applied_file_save_paths)
-    _persist_local_file_save_paths_if_needed(
-        _startup_local_settings,
-        _startup_applied_file_save_paths,
-    )
-    if not _has_file_save_paths(_startup_local_settings) and _startup_system_file_save_paths:
-        _migrate_system_file_save_paths_to_user_settings(
-            _startup_local_settings,
-            _startup_applied_file_save_paths,
+    _apply_file_save_paths(_file_save_paths_from_settings(_startup_settings), migrate=False)
+except Exception as exc:
+    # 库不可达不静默回退本地（PRD §8.9）：
+    # 配了库 + 失败 -> 停在"未连接"态（记住配置值、功能降级、日志告警），不抹成 DEFAULT_*。
+    if _library_enabled():
+        _conn = _library_connection_status()
+        if _conn.get("disconnected"):
+            LIBRARY_DISCONNECTED = True
+            _startup_log(
+                "WARNING library unreachable, entering DISCONNECTED state "
+                "(NOT falling back to local). "
+                f"libraryDir={_conn.get('libraryDir')!r} reason={exc}"
+            )
+            # 不调用 _apply_file_save_paths 回退；存储全局保持库路径口径，由 UI 报错。
+        else:
+            # 配了库但失败不是"不可达"（如校验/权限其它原因）-> 仍按未连接处理，避免悄悄回退。
+            LIBRARY_DISCONNECTED = True
+            _startup_log(
+                "WARNING library apply failed but reachable!=disconnected; "
+                f"holding DISCONNECTED, not falling back. reason={exc}"
+            )
+    else:
+        # 未配库（纯本地模式）：维持历史行为——回退本机默认，保证应用可用。
+        _apply_file_save_paths(
+            {
+                "userDir": DEFAULT_USER_DIR,
+                "outputDir": DEFAULT_OUTPUT_DIR,
+                "tempDir": DEFAULT_UPLOADS_DIR,
+            },
+            migrate=False,
         )
-except Exception:
-    _apply_file_save_paths(
-        {
-            "userDir": DEFAULT_USER_DIR,
-            "outputDir": DEFAULT_OUTPUT_DIR,
-            "dataDir": DEFAULT_DATA_DIR,
-        },
-        migrate=False,
+if _library_enabled():
+    # 库感知刷新（库覆盖逻辑由 Task 2 在 _refresh_storage_globals 内实现）。
+    _refresh_storage_globals(_current_file_save_paths())
+try:
+    _startup_log(
+        "config summary: "
+        + json.dumps(
+            summarize_model_registry_for_log(_read_json_file(CONFIG_FILE, {})),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
     )
-DREAMINA_CLI_SERVICE = DreaminaCliService(
-    CONFIG_FILE,
-    output_root_dir=OUTPUT_DIR,
-    output_dir_getter=lambda: OUTPUT_DIR,
-    uploads_dir_getter=lambda: UPLOADS_DIR,
-    assets_dir_getter=lambda: ASSETS_DIR,
-)
+except Exception as exc:
+    _startup_log(f"config summary failed: {exc}")
+SEEDANCE_WEB_BROWSER_LAUNCHER = None
+SEEDANCE_WEB_BRIDGE_SERVICE = None
+SEEDANCE_WEB_ROUTE_SERVICE = None
+
+DREAMINA_CLI_SERVICE = DreaminaCliService(CONFIG_FILE, output_root_dir=OUTPUT_DIR)
+_startup_log("dreamina cli ready")
 DREAMINA_ROUTE_SERVICE = DreaminaRouteService(
     cli_service=DREAMINA_CLI_SERVICE,
     subscription_gate_service=SUBSCRIPTION_GATE_SERVICE,
     video_required_model_id=DREAMINA_VIDEO_VIP_MODEL_ID,
 )
+_startup_log("dreamina route ready")
+SEEDANCE_WEB_BROWSER_LAUNCHER = SeedanceBrowserLauncher(
+    resource_root=RESOURCE_ROOT,
+    writable_root=WRITABLE_ROOT,
+)
+SEEDANCE_WEB_BRIDGE_SERVICE = SeedanceWebBridgeService(
+    browser_launcher=SEEDANCE_WEB_BROWSER_LAUNCHER,
+    logger=_startup_log,
+)
+SEEDANCE_WEB_ROUTE_SERVICE = SeedanceWebRouteService(
+    bridge_service=SEEDANCE_WEB_BRIDGE_SERVICE,
+    upload_dir_getter=lambda: os.path.join(OUTPUT_DIR, "seedance_web"),
+    upload_local_prefix="output/seedance_web",
+)
+_startup_log("seedance web bridge ready")
 # 确保目录存在
 os.makedirs(ASSETS_DIR,  exist_ok=True)
 os.makedirs(ASSET_THUMBS_DIR, exist_ok=True)
@@ -1168,12 +841,11 @@ def _read_user_settings():
 
     system_install_id = str(system_settings.get("installId") or "").strip()
     local_install_id = str(local_settings.get("installId") or "").strip()
-    local_file_save_paths = (
-        local_settings.get("fileSavePaths")
-        if isinstance(local_settings.get("fileSavePaths"), dict)
+    system_file_save_paths = (
+        system_settings.get("fileSavePaths")
+        if isinstance(system_settings.get("fileSavePaths"), dict)
         else None
     )
-    system_file_save_paths = _read_system_file_save_paths()
 
     # 兼容旧版本：首次读到仓库内 settings.json 的 installId 时自动迁移到系统目录。
     if not system_install_id and local_install_id:
@@ -1188,35 +860,35 @@ def _read_user_settings():
     merged = dict(local_settings)
     if system_install_id:
         merged["installId"] = system_install_id
-    if local_file_save_paths:
-        merged["fileSavePaths"] = _normalize_file_save_paths_for_policy(
-            local_file_save_paths,
-            migrate_legacy_defaults=not _is_user_managed_file_save_paths(local_settings),
+    if system_file_save_paths:
+        merged["fileSavePaths"] = _file_save_paths_from_settings(
+            {"fileSavePaths": system_file_save_paths}
         )
-    elif system_file_save_paths:
-        normalized_paths = _normalize_file_save_paths_for_policy(system_file_save_paths)
-        merged["fileSavePaths"] = normalized_paths
-        _migrate_system_file_save_paths_to_user_settings(local_settings, normalized_paths)
     else:
         merged["fileSavePaths"] = _current_file_save_paths()
+    # 共享库目录以 system settings（每机各自）为准回显，未启用则回空串。
+    system_library_dir = str(system_settings.get("libraryDir") or "").strip()
+    merged["libraryDir"] = system_library_dir or str(LIBRARY_DIR or "")
     return merged
 
 
-def _write_user_settings(data, migrate=True):
+def _write_user_settings(data):
     payload = dict(data) if isinstance(data, dict) else {}
+    # 共享库目录：独立键，先于 fileSavePaths 处理。仅当 payload 显式带 libraryDir 才动，
+    # 避免普通三框保存误触库逻辑。校验失败（ValueError）原样冒泡给路由层返回 4xx。
+    # migrate=True：首次设库触发 copy-missing 迁移（Task 10 的 migrate_into_library，
+    # 目标存在即跳过；幂等，非首次设库时迁移为空操作）。
+    if "libraryDir" in payload:
+        applied_library_dir = _apply_library_dir(payload.get("libraryDir"), migrate=True)
+        payload["libraryDir"] = applied_library_dir
+        _persist_system_library_dir(applied_library_dir)
     if isinstance(payload.get("fileSavePaths"), dict):
-        applied_paths = _apply_file_save_paths(
-            payload["fileSavePaths"],
-            migrate=bool(migrate),
-            migrate_legacy_defaults=False,
-        )
+        # 路径不可达时 _apply_file_save_paths 内 os.makedirs 直接抛 —— 故意不在此捕获，
+        # 让异常传到路由层转成明确 JSON 错误（PRD §8.9 / §9 表"运行时保存"口径：
+        # 明确报错、不静默回退本地）。切勿在此加 except 回退默认路径。
+        applied_paths = _apply_file_save_paths(payload["fileSavePaths"], migrate=True)
         payload["fileSavePaths"] = applied_paths
-        meta = payload.get("fileSavePathsMeta") if isinstance(payload.get("fileSavePathsMeta"), dict) else {}
-        payload["fileSavePathsMeta"] = {
-            **meta,
-            "source": "user",
-            "updatedAt": meta.get("updatedAt") or time.time(),
-        }
+        _persist_system_file_save_paths(applied_paths)
     elif "fileSavePaths" not in payload:
         payload["fileSavePaths"] = _current_file_save_paths()
     _write_json_file(SETTINGS_FILE, payload)
@@ -1226,135 +898,8 @@ def _write_user_settings(data, migrate=True):
     next_system_settings = dict(system_settings)
     if install_id:
         next_system_settings["installId"] = install_id
-    next_system_settings.pop("fileSavePaths", None)
+    next_system_settings["fileSavePaths"] = dict(payload.get("fileSavePaths") or _current_file_save_paths())
     _write_json_file(SYSTEM_SETTINGS_FILE, next_system_settings)
-
-
-def _subscription_user_data_root():
-    try:
-        return os.path.dirname(os.path.abspath(USER_DIR))
-    except Exception:
-        return ""
-
-
-def _subscription_device_identity_paths():
-    paths = [
-        os.path.join(_subscription_user_data_root(), DEVICE_IDENTITY_FILENAME),
-        os.path.join(SYSTEM_STATE_DIR, DEVICE_IDENTITY_FILENAME),
-    ]
-    seen = set()
-    unique = []
-    for path_value in paths:
-        path_text = str(path_value or "").strip()
-        if not path_text:
-            continue
-        normalized = os.path.abspath(path_text)
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        unique.append(normalized)
-    return unique
-
-
-def _subscription_settings_authorization_paths():
-    paths = [
-        SETTINGS_FILE,
-        SYSTEM_SETTINGS_FILE,
-        os.path.join(DIRECTORY, "user", "settings.json"),
-    ]
-    seen = set()
-    unique = []
-    for path_value in paths:
-        path_text = str(path_value or "").strip()
-        if not path_text:
-            continue
-        normalized = os.path.abspath(path_text)
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        unique.append(normalized)
-    return unique
-
-
-def _collect_subscription_authorization_ids_from_file(path):
-    data = _read_json_file(path, {})
-    if not isinstance(data, dict):
-        return [], []
-    install_ids = []
-    device_ids = []
-    for key in ("installId", "install_id"):
-        value = str(data.get(key) or "").strip()
-        if value and value not in install_ids:
-            install_ids.append(value)
-    for key in ("deviceId", "device_id"):
-        value = str(data.get(key) or "").strip()
-        if value and value not in device_ids:
-            device_ids.append(value)
-    return install_ids, device_ids
-
-
-def _strip_subscription_authorization_keys(path):
-    data = _read_json_file(path, {})
-    if not isinstance(data, dict):
-        return False
-    next_data = dict(data)
-    changed = False
-    for key in SUBSCRIPTION_AUTHORIZATION_ID_KEYS:
-        if key in next_data:
-            next_data.pop(key, None)
-            changed = True
-    if changed:
-        _write_json_file(path, next_data)
-    return changed
-
-
-def _clear_subscription_authorization():
-    if not _is_dev_build():
-        raise PermissionError("仅开发模式可清空授权")
-
-    install_ids = []
-    device_ids = []
-    for path_value in [
-        *_subscription_settings_authorization_paths(),
-        *_subscription_device_identity_paths(),
-    ]:
-        next_install_ids, next_device_ids = _collect_subscription_authorization_ids_from_file(
-            path_value,
-        )
-        install_ids.extend([item for item in next_install_ids if item not in install_ids])
-        device_ids.extend([item for item in next_device_ids if item not in device_ids])
-
-    cleared = []
-    for label, path_value in (
-        ("userSettings", SETTINGS_FILE),
-        ("systemSettings", SYSTEM_SETTINGS_FILE),
-        ("legacyUserSettings", os.path.join(DIRECTORY, "user", "settings.json")),
-    ):
-        if _strip_subscription_authorization_keys(path_value):
-            cleared.append(label)
-
-    for path_value in _subscription_device_identity_paths():
-        try:
-            if os.path.isfile(path_value):
-                os.remove(path_value)
-                cleared.append("deviceIdentity")
-        except FileNotFoundError:
-            pass
-
-    for install_id in install_ids:
-        targets = device_ids or [""]
-        for device_id in targets:
-            try:
-                SUBSCRIPTION_GATE_SERVICE.clear_vip_allow_cache(install_id, device_id)
-            except Exception:
-                pass
-
-    return {
-        "success": True,
-        "status": SUB_STATUS_NONE,
-        "cleared": cleared,
-    }
-
 
 def _is_dev_build():
     return os.path.exists(os.path.join(DIRECTORY, ".dev"))
@@ -1367,7 +912,18 @@ UPDATE_SERVICE = HotUpdateService(
     local_version=LOCAL_VERSION,
     is_dev_build=_is_dev_build,
 )
+_startup_log("update service ready")
 
+SAM3_SERVICE = Sam3Service(
+    directory=DIRECTORY,
+    assets_dir_provider=lambda: ASSETS_DIR,
+    uploads_dir_provider=lambda: UPLOADS_DIR,
+    output_dir_provider=lambda: OUTPUT_DIR,
+    path_inside_checker=_is_path_inside,
+)
+_startup_log("sam3 service ready")
+SAM3_ROUTE_SERVICE = Sam3RouteService(sam3_service=SAM3_SERVICE)
+_startup_log("sam3 route ready")
 CONFIG_ROUTE_SERVICE = ConfigRouteService(config_file_getter=lambda: CONFIG_FILE)
 JSON_FILE_ROUTE_SERVICE = JsonFileRouteService(
     canvas_dir_getter=lambda: CANVAS_DIR,
@@ -1376,21 +932,204 @@ JSON_FILE_ROUTE_SERVICE = JsonFileRouteService(
     user_dir_getter=lambda: USER_DIR,
     read_user_settings=_read_user_settings,
     write_user_settings=_write_user_settings,
-    start_file_save_migration=_start_file_save_migration,
-    get_file_save_migration_status=_get_file_save_migration_status,
     atomic_write_json=lambda path, data: _atomic_write_json(path, data),
-    output_dir_getter=lambda: OUTPUT_DIR,
-    uploads_dir_getter=lambda: UPLOADS_DIR,
 )
 LIBRARY_FILE_ROUTE_SERVICE = LibraryFileRouteService(
     user_dir_getter=lambda: USER_DIR,
     asset_thumbs_dir_getter=lambda: ASSET_THUMBS_DIR,
     workflow_thumbs_dir_getter=lambda: WORKFLOW_THUMBS_DIR,
-    subscription_gate_service_getter=lambda: SUBSCRIPTION_GATE_SERVICE,
+    preset_definitions_path_getter=lambda: (
+        derive_library_paths(LIBRARY_DIR)["presetDefinitionsPath"]
+        if _library_enabled()
+        else os.path.join(USER_DIR, "prompt-presets.json")
+    ),
+    preset_definitions_seed_path_getter=lambda: RUNTIME_PATHS["seedPresetDefinitionsPath"],
+    preset_root_getter=lambda: (
+        derive_library_paths(LIBRARY_DIR)["presetRootDir"]
+        if _library_enabled()
+        else os.path.join(USER_DIR, "prompt")
+    ),
 )
 
 def _get_custom_ai_config():
     return CONFIG_ROUTE_SERVICE.get_custom_ai_config()
+
+
+def _get_canvas_agent_config():
+    return _read_json_file(CONFIG_FILE, {})
+
+
+def _get_canvas_agent_provider_config(model=None):
+    _provider_name, provider = CanvasAgentRouteService.select_provider_config(
+        _get_canvas_agent_config(),
+        model=model,
+    )
+    return provider
+
+
+def _safe_canvas_agent_text(value, fallback=""):
+    text = str(value or "").strip()
+    return text or fallback
+
+
+def _compact_json_for_prompt(value, max_chars=6000):
+    try:
+        text = json.dumps(value if value is not None else {}, ensure_ascii=False)
+    except (TypeError, ValueError):
+        text = "{}"
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "...[truncated]"
+
+
+def _prepare_canvas_agent_queued_execution(payload):
+    payload = payload if isinstance(payload, dict) else {}
+    execution = payload.get("execution") if isinstance(payload.get("execution"), dict) else {}
+    context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
+    title = _safe_canvas_agent_text(execution.get("title"), "Queued canvas task")
+    agent_mode = _safe_canvas_agent_text(payload.get("agentMode"), "act")
+    video_authorized = payload.get("videoAuthorized") is True
+    conversation_id = _safe_canvas_agent_text(execution.get("conversationId"))
+    previous_plan = execution.get("plan") if isinstance(execution.get("plan"), dict) else {}
+    previous_actions = execution.get("actionsByStep") if isinstance(execution.get("actionsByStep"), dict) else {}
+    video_boundary = (
+        "video generation is authorized for this prepare pass"
+        if video_authorized
+        else "video generation is not authorized; keep video steps waiting for explicit authorization"
+    )
+    message = "\n".join(
+        [
+            "Recompile this queued canvas-agent execution using the latest canvas context.",
+            f"Task title: {title}",
+            f"Agent mode: {agent_mode}",
+            f"Video boundary: {video_boundary}.",
+            "Return the Assistant Response Contract v2 fields: plan, actionsByStep, developer, and reply.",
+            "Do not execute anything. Only rebuild a safe plan/actionsByStep for the current canvas.",
+            "Previous plan:",
+            _compact_json_for_prompt(previous_plan),
+            "Previous actionsByStep:",
+            _compact_json_for_prompt(previous_actions),
+        ]
+    )
+    bridge = globals().get("PI_BRIDGE_SERVICE")
+    if bridge is None or not hasattr(bridge, "chat"):
+        raise RuntimeError("Canvas agent prepare runner is not configured")
+    response = bridge.chat(
+        message=message,
+        context=context,
+        conversation_id=conversation_id or None,
+        mode="actions",
+    )
+    if not isinstance(response, dict):
+        raise RuntimeError("Canvas agent prepare returned an invalid response")
+    if response.get("success") is False:
+        raise RuntimeError(
+            _safe_canvas_agent_text(
+                response.get("reply") or response.get("error") or response.get("message"),
+                "Canvas agent prepare failed",
+            )
+        )
+    plan = response.get("plan") if isinstance(response.get("plan"), dict) else {}
+    actions_by_step = response.get("actionsByStep") if isinstance(response.get("actionsByStep"), dict) else {}
+    actions = response.get("actions") if isinstance(response.get("actions"), list) else []
+    if not actions_by_step and actions:
+        step_id = "step-1"
+        plan = plan or {"id": "plan-prepared", "title": title, "steps": [{"id": step_id, "title": title}]}
+        actions_by_step = {step_id: actions}
+    if not plan and not actions_by_step:
+        raise RuntimeError("Canvas agent prepare returned no plan or actions")
+    reply = _safe_canvas_agent_text(response.get("reply"), "Prepared from latest canvas")
+    prepared = {
+        "plan": plan,
+        "actionsByStep": actions_by_step,
+        "drawerState": {"line2": reply},
+        "summary": reply,
+        "developer": response.get("developer") if isinstance(response.get("developer"), dict) else {},
+    }
+    sanitized = CanvasAgentExecutionService._sanitize_json(prepared)
+    return sanitized if isinstance(sanitized, dict) else {}
+
+
+CANVAS_AGENT_ACTION_SCHEMA = CanvasAgentActionSchema()
+CANVAS_AGENT_CONTEXT_SERVICE = CanvasAgentContextService()
+CANVAS_AGENT_CONVERSATION_SERVICE = CanvasAgentConversationService(
+    storage_path=os.path.join(USER_DIR, "canvas-agent-conversations.json")
+)
+CANVAS_AGENT_EXECUTION_SERVICE = CanvasAgentExecutionService(
+    storage_path=os.path.join(USER_DIR, "canvas-agent-executions.json"),
+    prepare_runner=_prepare_canvas_agent_queued_execution,
+)
+CANVAS_AGENT_SYNC_SERVICE = CanvasAgentSyncService(
+    conversation_service=CANVAS_AGENT_CONVERSATION_SERVICE,
+)
+PI_RUNTIME_SERVICE = PiRuntimeService(
+    project_root=RESOURCE_ROOT,
+    require_bundled_runtime=PiRuntimeService.should_require_bundled_runtime(
+        RUNTIME_PATHS["distribution"]
+    ),
+)
+PI_BRIDGE_SERVICE = PiBridgeService(
+    PI_RUNTIME_SERVICE,
+    provider_config_getter=_get_canvas_agent_provider_config,
+    action_schema=CANVAS_AGENT_ACTION_SCHEMA,
+)
+CANVAS_AGENT_ROUTE_SERVICE = CanvasAgentRouteService(
+    bridge_service=PI_BRIDGE_SERVICE,
+    action_schema=CANVAS_AGENT_ACTION_SCHEMA,
+    director_bridge_service=DIRECTOR_BRIDGE_SERVICE,
+    context_service=CANVAS_AGENT_CONTEXT_SERVICE,
+    runtime_service=PI_RUNTIME_SERVICE,
+    conversation_service=CANVAS_AGENT_CONVERSATION_SERVICE,
+    execution_service=CANVAS_AGENT_EXECUTION_SERVICE,
+    sync_service=CANVAS_AGENT_SYNC_SERVICE,
+    config_getter=_get_canvas_agent_config,
+)
+
+# ViMax bridge (α′ F1/F3). user_dir_getter reads the module global at
+# call time so it tracks the packaged-mode USER_DIR rebinding (H8);
+# HY_VIMAX_HOME is read per request (unset -> status not-configured).
+from services.vimax_bridge_service import VimaxBridgeService
+from services.vimax_route_service import VimaxRouteService
+from services.vimax_broker_service import VimaxBroker
+
+VIMAX_BRIDGE_SERVICE = VimaxBridgeService(
+    user_dir_getter=lambda: USER_DIR,
+)
+VIMAX_BROKER = VimaxBroker(
+    user_dir_getter=lambda: USER_DIR,
+    credentials_getter=VIMAX_BRIDGE_SERVICE._default_credentials,
+)
+
+# ViMax director brain (Phase C, native-only). The external venv plan/render/
+# portraits runtime (huanying_runner + the Popen bridge) was RETIRED in C5.2 after
+# real-machine verification (C4.3); the in-process brain is now the SOLE runtime,
+# always instantiated. VimaxBridgeService survives ONLY as the credential +
+# skills-dir resolver the broker + orchestrator share (single source, H6).
+# Rollback = git revert the C5.2 commit (no runtime flag).
+from services.vimax_native_orchestrator import NativeOrchestratorService
+
+# B5: decompose max_workers tunable; default 1 because the 2026-06-14 probe found
+# grsai concurrency-INtolerant under load (c=3 -> 2/3 timeout). Raise via
+# HY_VIMAX_MAX_WORKERS only after re-probing a healthy grsai.
+try:
+    _vimax_workers = max(1, int(os.environ.get("HY_VIMAX_MAX_WORKERS", "1")))
+except (TypeError, ValueError):
+    _vimax_workers = 1
+VIMAX_NATIVE_ORCHESTRATOR = NativeOrchestratorService(
+    user_dir_getter=lambda: USER_DIR,
+    credentials_getter=VIMAX_BRIDGE_SERVICE._default_credentials,
+    skills_dir_getter=VIMAX_BRIDGE_SERVICE._default_skills_dir,
+    # native render/portraits draws route through the loopback broker (ticketId
+    # Bearer -> /api/v2/vimax/draw); the cost/cap/ledger path is unchanged.
+    broker_url_getter=lambda: f"http://127.0.0.1:{PORT}/api/v2/vimax/draw",
+    max_workers=_vimax_workers,
+)
+
+VIMAX_ROUTE_SERVICE = VimaxRouteService(
+    vimax_bridge_service=VIMAX_BRIDGE_SERVICE,
+    vimax_broker=VIMAX_BROKER,
+    native_orchestrator=VIMAX_NATIVE_ORCHESTRATOR,
+)
 
 
 def _request_server_port(handler):
@@ -1413,6 +1152,8 @@ def _is_allowed_origin(handler, origin):
     normalized = _normalize_origin(origin)
     if not normalized:
         return False
+    if normalized in SEEDANCE_WEB_ALLOWED_ORIGINS:
+        return True
     return normalized in _local_allowed_origins(handler) or normalized in ALLOWED_ORIGINS
 
 
@@ -1457,23 +1198,19 @@ def _request_has_valid_local_token(handler):
 
 _SENSITIVE_API_PREFIXES = (
     "/api/config",
-    "/api/projects",
     "/api/upload",
     "/api/v2/assets",
     "/api/v2/chat",
     "/api/v2/config",
     "/api/v2/dreamina",
-    "/api/v2/grid_tiles",
     "/api/v2/images/derivatives",
     "/api/v2/matting",
     "/api/v2/projects",
     "/api/v2/proxy",
     "/api/v2/runninghubwf",
     "/api/v2/save_output",
-    "/api/v2/save_output_from_url",
-    "/api/v2/output-files",
+    "/api/v2/seedance-web",
     "/api/v2/subscription/activate",
-    "/api/v2/subscription/authorization/clear",
     "/api/v2/update/apply",
     "/api/v2/user",
     "/api/v2/video",
@@ -1492,8 +1229,10 @@ def _is_sensitive_api_path(path):
 def _request_passes_local_security(handler, path):
     if not _is_sensitive_api_path(path):
         return True
-    if LOCAL_ACCESS_TOKEN:
-        return _request_has_valid_local_token(handler)
+    if str(path or "").split("?", 1)[0] == "/api/v2/seedance-web/page-status":
+        return _client_is_loopback(handler)
+    if SeedanceWebRouteService.is_bridge_route(path):
+        return _client_is_loopback(handler)
     origin = handler.headers.get("Origin", "")
     if origin:
         return _is_allowed_origin(handler, origin) or _request_has_valid_local_token(handler)
@@ -1511,16 +1250,74 @@ def _extract_install_id_from_request(handler, payload=None):
     return SUBSCRIPTION_GATE_SERVICE.extract_install_id_from_request(handler, payload)
 
 
-def _enforce_vip_subscription_gate(handler, payload=None, required_model_id=""):
-    decision = SUBSCRIPTION_GATE_SERVICE.check_vip_subscription_gate(
+def _strip_internal_control_fields(payload, extra_fields=None):
+    if not isinstance(payload, dict):
+        return {}
+    forwarded = dict(payload)
+    fields = set(INTERNAL_PROXY_CONTROL_FIELDS)
+    if isinstance(extra_fields, (set, list, tuple)):
+        fields.update(str(item or "").strip() for item in extra_fields if str(item or "").strip())
+    for field in fields:
+        forwarded.pop(field, None)
+    return forwarded
+
+
+def _enforce_generation_subscription_gate(
+    handler,
+    payload=None,
+    required_model_id="",
+    provider="",
+    node_type="",
+):
+    decision = SUBSCRIPTION_GATE_SERVICE.check_generation_access(
         handler,
         payload,
         required_model_id=required_model_id,
+        provider=provider,
+        node_type=node_type,
     )
     if bool(decision.get("allowed")):
         return True
     _json_ok(handler, SUBSCRIPTION_GATE_SERVICE.build_subscription_denial_payload(decision))
     return False
+
+
+def _infer_proxy_image_generation_metadata(api_url, payload=None):
+    api_url_value = str(api_url or "").strip()
+    source = payload if isinstance(payload, dict) else {}
+    provider = str(source.get("provider") or "").strip()
+    workflow_match = re.search(
+        r"/openapi/v2/run/ai-app/(\d+)$",
+        api_url_value,
+        flags=re.IGNORECASE,
+    )
+    workflow_id = workflow_match.group(1) if workflow_match else ""
+    is_runninghub_query_endpoint = bool(
+        re.search(r"/openapi/v2/query(?:$|[/?])", api_url_value, flags=re.IGNORECASE)
+    )
+    is_grsai_query_endpoint = bool(
+        re.search(r"/v1/draw/(?:result|query)(?:$|[/?])", api_url_value, flags=re.IGNORECASE)
+    )
+    required_model_id = f"runninghub/{workflow_id}" if workflow_id else ""
+    node_type = ""
+
+    if workflow_id:
+        provider = provider or "runninghubwf"
+        node_type = RUNNINGHUB_WORKFLOW_NODE_TYPE_MAP.get(workflow_id, "")
+    else:
+        provider = provider or "proxy"
+
+    return {
+        "workflow_id": workflow_id,
+        "provider": provider,
+        "node_type": node_type,
+        "required_model_id": required_model_id,
+        # 仅在“提交任务”类端点启用 task_id 快速探测；
+        # 查询类端点必须透传完整响应，否则前端无法拿到最终出图 URL。
+        "allow_task_probe_short_circuit": not (
+            is_runninghub_query_endpoint or is_grsai_query_endpoint
+        ),
+    }
 
 
 def _json_ok(handler, data):
@@ -1532,7 +1329,7 @@ def _json_ok(handler, data):
     handler.end_headers()
     try:
         handler.wfile.write(body)
-    except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+    except (BrokenPipeError, ConnectionResetError):
         pass
 
 def _json_err(handler, code, msg):
@@ -1544,7 +1341,7 @@ def _json_err(handler, code, msg):
     handler.end_headers()
     try:
         handler.wfile.write(body)
-    except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+    except (BrokenPipeError, ConnectionResetError):
         pass
 
 
@@ -1582,7 +1379,7 @@ def _send_route_response(handler, response):
         handler.end_headers()
         try:
             handler.wfile.write(body)
-        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+        except (BrokenPipeError, ConnectionResetError):
             pass
         return
     raise ValueError(f"Unknown route response kind: {kind}")
@@ -1617,123 +1414,15 @@ def _read_body(handler, max_bytes=None):
     return handler.rfile.read(length) if length > 0 else b""
 
 
-def _iter_sse_data_lines(response):
-    try:
-        iterator = response.iter_lines(decode_unicode=True)
-    except TypeError:
-        iterator = response.iter_lines()
-    except Exception:
-        iterator = []
-
-    for raw_line in iterator:
-        if isinstance(raw_line, bytes):
-            line = raw_line.decode("utf-8", errors="replace")
-        else:
-            line = str(raw_line or "")
-        line = line.strip()
-        if not line.startswith("data:"):
-            continue
-        yield line[5:].strip()
-
-
-def _extract_chat_completion_text_parts(payload):
-    if not isinstance(payload, dict):
-        return []
-    parts = []
-    choices = payload.get("choices")
-    if not isinstance(choices, list):
-        data = payload.get("data")
-        choices = data.get("choices") if isinstance(data, dict) else []
-    for choice in choices or []:
-        if not isinstance(choice, dict):
-            continue
-        delta = choice.get("delta")
-        if isinstance(delta, dict) and isinstance(delta.get("content"), str):
-            parts.append(delta.get("content") or "")
-        message = choice.get("message")
-        if isinstance(message, dict) and isinstance(message.get("content"), str):
-            parts.append(message.get("content") or "")
-        if isinstance(choice.get("text"), str):
-            parts.append(choice.get("text") or "")
-    for key in ("text", "output", "content"):
-        if isinstance(payload.get(key), str):
-            parts.append(payload.get(key) or "")
-    data = payload.get("data")
-    if isinstance(data, dict):
-        for key in ("text", "output", "content"):
-            if isinstance(data.get(key), str):
-                parts.append(data.get(key) or "")
-    return parts
-
-
-def _normalize_chat_completion_sse_response(response):
-    text_parts = []
-    last_payload = None
-    finish_reason = None
-    role = "assistant"
-
-    for data_line in _iter_sse_data_lines(response):
-        if not data_line:
-            continue
-        if data_line == "[DONE]":
-            break
-        try:
-            payload = json.loads(data_line)
-        except Exception:
-            continue
-        if isinstance(payload, dict):
-            last_payload = payload
-            choices = payload.get("choices")
-            if not isinstance(choices, list):
-                data = payload.get("data")
-                choices = data.get("choices") if isinstance(data, dict) else []
-            if choices and isinstance(choices[0], dict):
-                finish_reason = choices[0].get("finish_reason") or finish_reason
-                delta = choices[0].get("delta")
-                message = choices[0].get("message")
-                if isinstance(delta, dict) and isinstance(delta.get("role"), str):
-                    role = delta.get("role") or role
-                if isinstance(message, dict) and isinstance(message.get("role"), str):
-                    role = message.get("role") or role
-            text_parts.extend(_extract_chat_completion_text_parts(payload))
-
-    content = "".join(text_parts)
-    if content:
-        normalized = {
-            "id": last_payload.get("id", "") if isinstance(last_payload, dict) else "",
-            "object": "chat.completion",
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {
-                        "role": role,
-                        "content": content,
-                    },
-                    "finish_reason": finish_reason or "stop",
-                }
-            ],
-        }
-        if isinstance(last_payload, dict) and isinstance(last_payload.get("usage"), dict):
-            normalized["usage"] = last_payload.get("usage")
-        return json.dumps(normalized, ensure_ascii=False)
-
-    if isinstance(last_payload, dict):
-        return json.dumps(last_payload, ensure_ascii=False)
-    return ""
-
-
 MEDIA_FILE_ROUTE_SERVICE = MediaFileRouteService(
     directory=DIRECTORY,
     uploads_dir_getter=lambda: UPLOADS_DIR,
-    user_dir_getter=lambda: USER_DIR,
-    assets_dir_getter=lambda: ASSETS_DIR,
     output_dir_getter=lambda: OUTPUT_DIR,
     max_upload_bytes=MAX_UPLOAD_BYTES,
     next_output_filename=lambda ext: _next_gen_output_filename(ext),
     load_json_file=lambda path: _load_json_file(path),
     atomic_write_json=lambda path, data: _atomic_write_json(path, data),
     read_body=_read_body,
-    ffprobe_getter=lambda: FFPROBE_EXE,
     image_derivative_display_max_edge=IMAGE_DERIVATIVE_DISPLAY_MAX_EDGE,
     image_derivative_thumb_max_edge=IMAGE_DERIVATIVE_THUMB_MAX_EDGE,
     image_derivative_display_quality=IMAGE_DERIVATIVE_DISPLAY_QUALITY,
@@ -1746,8 +1435,6 @@ LOCAL_MEDIA_PROCESSING_ROUTE_SERVICE = LocalMediaProcessingRouteService(
     output_dir_getter=lambda: OUTPUT_DIR,
     resolve_local_virtual_path=lambda src_path: _resolve_local_virtual_path(src_path),
     read_body=_read_body,
-    ffmpeg_getter=lambda: FFMPEG_EXE,
-    ffprobe_getter=lambda: FFPROBE_EXE,
 )
 
 
@@ -1794,7 +1481,6 @@ HTTP_ROUTE_DISPATCHER = HttpRouteDispatcher(
     is_advanced_mode=_is_advanced_mode,
     subscription_client_getter=lambda: SUBSCRIPTION_CLIENT,
     subscription_gate_service_getter=lambda: SUBSCRIPTION_GATE_SERVICE,
-    clear_subscription_authorization=_clear_subscription_authorization,
     config_route_service_getter=lambda: CONFIG_ROUTE_SERVICE,
     json_file_route_service_getter=lambda: JSON_FILE_ROUTE_SERVICE,
     library_file_route_service_getter=lambda: LIBRARY_FILE_ROUTE_SERVICE,
@@ -1802,6 +1488,10 @@ HTTP_ROUTE_DISPATCHER = HttpRouteDispatcher(
     local_media_processing_route_service_getter=lambda: LOCAL_MEDIA_PROCESSING_ROUTE_SERVICE,
     remote_proxy_route_service_getter=lambda: REMOTE_PROXY_ROUTE_SERVICE,
     dreamina_route_service_getter=lambda: DREAMINA_ROUTE_SERVICE,
+    seedance_web_route_service_getter=lambda: SEEDANCE_WEB_ROUTE_SERVICE,
+    sam3_route_service_getter=lambda: SAM3_ROUTE_SERVICE,
+    canvas_agent_route_service_getter=lambda: CANVAS_AGENT_ROUTE_SERVICE,
+    vimax_route_service_getter=lambda: VIMAX_ROUTE_SERVICE,
     update_service_getter=lambda: UPDATE_SERVICE,
     smart_clip_cleanup=_smart_clip_cleanup,
     smart_clip_jobs=_smart_clip_jobs,
@@ -1810,11 +1500,19 @@ HTTP_ROUTE_DISPATCHER = HttpRouteDispatcher(
     sub_error_invalid_arguments=SUB_ERROR_INVALID_ARGUMENTS,
     default_sub_contact_text=DEFAULT_SUB_CONTACT_TEXT,
     default_sub_contact_url=DEFAULT_SUB_CONTACT_URL,
-    default_sub_contact_wechat=DEFAULT_SUB_CONTACT_WECHAT,
     json_ok=_json_ok,
     json_err=_json_err,
     send_route_response=_send_route_response,
     read_body=_read_body,
+    runtime_paths_getter=lambda: {
+        "distribution": RUNTIME_PATHS["distribution"],
+        "resourceRoot": RESOURCE_ROOT,
+        "writableRoot": WRITABLE_ROOT,
+        "userDir": USER_DIR,
+        "outputDir": OUTPUT_DIR,
+        "uploadsDir": UPLOADS_DIR,
+    },
+    library_status_getter=lambda: library_status(LIBRARY_DIR),
 )
 
 
@@ -1839,16 +1537,11 @@ def _run_smart_clip_job(job_id, local_src, options):
         mode = mode_map.get(raw_mode, raw_mode)
         if mode not in ("stable", "balanced", "sensitive"):
             mode = "stable"
-        max_segments = _normalize_smart_clip_max_segments(
-            opt.get("maxSegments", SMART_CLIP_DEFAULT_SEGMENTS)
-        )
-        output_fps = _normalize_smart_clip_fps(
-            opt.get("fps", opt.get("frameRate", SMART_CLIP_DEFAULT_FPS))
-        )
-        output_mode = _normalize_smart_clip_output_mode(
-            opt.get("outputMode", opt.get("outputType", opt.get("resultType")))
-        )
-        output_keyframes = output_mode == SMART_CLIP_OUTPUT_MODE_KEYFRAMES
+        try:
+            max_segments = int(opt.get("maxSegments", 20))
+        except Exception:
+            max_segments = 20
+        max_segments = max(2, min(200, max_segments))
 
         try:
             black_luma_thr = float(opt.get("blackLuma", 16.0))
@@ -1871,7 +1564,7 @@ def _run_smart_clip_job(job_id, local_src, options):
         def _ffprobe_duration_sec(p):
             try:
                 cmd = [
-                    FFPROBE_EXE,
+                    "ffprobe",
                     "-v",
                     "error",
                     "-show_entries",
@@ -1894,16 +1587,16 @@ def _run_smart_clip_job(job_id, local_src, options):
             except Exception:
                 return 0.0
 
-        def _ffprobe_video_size(p):
+        def _ffprobe_video_fps_str(p):
             try:
                 cmd = [
-                    FFPROBE_EXE,
+                    "ffprobe",
                     "-v",
                     "error",
                     "-select_streams",
                     "v:0",
                     "-show_entries",
-                    "stream=width,height",
+                    "stream=avg_frame_rate,r_frame_rate",
                     "-of",
                     "json",
                     p,
@@ -1916,20 +1609,60 @@ def _run_smart_clip_job(job_id, local_src, options):
                 )
                 stdout, _ = process.communicate(timeout=20)
                 if process.returncode != 0:
-                    return 0, 0
-                data = json.loads((stdout or b"{}").decode("utf-8", errors="ignore") or "{}")
-                streams = data.get("streams") if isinstance(data, dict) else None
-                stream = streams[0] if isinstance(streams, list) and streams else {}
-                width = int(stream.get("width") or 0)
-                height = int(stream.get("height") or 0)
-                return max(0, width), max(0, height)
+                    return None
+                txt = (stdout or b"").decode("utf-8", errors="ignore").strip()
+                if not txt:
+                    return None
+                j = json.loads(txt)
+                streams = j.get("streams") or []
+                if not streams:
+                    return None
+                s0 = streams[0] if isinstance(streams[0], dict) else {}
+                avg = (s0.get("avg_frame_rate") or "").strip()
+                rr = (s0.get("r_frame_rate") or "").strip()
+                cand = None
+                if avg and avg not in ("0/0", "0"):
+                    cand = avg
+                elif rr and rr not in ("0/0", "0"):
+                    cand = rr
+                if not cand:
+                    return None
+
+                def _to_float(x):
+                    raw = (x or "").strip()
+                    if not raw:
+                        return 0.0
+                    if "/" in raw:
+                        a, b = raw.split("/", 1)
+                        na = float(a)
+                        nb = float(b)
+                        if nb == 0:
+                            return 0.0
+                        return na / nb
+                    return float(raw)
+
+                fps_v = _to_float(cand)
+                if not fps_v or fps_v <= 0:
+                    return None
+                buckets = (24, 25, 30, 50, 60)
+                closest = None
+                closest_d = 999.0
+                for b in buckets:
+                    d = abs(fps_v - float(b))
+                    if d < closest_d:
+                        closest_d = d
+                        closest = b
+                fps_i = int(closest) if closest is not None and closest_d <= 0.2 else int(round(fps_v))
+                if fps_i <= 0:
+                    return None
+                return str(fps_i)
             except Exception:
-                return 0, 0
+                return None
 
         duration_sec = _ffprobe_duration_sec(local_src)
         if not duration_sec or duration_sec <= 0:
             duration_sec = 0.0
-        fps_str = str(output_fps)
+        fps_str = _ffprobe_video_fps_str(local_src)
 
         def _run_detect_content_boundaries(threshold, min_scene_sec):
             try:
@@ -2169,30 +1902,16 @@ def _run_smart_clip_job(job_id, local_src, options):
             segments2 = _equal_split(duration_sec, max_segments)
 
         if len(segments2) <= 1:
-            _smart_clip_update(
-                job_id,
-                status="done",
-                stage="done",
-                progress=1.0,
-                segments=[],
-                outputMode=output_mode,
-            )
+            _smart_clip_update(job_id, status="done", stage="done", progress=1.0, segments=[])
             return
 
         segments = []
         for i, (s, e) in enumerate(segments2):
             segments.append({"index": i + 1, "start": s, "end": e, "duration": e - s})
 
-        _smart_clip_update(
-            job_id,
-            stage="frame" if output_keyframes else "cut",
-            progress=0.05,
-            total=len(segments),
-            outputMode=output_mode,
-        )
+        _smart_clip_update(job_id, stage="cut", progress=0.05, total=len(segments))
 
-        out_dir_name = "SceneKeyframes" if output_keyframes else "SceneCuts"
-        out_dir = os.path.join(OUTPUT_DIR, out_dir_name, job_id)
+        out_dir = os.path.join(OUTPUT_DIR, "SceneCuts", job_id)
         os.makedirs(out_dir, exist_ok=True)
 
         out_segments = []
@@ -2203,48 +1922,29 @@ def _run_smart_clip_job(job_id, local_src, options):
             dur = max(0.01, e - s)
             ms_s = int(round(s * 1000))
             ms_e = int(round(e * 1000))
-            filename = (
-                f"scene_{idx+1:03d}_{ms_s}.jpg"
-                if output_keyframes
-                else f"scene_{idx+1:03d}_{ms_s}-{ms_e}.mp4"
-            )
+            filename = f"scene_{idx+1:03d}_{ms_s}-{ms_e}.mp4"
             out_path = os.path.join(out_dir, filename)
 
-            if output_keyframes:
-                cmd = [
-                    FFMPEG_EXE,
-                    "-y",
-                    "-ss",
-                    str(s),
-                    "-i",
-                    local_src,
-                    "-frames:v",
-                    "1",
-                    "-q:v",
-                    "2",
-                    out_path,
-                ]
-            else:
-                cmd = [
-                    FFMPEG_EXE,
-                    "-y",
-                    "-ss",
-                    str(s),
-                    "-i",
-                    local_src,
-                    "-t",
-                    str(dur),
-                    "-c:v",
-                    "libx264",
-                    "-preset",
-                    "fast",
-                    "-c:a",
-                    "aac",
-                    out_path,
-                ]
-                if fps_str:
-                    cmd.insert(-1, "-r")
-                    cmd.insert(-1, fps_str)
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-i",
+                local_src,
+                "-ss",
+                str(s),
+                "-t",
+                str(dur),
+                "-c:v",
+                "libx264",
+                "-preset",
+                "fast",
+                "-c:a",
+                "aac",
+                out_path,
+            ]
+            if fps_str:
+                cmd.insert(-1, "-r")
+                cmd.insert(-1, fps_str)
 
             process = subprocess.Popen(
                 cmd,
@@ -2256,67 +1956,33 @@ def _run_smart_clip_job(job_id, local_src, options):
                 _, stderr = process.communicate(timeout=300)
             except subprocess.TimeoutExpired:
                 process.kill()
-                _smart_clip_update(
-                    job_id,
-                    status="error",
-                    stage="frame" if output_keyframes else "cut",
-                    error="FFmpeg process timeout",
-                )
+                _smart_clip_update(job_id, status="error", stage="cut", error="FFmpeg process timeout")
                 return
             if process.returncode != 0:
                 try:
                     err_text = (stderr or b"").decode("utf-8", errors="ignore").strip()
                 except Exception:
                     err_text = ""
-                _smart_clip_update(
-                    job_id,
-                    status="error",
-                    stage="frame" if output_keyframes else "cut",
-                    error=f"FFmpeg processing failed: {err_text or 'unknown error'}",
-                )
+                _smart_clip_update(job_id, status="error", stage="cut", error=f"FFmpeg processing failed: {err_text or 'unknown error'}")
                 return
 
-            rel = f"output/{out_dir_name}/{job_id}/{filename}"
-            segment_result = {
-                "index": idx + 1,
-                "start": s,
-                "end": e,
-                "duration": dur,
-                "fps": output_fps,
-                "path": rel,
-                "localPath": rel,
-                "url": f"/{rel}",
-            }
-            if output_keyframes:
-                width, height = _ffprobe_video_size(out_path)
-                segment_result.update(
-                    {
-                        "fileName": filename,
-                        "outputType": "image",
-                        "width": width,
-                        "height": height,
-                    }
-                )
-            out_segments.append(segment_result)
-
-            p = 0.05 + 0.95 * float(idx + 1) / float(total)
-            _smart_clip_update(
-                job_id,
-                stage="frame" if output_keyframes else "cut",
-                progress=min(0.999, p),
-                doneCount=idx + 1,
-                total=total,
-                outputMode=output_mode,
+            rel = f"output/SceneCuts/{job_id}/{filename}"
+            out_segments.append(
+                {
+                    "index": idx + 1,
+                    "start": s,
+                    "end": e,
+                    "duration": dur,
+                    "path": rel,
+                    "localPath": rel,
+                    "url": f"/{rel}",
+                }
             )
 
-        _smart_clip_update(
-            job_id,
-            status="done",
-            stage="done",
-            progress=1.0,
-            segments=out_segments,
-            outputMode=output_mode,
-        )
+            p = 0.05 + 0.95 * float(idx + 1) / float(total)
+            _smart_clip_update(job_id, stage="cut", progress=min(0.999, p), doneCount=idx + 1, total=total)
+
+        _smart_clip_update(job_id, status="done", stage="done", progress=1.0, segments=out_segments)
     except Exception as e:
         _smart_clip_update(job_id, status="error", stage="error", error=str(e))
 
@@ -2337,7 +2003,7 @@ def _atomic_write_json(p, data):
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp, p)
+        atomic_replace_with_retry(tmp, p)
     except Exception:
         try:
             if os.path.exists(tmp):
@@ -2348,19 +2014,16 @@ def _atomic_write_json(p, data):
 
 def _scan_max_gen_seq_for_date(date_str):
     try:
-        pat = re.compile(r"^gen_" + re.escape(date_str) + r"_(\d+)\.[a-z0-9]{1,5}$")
+        mid = machine_id()
         max_n = 0
         for root, _, files in os.walk(OUTPUT_DIR):
             for fn in files:
-                m = pat.match(fn)
-                if not m:
+                # 只数本机前缀（含旧的无前缀历史名）；别机文件不纳入，避免跨机拉高序号。
+                n = parse_gen_seq(fn, mid, date_str)
+                if n is None:
                     continue
-                try:
-                    n = int(m.group(1))
-                    if n > max_n:
-                        max_n = n
-                except Exception:
-                    continue
+                if n > max_n:
+                    max_n = n
         return max_n
     except Exception:
         return 0
@@ -2384,8 +2047,7 @@ def _next_gen_output_filename(ext):
             _atomic_write_json(GEN_SEQ_STATE_FILE, state)
         except Exception:
             pass
-    seq = str(n).zfill(4)
-    return f"gen_{date_str}_{seq}.{ext}"
+    return next_gen_filename(machine_id(), date_str, n, ext)
 
 
 def _normalize_posix_rel_path(path_value):
@@ -2426,12 +2088,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         raw_path = urllib.parse.urlsplit(path).path
         decoded_path = urllib.parse.unquote(raw_path).replace("\\", "/")
         virtual_roots = (
-            ("/user/prompt/_thumbs/", os.path.join(USER_DIR, "prompt", "_thumbs")),
+            ("/output/", OUTPUT_DIR),
+            ("/data/uploads/", UPLOADS_DIR),
+            ("/data/assets/", ASSETS_DIR),
             ("/data/workflows/", WORKFLOWS_DIR),
         )
-        media_path = _resolve_local_virtual_path(decoded_path)
-        if media_path:
-            return media_path
         for prefix, root_dir in virtual_roots:
             if decoded_path == prefix[:-1] or decoded_path.startswith(prefix):
                 rel = decoded_path[len(prefix):].lstrip("/")
@@ -2548,7 +2209,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, PATCH, OPTIONS")
         self.send_header(
             "Access-Control-Allow-Headers",
-            "Content-Type, Authorization, X-AIC-Install-Id, X-AIC-Device-Id, X-AIC-Local-Token",
+            "Content-Type, Authorization, X-AIC-Install-Id, X-AIC-Local-Token",
         )
         self.end_headers()
 
@@ -2587,7 +2248,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if HTTP_ROUTE_DISPATCHER.handle_get(self, path):
             return
 
-        # --- 其余静态资源交给 SimpleHTTPRequestHandler 处理 ---
+        # --- ???????? SimpleHTTPRequestHandler ??? ---
         try:
             super().do_GET()
         except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
@@ -2598,14 +2259,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         header_buf = getattr(self, "_headers_buffer", []) or []
         has_cache_control = any(b"Cache-Control:" in h for h in header_buf)
         has_cors = any(b"Access-Control-Allow-Origin:" in h for h in header_buf)
-        has_server_id = any(b"X-AICanvas-Server:" in h for h in header_buf)
-        if not has_server_id:
-            self.send_header("X-AICanvas-Server", "AI CanvasPro")
         if not has_cache_control:
-            self.send_header(
-                "Cache-Control",
-                _resolve_static_cache_control(getattr(self, "path", "")),
-            )
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         if not has_cors:
             _send_cors_origin_header(self)
         super().end_headers()
@@ -2621,211 +2276,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if HTTP_ROUTE_DISPATCHER.handle_post(self, path):
             return
 
-        if path == "/api/v2/proxy/apimart-upload":
-            try:
-                content_type_header = self.headers.get("Content-Type", "") or ""
-                body = _read_body(self)
-                filename = "upload.bin"
-                file_content_type = "application/octet-stream"
-                file_extension = ""
-                api_key = ""
-                api_url = "https://api.apimart.ai"
-                permanent = False
-                file_bytes = b""
-
-                if content_type_header.startswith("multipart/form-data"):
-                    match = re.search(r"boundary=([^;]+)", content_type_header)
-                    boundary = (match.group(1).strip().strip('"') if match else "")
-                    if not boundary:
-                        _json_err(self, 400, "Missing multipart boundary"); return
-                    boundary_bytes = ("--" + boundary).encode("utf-8", "ignore")
-                    for part in body.split(boundary_bytes):
-                        if b"Content-Disposition:" not in part:
-                            continue
-                        header_end = part.find(b"\r\n\r\n")
-                        if header_end == -1:
-                            continue
-                        header_blob = part[:header_end].decode("utf-8", "ignore")
-                        data_blob = part[header_end + 4 :]
-                        if data_blob.endswith(b"\r\n"):
-                            data_blob = data_blob[:-2]
-                        if data_blob.endswith(b"--"):
-                            data_blob = data_blob[:-2]
-                        name_match = re.search(r'name="([^"]+)"', header_blob)
-                        field_name = name_match.group(1) if name_match else ""
-                        if field_name == "file":
-                            file_bytes = data_blob
-                            filename_match = re.search(r'filename="([^"]*)"', header_blob)
-                            if filename_match and filename_match.group(1).strip():
-                                filename = os.path.basename(filename_match.group(1).strip())
-                            type_match = re.search(r"Content-Type:\s*([^\r\n;]+)", header_blob, flags=re.IGNORECASE)
-                            if type_match and type_match.group(1).strip():
-                                file_content_type = type_match.group(1).strip()
-                        elif field_name in ("contentType", "fileExtension", "permanent", "apiKey", "apiUrl"):
-                            value = data_blob.decode("utf-8", "ignore").strip()
-                            if field_name == "contentType" and value:
-                                file_content_type = value
-                            elif field_name == "fileExtension" and value:
-                                file_extension = value.lstrip(".")
-                            elif field_name == "permanent":
-                                permanent = value.lower() in ("1", "true", "yes", "on")
-                            elif field_name == "apiKey":
-                                api_key = re.sub(r"^Bearer\s+", "", value, flags=re.IGNORECASE).strip()
-                            elif field_name == "apiUrl" and value:
-                                api_url = re.sub(r"/v1/?$", "", value.rstrip("/"), flags=re.IGNORECASE)
-                else:
-                    file_bytes = body
-                    file_content_type = content_type_header.split(";", 1)[0].strip() or file_content_type
-
-                if not file_bytes:
-                    _json_err(self, 400, "Missing upload file"); return
-                if not file_extension:
-                    file_extension = (os.path.splitext(filename)[1] or "").lstrip(".")
-                if not file_extension:
-                    file_extension = (mimetypes.guess_extension(file_content_type) or ".bin").lstrip(".")
-
-                if api_key and file_content_type.lower().startswith("image/"):
-                    normalized_api_url = re.sub(
-                        r"/v1/?$",
-                        "",
-                        str(api_url or 'https://api.apimart.ai').strip().rstrip("/"),
-                        flags=re.IGNORECASE,
-                    )
-                    upload_url = f"{normalized_api_url}/v1/uploads/images"
-                    try:
-                        import requests as _req
-                        resp = _req.post(
-                            upload_url,
-                            headers={
-                                "Authorization": f"Bearer {api_key}",
-                                "User-Agent": "Mozilla/5.0",
-                            },
-                            files={
-                                "file": (
-                                    filename,
-                                    file_bytes,
-                                    file_content_type,
-                                )
-                            },
-                            timeout=300,
-                        )
-                        content = resp.content
-                        self.send_response(resp.status_code)
-                        self.send_header(
-                            "Content-Type",
-                            resp.headers.get("Content-Type") or "application/json; charset=utf-8",
-                        )
-                        _send_cors_origin_header(self)
-                        self.send_header("Content-Length", str(len(content)))
-                        self.end_headers()
-                        self.wfile.write(content)
-                    except ImportError:
-                        boundary = f"----AICanvasAPIMartUpload{random.randint(100000, 999999)}"
-                        safe_filename = filename.replace('"', "_")
-                        body_prefix = (
-                            f"--{boundary}\r\n"
-                            f'Content-Disposition: form-data; name="file"; filename="{safe_filename}"\r\n'
-                            f"Content-Type: {file_content_type}\r\n\r\n"
-                        ).encode("utf-8")
-                        body_suffix = f"\r\n--{boundary}--\r\n".encode("utf-8")
-                        req_body = body_prefix + file_bytes + body_suffix
-                        req = urllib.request.Request(
-                            upload_url,
-                            data=req_body,
-                            headers={
-                                "Authorization": f"Bearer {api_key}",
-                                "Content-Type": f"multipart/form-data; boundary={boundary}",
-                                "User-Agent": "Mozilla/5.0",
-                            },
-                            method="POST",
-                        )
-                        try:
-                            with urllib.request.urlopen(req, timeout=300) as resp:
-                                content = resp.read()
-                                status = resp.status
-                                content_type = resp.headers.get("Content-Type") or "application/json; charset=utf-8"
-                        except urllib.error.HTTPError as exc:
-                            content = exc.read()
-                            status = exc.code
-                            content_type = exc.headers.get("Content-Type") or "application/json; charset=utf-8"
-                        self.send_response(status)
-                        self.send_header("Content-Type", content_type)
-                        _send_cors_origin_header(self)
-                        self.send_header("Content-Length", str(len(content)))
-                        self.end_headers()
-                        self.wfile.write(content)
-                    except Exception as e:
-                        _json_err(self, 500, f"APIMART official upload error: {repr(e)}")
-                    return
-
-                presign_payload = {
-                    "contentType": file_content_type,
-                    "fileExtension": file_extension,
-                    "permanent": bool(permanent),
-                }
-                try:
-                    import requests as _req
-                    presign_resp = _req.post(
-                        "https://apimart.ai/api/upload/presign",
-                        json=presign_payload,
-                        headers={
-                            "Content-Type": "application/json",
-                            "User-Agent": "Mozilla/5.0",
-                        },
-                        timeout=60,
-                    )
-                    presign_resp.raise_for_status()
-                    presign_data = presign_resp.json()
-                    presigned_url = str(presign_data.get("presignedUrl") or "")
-                    cdn_url = str(presign_data.get("cdnUrl") or "")
-                    if not presigned_url or not cdn_url:
-                        raise RuntimeError("invalid presign response")
-                    upload_resp = _req.put(
-                        presigned_url,
-                        data=file_bytes,
-                        headers={"Content-Type": file_content_type},
-                        timeout=300,
-                    )
-                    upload_resp.raise_for_status()
-                except ImportError:
-                    req_body = json.dumps(presign_payload).encode("utf-8")
-                    req = urllib.request.Request(
-                        "https://apimart.ai/api/upload/presign",
-                        data=req_body,
-                        headers={
-                            "Content-Type": "application/json",
-                            "User-Agent": "Mozilla/5.0",
-                        },
-                        method="POST",
-                    )
-                    with urllib.request.urlopen(req, timeout=60) as resp:
-                        presign_data = json.loads(resp.read().decode("utf-8", errors="replace"))
-                    presigned_url = str(presign_data.get("presignedUrl") or "")
-                    cdn_url = str(presign_data.get("cdnUrl") or "")
-                    if not presigned_url or not cdn_url:
-                        raise RuntimeError("invalid presign response")
-                    put_req = urllib.request.Request(
-                        presigned_url,
-                        data=file_bytes,
-                        headers={"Content-Type": file_content_type},
-                        method="PUT",
-                    )
-                    with urllib.request.urlopen(put_req, timeout=300):
-                        pass
-
-                _json_ok(
-                    self,
-                    {
-                        "url": cdn_url,
-                        "cdnUrl": cdn_url,
-                        "content_type": file_content_type,
-                        "bytes": len(file_bytes),
-                    },
-                )
-            except Exception as e:
-                _json_err(self, 500, f"APIMART upload proxy error: {repr(e)}")
-            return
-
         # ┢┢ 文件上传 ┢┢
         if path.rstrip("/") == "/api/v2/video/smart_clip":
             body = _read_body(self)
@@ -2839,9 +2289,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             options = data.get("options") or {}
             if not isinstance(options, dict):
                 options = {}
-            output_mode = _normalize_smart_clip_output_mode(
-                options.get("outputMode", options.get("outputType", options.get("resultType")))
-            )
 
             if not src_path:
                 _json_err(self, 400, "Missing src")
@@ -2872,7 +2319,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "stage": "queued",
                     "progress": 0.0,
                     "segments": None,
-                    "outputMode": output_mode,
                     "error": None,
                     "createdAt": created_at,
                 }
@@ -2910,9 +2356,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 instance_type = "default"
 
             def _resolve_local_file(url_or_path: str):
-                fp = _resolve_local_virtual_path(url_or_path)
-                if fp and os.path.isfile(fp):
-                    return fp
+                s = (url_or_path or "").strip()
+                if not s:
+                    return None
+                s2 = s.lstrip("/")
+                if s2.startswith("output/"):
+                    rel = s2[len("output/"):].lstrip("/\\")
+                    fp = os.path.abspath(os.path.join(OUTPUT_DIR, rel))
+                    if _is_path_inside(fp, OUTPUT_DIR) and os.path.isfile(fp):
+                        return fp
+                if s2.startswith("data/uploads/"):
+                    rel = s2[len("data/uploads/"):].lstrip("/\\")
+                    fp = os.path.abspath(os.path.join(UPLOADS_DIR, rel))
+                    if _is_path_inside(fp, UPLOADS_DIR) and os.path.isfile(fp):
+                        return fp
+                if os.path.isabs(s) and os.path.isfile(s):
+                    return s
                 return None
 
             def _guess_filename(raw: str, fallback_name: str):
@@ -3102,15 +2561,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             body = _read_body(self)
             try:
                 data = json.loads(body)
+                if not isinstance(data, dict):
+                    raise json.JSONDecodeError("Invalid JSON", str(body), 0)
                 api_url = data.pop("apiUrl", "").strip().rstrip("/")
                 api_key = data.pop("apiKey", "").strip()
             except json.JSONDecodeError:
                 _json_err(self, 400, "Invalid JSON"); return
             if not api_url or not api_key:
                 _json_err(self, 400, "Missing apiUrl or apiKey"); return
-            local_authorization_payload = dict(data) if isinstance(data, dict) else {}
-            for key in SUBSCRIPTION_AUTHORIZATION_ID_KEYS:
-                data.pop(key, None)
             def _extract_task_id_from_text(raw_text):
                 text = str(raw_text or "")
                 if not text:
@@ -3118,8 +2576,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 patterns = [
                     r'"task_id"\s*:\s*"([^"]+)"',
                     r'"taskId"\s*:\s*"([^"]+)"',
+                    r'"id"\s*:\s*"([^"]+)"',
                     r'"data"\s*:\s*"([^"]{8,})"',
                     r'\btask[_-]?id\b\s*[:=]\s*["\']?([a-zA-Z0-9._:-]+)["\']?',
+                    r'\bid\b\s*[:=]\s*["\']?([a-zA-Z0-9._:-]{8,})["\']?',
                 ]
                 for pattern in patterns:
                     match = re.search(pattern, text, flags=re.IGNORECASE)
@@ -3128,39 +2588,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         if value:
                             return value
                 return ""
-            workflow_match = re.search(
-                r"/openapi/v2/run/ai-app/(\d+)$",
-                api_url,
-                flags=re.IGNORECASE,
-            )
-            workflow_id = workflow_match.group(1) if workflow_match else ""
-            is_runninghub_query_endpoint = bool(
-                re.search(r"/openapi/v2/query(?:$|[/?])", api_url, flags=re.IGNORECASE)
-            )
-            # 仅在“提交任务”类端点启用 task_id 快速探测；
-            # 查询类端点和 GRSAI 新 JSON 端点必须透传完整响应，否则前端无法拿到最终出图 URL。
-            is_grsai_query_endpoint = bool(
-                re.search(
-                    r"/v1/(?:draw/(?:result|query)|api/result)(?:$|[/?])",
-                    api_url,
-                    flags=re.IGNORECASE,
-                )
-            )
-            is_grsai_generate_endpoint = bool(
-                re.search(r"/v1/api/generate(?:$|[/?])", api_url, flags=re.IGNORECASE)
-            )
-            allow_task_probe_short_circuit = not (
-                is_runninghub_query_endpoint
-                or is_grsai_query_endpoint
-                or is_grsai_generate_endpoint
-            )
-            if workflow_id in VIDEO_VIP_WORKFLOW_IDS:
-                if not _enforce_vip_subscription_gate(
+            generation_meta = _infer_proxy_image_generation_metadata(api_url, data)
+            allow_task_probe_short_circuit = generation_meta["allow_task_probe_short_circuit"]
+            if allow_task_probe_short_circuit:
+                if not _enforce_generation_subscription_gate(
                     self,
-                    local_authorization_payload,
-                    required_model_id=f"runninghub/{workflow_id}",
+                    data,
+                    required_model_id=generation_meta["required_model_id"],
+                    provider=generation_meta["provider"],
+                    node_type=generation_meta["node_type"],
                 ):
                     return
+            forward_data = _strip_internal_control_fields(data)
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -3183,7 +2622,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     try:
                         resp = _req.post(
                             api_url,
-                            json=data,
+                            json=forward_data,
                             headers=headers,
                             timeout=900,
                             stream=True,
@@ -3194,6 +2633,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             "x-taskid",
                             "task-id",
                             "taskid",
+                            "x-request-id",
+                            "request-id",
                             "x-job-id",
                             "job-id",
                         ):
@@ -3267,7 +2708,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         raise
             except ImportError:
                 import urllib.request, urllib.error
-                req_body = json.dumps(data).encode("utf-8")
+                req_body = json.dumps(forward_data).encode("utf-8")
                 req = urllib.request.Request(api_url, data=req_body, headers=headers, method="POST")
                 retry_delays = (0.0, 0.3, 0.9)
                 proxy_error_markers = (
@@ -3314,6 +2755,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             body = _read_body(self)
             try:
                 data = json.loads(body)
+                if not isinstance(data, dict):
+                    raise json.JSONDecodeError("Invalid JSON", str(body), 0)
                 api_url = data.pop("apiUrl", "").strip().rstrip("/")
                 api_key = data.pop("apiKey", "").strip()
             except json.JSONDecodeError:
@@ -3326,14 +2769,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if not api_url or not api_key:
                 _json_err(self, 400, "Missing apiUrl or apiKey"); return
-            
-            # 兼容 Gemini 和 OpenAI 风格接口
-            if (
-                ":generateContent" in api_url
-                or "/v1beta/models" in api_url
-                or api_url.endswith("/chat/completions")
-                or api_url.endswith("/responses")
+
+            if not _enforce_generation_subscription_gate(
+                self,
+                data,
+                required_model_id=str(data.get("model") or "").strip(),
+                provider=str(data.get("provider") or "").strip() or "text",
+                node_type="text",
             ):
+                return
+            forward_data = _strip_internal_control_fields(data)
+            
+            # ?? Gemini ???????????
+            if ":generateContent" in api_url or "/v1beta/models" in api_url or api_url.endswith("/chat/completions"):
                 endpoint = api_url
             else:
                 endpoint = f"{api_url}/chat/completions"
@@ -3347,40 +2795,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             
             try:
                 import requests
-                req_body = json.dumps(data)
+                req_body = json.dumps(forward_data)
                 try:
-                    resp = requests.post(endpoint, data=req_body, headers=headers, timeout=300, stream=True)
-                    # 生成请求允许最长 300 秒，与 aiTextApi.js 保持一致
+                    # ??????? 300 ???? aiTextApi.js ??????
+                    resp = requests.post(endpoint, data=req_body, headers=headers, timeout=600)
                 except requests.exceptions.ConnectionError as ce:
-                    _json_err(self, 502, f"连接 AI 服务失败: {str(ce)}")
+                    _json_err(self, 502, f"????? AI ???: {str(ce)}")
                     return
                 except requests.exceptions.Timeout as te:
-                    _json_err(self, 504, f"AI 服务请求超时: {str(te)}")
+                    _json_err(self, 504, f"AI ???????: {str(te)}")
                     return
                 except requests.exceptions.RequestException as req_err:
-                    _json_err(self, 502, f"AI 服务请求失败: {str(req_err)}")
+                    _json_err(self, 502, f"AI ???????: {str(req_err)}")
                     return
                 
-                # 兼容返回 SSE 的服务，转换为普通 JSON
+                # ??????? SSE ??????????? JSON
+                resp_text = resp.text
                 resp_content_type = resp.headers.get('Content-Type', '')
-                try:
-                    if 'text/event-stream' in resp_content_type.lower():
-                        resp_text = _normalize_chat_completion_sse_response(resp)
-                    else:
-                        resp_text = resp.text
-                finally:
-                    try:
-                        resp.close()
-                    except Exception:
-                        pass
-                if not resp_text:
-                    resp_text = "{}"
                 
-                # 处理 text/event-stream 或以 data: 开头的响应
-                is_sse = resp_text.strip().startswith('data:')
+                # ?????? text/event-stream ??? data: ??????? JSON
+                is_sse = 'text/event-stream' in resp_content_type or resp_text.strip().startswith('data:')
                 if is_sse:
                     try:
-                        # 取 SSE 最后一条有效 JSON
+                        # ??? SSE ??????? JSON
                         lines = [l.strip() for l in resp_text.split('\n') if l.strip().startswith('data:')]
                         if lines:
                             last_line = lines[-1].replace('data:', '').strip()
@@ -3395,7 +2832,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                 json_data = json.loads(last_line)
                                 resp_text = json.dumps(json_data)
                     except Exception:
-                        # 解析失败时保留原始响应
+                        # ?????????????
                         pass
                 
                 self.send_response(resp.status_code)
@@ -3406,14 +2843,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             except ImportError:
                 # Fallback to urllib if requests is not installed
                 import urllib.request
-                req_body = json.dumps(data).encode("utf-8")
+                req_body = json.dumps(forward_data).encode("utf-8")
                 req = urllib.request.Request(endpoint, data=req_body, headers=headers, method="POST")
                 try:
-                    with urllib.request.urlopen(req, timeout=120) as resp:
+                    with urllib.request.urlopen(req, timeout=600) as resp:
                         resp_data = resp.read()
                         resp_text = resp_data.decode('utf-8')
                     
-                    # 兼容返回 SSE 的服务，转换为普通 JSON
+                    # ??????? SSE ??????????? JSON
                     if resp_text.strip().startswith('data:'):
                         try:
                             lines = [l.strip() for l in resp_text.split('\n') if l.strip().startswith('data:')]
@@ -3446,7 +2883,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 _json_err(self, 500, repr(e))
             return
 
-        # --- 自定义 AI 聊天接口，兼容 OpenAI 格式 ---
+        # --- ??? AI ????????? OpenAI ????? ---
         if path == "/api/v2/chat":
             body = _read_body(self)
             try:
@@ -3457,7 +2894,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             api_key  = data.get("apiKey", "").strip()
             model    = data.get("model", "")
             prompt   = data.get("prompt", "")
-            # apiUrl/apiKey 未传时，回退到 config.json 中的自定义 AI 配置
+            # apiUrl/apiKey ??????????? config.json ????? AI ??
             if not api_url or not api_key:
                 global_cfg = _get_custom_ai_config()
                 api_url = api_url or global_cfg["apiUrl"]
@@ -3465,7 +2902,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if not api_url or not api_key or not model or not prompt:
                 _json_err(self, 400, "Missing required fields: apiUrl, apiKey, model, prompt"); return
             
-            # 若未指定完整端点，则默认拼接 /chat/completions
+            # ????????????? /chat/completions ????
             endpoint = api_url if api_url.endswith("/chat/completions") else f"{api_url}/chat/completions"
             
             import urllib.request
@@ -3483,7 +2920,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 method="POST",
             )
             try:
-                with urllib.request.urlopen(req, timeout=120) as resp:
+                with urllib.request.urlopen(req, timeout=600) as resp:
                     resp_data = json.loads(resp.read().decode("utf-8"))
 
                 content = resp_data["choices"][0]["message"]["content"]
@@ -3565,37 +3002,30 @@ def _display_urls(bind_host, port):
     return urls
 
 
-# --- 启动 ---
-def _is_benign_client_disconnect_error(error):
-    current = error
-    seen = set()
-    while current is not None and id(current) not in seen:
-        seen.add(id(current))
-        if isinstance(current, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
-            return True
-        current = getattr(current, "__context__", None) or getattr(current, "__cause__", None)
-    return False
-
-
-class QuietThreadingTCPServer(socketserver.ThreadingTCPServer):
-    allow_reuse_address = True
-
-    def handle_error(self, request, client_address):
-        error = sys.exc_info()[1]
-        if _is_benign_client_disconnect_error(error):
-            return
-        super().handle_error(request, client_address)
-
-
+# --- ?? ---
 if __name__ == "__main__":
-    # 后台启动自动更新检查
+    # ????????????
+    _startup_log("main entry")
     _t = threading.Thread(target=UPDATE_SERVICE.update_check_loop, daemon=True, name='AutoUpdateChecker')
     _t.start()
+    _startup_log("update thread started")
+    SAM3_SERVICE.start_background_workers()
+    _startup_log("sam3 workers started")
     port, requested_bind_host, lan_mode = _parse_server_args(sys.argv[1:])
+    # Sync the actual serve port into the module global so the ViMax
+    # broker_url_getter (read lazily at render time) points the runner's
+    # draw calls at the real port, not the 8777 default. (Module top-level,
+    # so this rebinds the global the broker lambda closes over.)
+    PORT = port
     bind_host, bind_host_was_restricted = _resolve_bind_host(requested_bind_host, lan_mode)
-    with QuietThreadingTCPServer((bind_host, port), Handler) as httpd:
+    _startup_log(f"binding {bind_host}:{port}")
+    with ReusableThreadingTCPServer((bind_host, port), Handler) as httpd:
+        _startup_log(f"bound {bind_host}:{port}")
         print("=" * 56)
-        if SUBSCRIPTION_API_BASE_OVERRIDDEN:
+        if LOCAL_FIXED_SUBSCRIPTION_ENABLED:
+            print("[subscription] mode = local-admin-cdkey + local-one-time-cdkey + mac-binding")
+            print(f"[subscription] license state dir = {SYSTEM_STATE_DIR}")
+        elif SUBSCRIPTION_API_BASE_OVERRIDDEN:
             print(f"[subscription] api base override enabled: {SUBSCRIPTION_API_BASE}")
         else:
             print("[subscription] api base = official")
@@ -3603,11 +3033,12 @@ if __name__ == "__main__":
             print("[security] 0.0.0.0 需要显式局域网模式，已回退到 127.0.0.1")
         if lan_mode:
             print("[security] 局域网模式已开启，请通过 AIC_ALLOWED_ORIGINS 配置可信 Origin")
-        print("AI Canvas 服务已启动")
+        print("幻映服务已启动")
         for url in _display_urls(bind_host, port):
             print(url)
         print("按 Ctrl+C 停止服务")
         print("=" * 56)
+        _startup_log("entering serve_forever")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

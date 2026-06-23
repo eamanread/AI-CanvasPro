@@ -1,0 +1,43 @@
+{
+  "id": "canvas_layout",
+  "name": "Huanying Canvas Layout",
+  "version": "0.1.0",
+  "enabled": true,
+  "priority": 80,
+  "injectMode": "when_matched",
+  "triggers": ["整理画布", "整理选区", "排版", "节点太乱", "帮我排一下", "layout canvas"],
+  "allowedActions": ["layout_nodes", "move_nodes", "create_group", "rename_node", "focus_nodes", "set_viewport"],
+  "forbiddenActions": ["queue_generation_task", "run_prompt_preset_generation", "delete_nodes", "update_node_data"],
+  "requiredContext": [
+    "context.selection.selectedNodeIds",
+    "context.canvas.layoutHints",
+    "context.canvas.edges",
+    "context.canvas.diagnostics"
+  ],
+  "body": "Goal: organize Huanying canvas nodes so the user can immediately read the creative flow. User satisfaction criteria: inputs, prompts, generation nodes, outputs, assets, and problem nodes are visually separated; related nodes stay close; generation chains flow left to right; storyboard shots are ordered by shotIndex; selected nodes are respected before the whole canvas. Decision guide: first determine scope from selection, user wording, diagnostics, and layoutHints; then infer lanes from node type, title, workflow metadata, edges, and generation state; then choose single_chain, branch_flow, storyboard_grid, asset_lane, or problem_lane. Use layout_nodes first, create_group only when it clarifies a focused set, then focus_nodes or set_viewport. Do not edit prompts, models, assets, or generation state. Do not generate, delete, overwrite, or fabricate nodes while arranging.",
+  "compactBody": "整理画布：先看 selection/layoutHints/diagnostics；按输入->处理->输出、素材区、问题区整理；优先 layout_nodes；可 focus/set_viewport；不生成、不删除、不改内容。",
+  "qualityRubric": [
+    "The user can read input, processing, and output at a glance.",
+    "Related nodes are close; unrelated assets and failures are separated.",
+    "Edges cross less and mostly flow left-to-right or top-to-bottom.",
+    "Selected scope is respected when the user is focused on a subset."
+  ],
+  "decisionGuide": [
+    "Decide whether the user asked for selection, whole canvas, a chain, storyboard, or problem nodes.",
+    "Use edges and workflow metadata before raw x/y order.",
+    "Choose storyboard_grid for shot-based story workflows."
+  ],
+  "antiPatterns": [
+    "Sorting only by current x/y and breaking the semantic flow.",
+    "Moving the whole canvas when the user selected only a few nodes.",
+    "Putting reference assets, prompts, results, and failed tasks in one long row."
+  ],
+  "examples": [
+    {
+      "type": "layout_nodes",
+      "nodeIds": ["selected_node_a", "selected_node_b"],
+      "layout": "single_chain"
+    }
+  ]
+}
+

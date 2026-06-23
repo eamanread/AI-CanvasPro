@@ -1,0 +1,42 @@
+{
+  "id": "r5-invalid-delta-actions-do-not-execute",
+  "title": "R5 delta actions are ignored",
+  "initialCanvas": {
+    "nodes": [
+      {
+        "id": "seed_prompt",
+        "nodeType": "source-text",
+        "name": "Seed Prompt"
+      }
+    ],
+    "edges": [],
+    "selectedNodeIds": ["seed_prompt"]
+  },
+  "streamFrames": [
+    {
+      "type": "message.start",
+      "conversationId": "conv_r5_delta"
+    },
+    {
+      "type": "message.delta",
+      "delta": "Actions in this delta must not execute.",
+      "actions": [
+        {
+          "type": "create_node",
+          "nodeType": "comment",
+          "name": "Should Not Exist"
+        }
+      ]
+    },
+    {
+      "type": "message.done",
+      "reply": "There are no final actions.",
+      "actions": [],
+      "requiresConfirmation": false
+    }
+  ],
+  "expected": {
+    "createdNodes": 0,
+    "deltaActionsIgnored": true
+  }
+}

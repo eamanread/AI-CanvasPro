@@ -1,0 +1,15 @@
+{
+  "id": "config-style-fidelity", "kind": "style", "final_text": "",
+  "style": {
+    "auteur_rules": {
+      "wes_anderson": {
+        "must_anchor": ["对称构图", "Futura signage", "糖粉玫红", "薰衣草紫", "奶油白", "平视正面"],
+        "banned": ["drone shot", "handheld chaos"],
+        "aliases": { "航拍": "drone shot" }
+      }
+    },
+    "declared_auteur": "wes_anderson",
+    "prompt": "Wes Anderson symmetry, 对称构图, Futura signage, 糖粉玫红 + 薰衣草紫 + 奶油白 palette, 平视正面 flat staging, centered.",
+    "final_text": "镜头组1 时长：10s 对称正面，糖粉色调。切镜方式：硬切"
+  }
+}

@@ -1,0 +1,301 @@
+{
+  "url": "http://127.0.0.1:8777/?id=codex_final_smoke_1780911922448",
+  "appLoaded": true,
+  "loaderPresent": false,
+  "pickerItems": [
+    {
+      "source": "hover-overlay",
+      "index": 0,
+      "type": "",
+      "className": "v2-menu-row has-desc",
+      "text": "生成文本AI 文本生成"
+    },
+    {
+      "source": "hover-overlay",
+      "index": 1,
+      "type": "",
+      "className": "v2-menu-row has-desc",
+      "text": "生成图像AI 图像生成"
+    },
+    {
+      "source": "hover-overlay",
+      "index": 2,
+      "type": "",
+      "className": "v2-menu-row has-desc",
+      "text": "生成视频AI 视频生成"
+    },
+    {
+      "source": "hover-overlay",
+      "index": 3,
+      "type": "",
+      "className": "v2-menu-row has-desc",
+      "text": "生成音频AI 音频生成"
+    },
+    {
+      "source": "hover-overlay",
+      "index": 4,
+      "type": "",
+      "className": "v2-menu-row has-desc",
+      "text": "3D导演台BETA360° 全景与 3D 机位"
+    },
+    {
+      "source": "hover-overlay",
+      "index": 5,
+      "type": "",
+      "className": "v2-menu-row has-desc",
+      "text": "360全景图BETA全景浏览与人物排布"
+    },
+    {
+      "source": "hover-overlay",
+      "index": 6,
+      "type": "",
+      "className": "v2-menu-row has-desc",
+      "text": "分镜脚本BETA输入故事、图片或视频，生成可编辑分镜脚本"
+    },
+    {
+      "source": "hover-overlay",
+      "index": 7,
+      "type": "",
+      "className": "v2-menu-row has-desc",
+      "text": "上传文件图片 / 视频 / 音频"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 0,
+      "type": "text",
+      "className": "nam-item",
+      "text": "文本 Gemini3"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 1,
+      "type": "image",
+      "className": "nam-item",
+      "text": "图像 Banana Pro"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 2,
+      "type": "video",
+      "className": "nam-item",
+      "text": "视频"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 3,
+      "type": "test-video",
+      "className": "nam-item",
+      "text": "测试视频"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 4,
+      "type": "audio",
+      "className": "nam-item",
+      "text": "音频 Beta"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 5,
+      "type": "panorama-scene",
+      "className": "nam-item",
+      "text": "3D导演台"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 6,
+      "type": "panorama-360",
+      "className": "nam-item",
+      "text": "360全景图"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 7,
+      "type": "storyboard-script",
+      "className": "nam-item",
+      "text": "分镜脚本 BETA"
+    },
+    {
+      "source": "static-left-menu",
+      "index": 8,
+      "type": "resource",
+      "className": "nam-item nam-upload",
+      "text": "上传"
+    }
+  ],
+  "interactionFallbacks": [
+    {
+      "label": "storyboard fullscreen open",
+      "selector": "#smoke-story .act-fullscreen-script",
+      "reason": "locator.click: Timeout 8000ms exceeded."
+    }
+  ],
+  "beforeClickState": {
+    "nodeIds": [
+      "smoke-director",
+      "smoke-story",
+      "smoke-video"
+    ],
+    "edgeCount": 0
+  },
+  "afterClickState": {
+    "nodeIds": [
+      "smoke-director",
+      "smoke-story",
+      "smoke-video",
+      "storyboard-script-1780911935791-khhx2bi7t"
+    ],
+    "edgeCount": 1,
+    "selectedNodeIds": [
+      "storyboard-script-1780911935791-khhx2bi7t"
+    ]
+  },
+  "director": {
+    "exists": true,
+    "type": "panorama-scene",
+    "name": "3D导演台",
+    "domClass": "v2-node node panorama-scene-node",
+    "toolbarButtons": [
+      "编辑",
+      "上传全景图",
+      "全屏显示",
+      "折叠",
+      "关闭编辑",
+      "鼠标模式 [V]",
+      "移动 [W]",
+      "缩放 [E]",
+      "旋转 [R]",
+      "全屏显示",
+      "折叠",
+      "删除对象"
+    ]
+  },
+  "storyboard": {
+    "exists": true,
+    "type": "storyboard-script",
+    "title": "分镜脚本",
+    "rowValue": "浏览器烟测持久化",
+    "csvIncludesColumns": true,
+    "csvIncludesPersistedEdit": true
+  },
+  "fullscreenVisible": true,
+  "videoToolbar": {
+    "visible": true,
+    "ariaLabel": "分镜脚本",
+    "className": "ftb-btn icon-only act-storyboard-script",
+    "rect": {
+      "x": 762.5,
+      "y": 143.60000610351562,
+      "width": 38,
+      "height": 38
+    },
+    "clickMethod": "playwright-click"
+  },
+  "clickedToolbarAction": {
+    "createdNodeId": "storyboard-script-1780911935791-khhx2bi7t",
+    "createdNodeType": "storyboard-script",
+    "edgeSourceId": "smoke-video",
+    "edgeTargetId": "storyboard-script-1780911935791-khhx2bi7t",
+    "edgeDirectionOk": true,
+    "autoGenerationStarted": false,
+    "generationFlags": {},
+    "storyboardScriptFlags": {},
+    "promptPresent": true
+  },
+  "video": {
+    "exists": true,
+    "type": "source-video",
+    "isGenerating": false
+  },
+  "clips": {
+    "directorClip": {
+      "x": 78,
+      "y": 104.59999084472656,
+      "width": 611.2000122070312,
+      "height": 432.70005798339844
+    },
+    "storyboardClip": {
+      "x": 78,
+      "y": 428.1499938964844,
+      "width": 611.2000122070312,
+      "height": 428.1499938964844
+    },
+    "videoClip": {
+      "x": 654.5,
+      "y": 119.60000610351562,
+      "width": 435,
+      "height": 238.39999389648438
+    }
+  },
+  "consoleErrors": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "location": {
+        "url": "http://127.0.0.1:8777/api/v2/projects/codex_final_smoke_1780911922448.json",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "location": {
+        "url": "http://127.0.0.1:8777/images/volcengine.svg",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "location": {
+        "url": "http://127.0.0.1:8777/assets/characters/quaternius/universal-base/Superhero_Male_FullBody.gltf",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "location": {
+        "url": "http://127.0.0.1:8777/assets/characters/quaternius/universal-base/Superhero_Female_FullBody.gltf",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+      "location": {
+        "url": "http://127.0.0.1:8777/images/volcengine.svg",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    }
+  ],
+  "pageErrors": [],
+  "httpErrors": [
+    {
+      "status": 404,
+      "url": "http://127.0.0.1:8777/api/v2/projects/codex_final_smoke_1780911922448.json"
+    },
+    {
+      "status": 404,
+      "url": "http://127.0.0.1:8777/images/volcengine.svg"
+    },
+    {
+      "status": 404,
+      "url": "http://127.0.0.1:8777/assets/characters/quaternius/universal-base/Superhero_Male_FullBody.gltf"
+    },
+    {
+      "status": 404,
+      "url": "http://127.0.0.1:8777/assets/characters/quaternius/universal-base/Superhero_Female_FullBody.gltf"
+    },
+    {
+      "status": 404,
+      "url": "http://127.0.0.1:8777/images/volcengine.svg"
+    }
+  ],
+  "requestFailures": [],
+  "screenshots": {
+    "directorStage": "docs\\reviews\\artifacts\\2026-06-08-upstream-first-director-storyboard\\director-stage.png",
+    "storyboardScript": "docs\\reviews\\artifacts\\2026-06-08-upstream-first-director-storyboard\\storyboard-script.png",
+    "videoToolbarStoryboard": "docs\\reviews\\artifacts\\2026-06-08-upstream-first-director-storyboard\\video-toolbar-storyboard.png"
+  }
+}

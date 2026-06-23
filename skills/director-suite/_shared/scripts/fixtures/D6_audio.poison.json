@@ -1,0 +1,13 @@
+{
+  "_desc": "poison：narration source_ref非[Voice_*]/duck15>12/boost2<3/cf0.3≠0.5/G5 mute_bgm非true/成片含duck_under_voice_db泄漏 → 多FAIL/NO-GO",
+  "audio": {
+    "audio_layers": [
+      { "audio_id": "[Audio_NAR_01]", "type": "narration", "range": "G5", "source_ref": "doubao", "layout": "sync" }
+    ],
+    "mix_ladder": { "duck_under_voice_db": 15, "climax_boost_db": 2, "crossfade_s": 0.3 },
+    "groups": [
+      { "id": "G5", "embedded_track_policy": { "mute_bgm": false } }
+    ],
+    "final_text": "镜头组5 装配报告 duck_under_voice_db=15 mute_bgm"
+  }
+}

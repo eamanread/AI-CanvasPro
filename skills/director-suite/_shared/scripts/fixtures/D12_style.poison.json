@@ -1,0 +1,15 @@
+{
+  "_desc": "poison：①作者锚6项全缺 ②命中禁用触发词 drone shot ③命中别名 航拍 ④成片含 banned_trigger/保真✓ 泄漏 → 多FAIL/NO-GO",
+  "style": {
+    "auteur_rules": {
+      "wes_anderson": {
+        "must_anchor": ["对称构图", "Futura signage", "糖粉玫红", "薰衣草紫", "奶油白", "平视正面"],
+        "banned": ["drone shot", "handheld chaos"],
+        "aliases": { "航拍": "drone shot" }
+      }
+    },
+    "declared_auteur": "wes_anderson",
+    "prompt": "Wes Anderson 风格，drone shot 航拍 over the building, fast cuts.",
+    "final_text": "banned_trigger 命中报告：drone shot；保真✓"
+  }
+}

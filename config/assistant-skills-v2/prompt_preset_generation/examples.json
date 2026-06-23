@@ -1,0 +1,10 @@
+[
+  {
+    "input": "用预设生成图片",
+    "matchedSkill": "prompt_preset_generation",
+    "actions": [
+      "create_node",
+      "run_prompt_preset_generation"
+    ]
+  }
+]

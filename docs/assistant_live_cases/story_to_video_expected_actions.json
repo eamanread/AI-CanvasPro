@@ -1,0 +1,250 @@
+{
+  "version": 1,
+  "workflowKind": "story_to_video",
+  "contract": {
+    "storyOutlineCount": 1,
+    "styleBibleCount": 1,
+    "textAndImageMayAutoRun": true,
+    "videoRequiresExplicitAuthorization": true,
+    "requiredShotMetadata": [
+      "workflowKind",
+      "workflowGroupId",
+      "workflowStep",
+      "shotIndex",
+      "shotDurationSec",
+      "shotPrompt",
+      "shotVideoPrompt"
+    ],
+    "allowedWorkflowSteps": [
+      "story_outline",
+      "style_bible",
+      "shot_script",
+      "shot_keyframe",
+      "shot_video"
+    ],
+    "allowedLayouts": [
+      "storyboard_grid",
+      "single_chain",
+      "branch_flow",
+      "asset_lane",
+      "problem_lane",
+      "grid",
+      "horizontal",
+      "vertical"
+    ],
+    "forbiddenActions": [
+      {
+        "type": "queue_generation_task",
+        "nodeType": "ai-video",
+        "unless": "user explicitly authorized video generation in the same request"
+      },
+      {
+        "type": "delete_node",
+        "unless": "user explicitly confirmed destructive edit"
+      },
+      {
+        "type": "update_node",
+        "mode": "overwriteUserContent",
+        "unless": "user explicitly confirmed destructive edit"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "STV-15-CYBER-EMPTY",
+      "input": "做一个15秒雨夜赛博追逐故事短片，先生成故事大纲、风格设定、分镜文本、关键图和视频准备节点",
+      "context": {
+        "canvas": "empty",
+        "aspectRatio": "16:9",
+        "durationSec": 15,
+        "style": "cinematic cyberpunk rain night"
+      },
+      "expected": {
+        "storyOutline": {
+          "count": 1,
+          "nodeType": "ai-text",
+          "workflowStep": "story_outline"
+        },
+        "styleBible": {
+          "count": 1,
+          "nodeType": "ai-text",
+          "workflowStep": "style_bible"
+        },
+        "shots": {
+          "count": 5,
+          "shotDurationSec": 3,
+          "scriptNodeType": "ai-text",
+          "keyframeNodeType": "ai-image",
+          "videoPrepNodeType": "ai-video",
+          "steps": [
+            "shot_script",
+            "shot_keyframe",
+            "shot_video"
+          ]
+        },
+        "layout": {
+          "preferred": "storyboard_grid",
+          "allowSafeFallback": true,
+          "mustAvoidStackingAtOrigin": true
+        },
+        "autoGeneration": {
+          "allowedNodeTypes": [
+            "ai-text",
+            "ai-image"
+          ],
+          "forbiddenNodeTypes": [
+            "ai-video"
+          ]
+        }
+      }
+    },
+    {
+      "id": "STV-30-CHILDREN-SELECTED-ASSET",
+      "input": "用我选中的角色素材做一个30秒温暖儿童绘本故事视频，拆成分镜文本、关键图和视频准备节点",
+      "context": {
+        "canvas": "selected_asset",
+        "selectedNodes": [
+          {
+            "id": "asset_fox_reference",
+            "name": "小狐狸角色参考",
+            "type": "ai-image"
+          }
+        ],
+        "aspectRatio": "16:9",
+        "durationSec": 30,
+        "style": "warm children picture book"
+      },
+      "expected": {
+        "storyOutline": {
+          "count": 1,
+          "nodeType": "ai-text",
+          "workflowStep": "story_outline"
+        },
+        "styleBible": {
+          "count": 1,
+          "nodeType": "ai-text",
+          "workflowStep": "style_bible",
+          "mustReferenceSelectedAsset": true
+        },
+        "shots": {
+          "count": 6,
+          "shotDurationSec": 5,
+          "scriptNodeType": "ai-text",
+          "keyframeNodeType": "ai-image",
+          "videoPrepNodeType": "ai-video",
+          "steps": [
+            "shot_script",
+            "shot_keyframe",
+            "shot_video"
+          ]
+        },
+        "autoGeneration": {
+          "allowedNodeTypes": [
+            "ai-text",
+            "ai-image"
+          ],
+          "forbiddenNodeTypes": [
+            "ai-video"
+          ]
+        }
+      }
+    },
+    {
+      "id": "STV-20-ENGLISH-STYLE-MIXED",
+      "input": "做一个20秒孤独宇航员回家的故事短片，画面风格用英文提示词 cinematic realistic, soft rim light, deep space",
+      "context": {
+        "canvas": "empty_or_existing",
+        "aspectRatio": "16:9",
+        "durationSec": 20,
+        "style": "cinematic realistic, soft rim light, deep space"
+      },
+      "expected": {
+        "storyOutline": {
+          "count": 1,
+          "nodeType": "ai-text",
+          "workflowStep": "story_outline"
+        },
+        "styleBible": {
+          "count": 1,
+          "nodeType": "ai-text",
+          "workflowStep": "style_bible",
+          "mustPreserveStyleFragments": [
+            "cinematic realistic",
+            "soft rim light",
+            "deep space"
+          ]
+        },
+        "shots": {
+          "count": 4,
+          "shotDurationSec": 5,
+          "scriptNodeType": "ai-text",
+          "keyframeNodeType": "ai-image",
+          "videoPrepNodeType": "ai-video",
+          "steps": [
+            "shot_script",
+            "shot_keyframe",
+            "shot_video"
+          ]
+        },
+        "mustNotDegradeTo": [
+          "text_to_image_video"
+        ]
+      }
+    },
+    {
+      "id": "STV-45-EXISTING-STORYBOARD",
+      "input": "把当前画布里的故事大纲扩展成45秒悬疑短片，按镜头补齐关键图和视频准备节点",
+      "context": {
+        "canvas": "existing_story_outline_and_partial_shots",
+        "existingNodes": [
+          {
+            "id": "outline_existing",
+            "name": "故事大纲",
+            "type": "ai-text",
+            "workflowStep": "story_outline"
+          },
+          {
+            "id": "shot_1_existing",
+            "name": "第1镜分镜文本",
+            "type": "ai-text",
+            "workflowStep": "shot_script"
+          },
+          {
+            "id": "shot_2_existing",
+            "name": "第2镜分镜文本",
+            "type": "ai-text",
+            "workflowStep": "shot_script"
+          }
+        ],
+        "durationSec": 45,
+        "style": "suspense short film"
+      },
+      "expected": {
+        "storyOutline": {
+          "count": 1,
+          "nodeType": "ai-text",
+          "workflowStep": "story_outline",
+          "preferReuseExisting": true
+        },
+        "styleBible": {
+          "count": 1,
+          "nodeType": "ai-text",
+          "workflowStep": "style_bible"
+        },
+        "shots": {
+          "targetTotalCount": 9,
+          "shotDurationSec": 5,
+          "scriptNodeType": "ai-text",
+          "keyframeNodeType": "ai-image",
+          "videoPrepNodeType": "ai-video",
+          "steps": [
+            "shot_script",
+            "shot_keyframe",
+            "shot_video"
+          ]
+        },
+        "destructiveEditPolicy": "ask_for_confirmation"
+      }
+    }
+  ]
+}

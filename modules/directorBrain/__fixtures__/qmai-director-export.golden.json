@@ -1,0 +1,368 @@
+{
+  "schemaVersion": "qmai-director-export/v1",
+  "flowId": "flow-flywheel-round-2",
+  "exportedAt": "2026-06-11T16:36:04.507Z",
+  "project": {
+    "id": "project-rain",
+    "name": "旧伞告别"
+  },
+  "memory": {
+    "entries": [
+      {
+        "id": "review-memory-candidate-asset-第二镜外套颜色变浅了-旧伞的位置有漂移-整体氛围偏暖-不像雨夜告别的克制感-下一",
+        "type": "review-asset",
+        "title": "审片记忆(asset)",
+        "text": "资产连续性规则：外套、变浅、旧伞、位置、漂移；必须让外套始终湿透并保持深色,旧伞位置全程连续,结尾需要留 3 秒负空间空镜,画面里不要人物,雨声必须盖过对白"
+      },
+      {
+        "id": "review-memory-candidate-style-第二镜外套颜色变浅了-旧伞的位置有漂移-整体氛围偏暖-不像雨夜告别的克制感-下一",
+        "type": "review-style",
+        "title": "审片记忆(style)",
+        "text": "风格规则：氛围、不像、雨夜告别、克制；必须让外套始终湿透并保持深色,旧伞位置全程连续,结尾需要留 3 秒负空间空镜,画面里不要人物,雨声必须盖过对白"
+      }
+    ]
+  },
+  "knowledgeCards": [],
+  "artifacts": {
+    "storyboard": {
+      "schemaVersion": "director-storyboard/v1",
+      "projectId": "project-rain",
+      "recipeId": "recipe-rain-night-short",
+      "title": "旧伞告别",
+      "totalDurationSeconds": 30,
+      "format": "短片",
+      "visualStyle": "雨夜冷暖对比",
+      "traceIds": [
+        "recipe-rain-night-short",
+        "knowledge-blocking-negative-space",
+        "style-memory.json",
+        "review-memory.json",
+        "character-rain-woman",
+        "prop-old-umbrella"
+      ],
+      "shots": [
+        {
+          "id": "shot-001",
+          "shotNumber": 1,
+          "durationSeconds": 10,
+          "shotSize": "wide",
+          "cameraMove": "固定机位放在便利店玻璃门内侧，镜头不移动，用门框和收银台冷光先交代右侧旧伞、右前景女人、左侧空位的关系",
+          "action": "女人站在门内右前景，深色湿外套滴水；她低头看右侧门框下方的旧伞1秒，右手伸向伞柄停在半空，随后把外套领口向内压紧，身体始终不越过左侧空位",
+          "emotionalBeat": "并肩躲雨后的短暂停留被旧伞打断，她还没有说出口",
+          "visualFocus": "右侧门框下方的旧伞、女人悬停的右手、画面左侧空位",
+          "dramaticBeat": "establish",
+          "assetIds": [
+            "character-rain-woman",
+            "prop-old-umbrella"
+          ],
+          "continuityAnchors": [
+            "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+            "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+            "对白如果清晰盖过雨声，会削弱克制表达。",
+            "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+            "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+            "深色湿外套必须连续",
+            "旧伞必须从女主手中转移到柜台"
+          ],
+          "traceIds": [
+            "recipe-rain-night-short",
+            "knowledge-blocking-negative-space",
+            "style-memory.json",
+            "review-memory.json",
+            "character-rain-woman",
+            "prop-old-umbrella"
+          ]
+        },
+        {
+          "id": "shot-002",
+          "shotNumber": 2,
+          "durationSeconds": 11,
+          "shotSize": "medium",
+          "cameraMove": "从女人胸口缓慢推向手部，推近动机是确认她松开伞柄并把告别物留在门边；推到手指后保持半秒，再轻微向右跟随她的肩线",
+          "action": "女人抬眼看向画面左侧空位，嘴唇动一下但声音被雨声压住；她把零钱或纸条放到门边小桌台上，手指停留半秒后收回；接着后退半步到门槛线，肩膀先转向右侧雨幕",
+          "emotionalBeat": "她主动切断对话，把未说完的话压进雨声里",
+          "visualFocus": "没有握住伞柄的手、门边小桌台上的零钱或纸条、她看向左侧空位的眼神",
+          "dramaticBeat": "progress",
+          "assetIds": [
+            "character-rain-woman",
+            "prop-old-umbrella"
+          ],
+          "continuityAnchors": [
+            "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+            "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+            "对白如果清晰盖过雨声，会削弱克制表达。",
+            "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+            "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+            "深色湿外套必须连续",
+            "旧伞必须从女主手中转移到柜台"
+          ],
+          "traceIds": [
+            "recipe-rain-night-short",
+            "knowledge-blocking-negative-space",
+            "style-memory.json",
+            "review-memory.json",
+            "character-rain-woman",
+            "prop-old-umbrella"
+          ]
+        },
+        {
+          "id": "shot-003",
+          "shotNumber": 3,
+          "durationSeconds": 9,
+          "shotSize": "wide",
+          "cameraMove": "镜头先轻微向右跟移保持旧伞仍在右侧门框内，等女人完全走出画面后立刻固定；最后3秒不移动，让左侧负空间和旧伞同时留在画面里",
+          "action": "女人不拿旧伞，直接从门槛线向右跨入雨幕并走出画面；人物消失后，只剩玻璃门框、右侧旧伞、门边小桌台和被冷光照出的左侧空位",
+          "emotionalBeat": "离开已经发生，空位替代了告别对象",
+          "visualFocus": "左侧负空间与右侧门框下方的旧伞形成对照，雨水在玻璃门上滑落",
+          "dramaticBeat": "twist",
+          "assetIds": [
+            "character-rain-woman",
+            "prop-old-umbrella"
+          ],
+          "continuityAnchors": [
+            "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+            "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+            "对白如果清晰盖过雨声，会削弱克制表达。",
+            "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+            "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+            "深色湿外套必须连续",
+            "旧伞必须从女主手中转移到柜台"
+          ],
+          "traceIds": [
+            "recipe-rain-night-short",
+            "knowledge-blocking-negative-space",
+            "style-memory.json",
+            "review-memory.json",
+            "character-rain-woman",
+            "prop-old-umbrella"
+          ]
+        }
+      ]
+    },
+    "prompts": [
+      {
+        "schemaVersion": "director-prompt-draft/v1",
+        "id": "prompt-shot-001-image",
+        "shotId": "shot-001",
+        "target": "text_to_image",
+        "modelHint": "GPT Image 2",
+        "promptLanguage": "Chinese",
+        "positivePrompt": "雨夜冷暖对比风格，宽景，室内门口右前景站着一名女人，湿透的深色外套保持近黑质感并滴水，冷蓝雨光主导，色温低于4300K，室内仅有微弱暖光边缘；右侧门框下方放着一把旧伞，伞柄位置清晰稳定，女人低头看向旧伞，右手伸向伞柄但停在半空，左侧保留明显空位负空间，克制沉默氛围，玻璃门有雨水流痕，电影感，真实质感",
+        "negativePrompt": "外套被照成浅色，干燥外套，旧伞位置漂移，女人越过左侧空位，左侧出现人物或倒影，明亮高色温暖光，色温高于4300K，清晰对白字幕，夸张表情，拥挤背景，伞已被拿走，喜剧氛围，过曝，低质感",
+        "continuityAnchors": [
+          "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+          "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+          "对白如果清晰盖过雨声，会削弱克制表达。",
+          "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+          "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+          "深色湿外套必须连续",
+          "旧伞必须从女主手中转移到柜台"
+        ],
+        "keyElementIds": [
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ],
+        "traceIds": [
+          "recipe-rain-night-short",
+          "knowledge-blocking-negative-space",
+          "style-memory.json",
+          "review-memory.json",
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ]
+      },
+      {
+        "schemaVersion": "director-prompt-draft/v1",
+        "id": "prompt-shot-001-video",
+        "shotId": "shot-001",
+        "target": "image_to_video",
+        "modelHint": "Seedance 2.0",
+        "promptLanguage": "Chinese",
+        "positivePrompt": "10秒宽景固定镜头，雨夜冷蓝光低于4300K，女人站在门内右前景，深色湿外套持续滴水；第1秒她低头看右侧门框下方旧伞，右手缓慢伸向伞柄并悬停，不触碰不移动旧伞；随后她把外套领口向内压紧，身体始终不越过画面左侧空位；雨声压过任何细微唇音，玻璃门雨水持续下滑，冷暖对比但整体克制",
+        "negativePrompt": "旧伞移动或消失，女人拿起伞，女人跨入左侧空位，外套颜色变浅或变干，清晰对白盖过雨声，色温升高超过4300K，镜头剧烈摇晃，左侧空位出现人影倒影，暖光过强，情绪表演夸张，剪辑跳跃破坏连续性",
+        "continuityAnchors": [
+          "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+          "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+          "对白如果清晰盖过雨声，会削弱克制表达。",
+          "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+          "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+          "深色湿外套必须连续",
+          "旧伞必须从女主手中转移到柜台"
+        ],
+        "keyElementIds": [
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ],
+        "traceIds": [
+          "recipe-rain-night-short",
+          "knowledge-blocking-negative-space",
+          "style-memory.json",
+          "review-memory.json",
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ]
+      },
+      {
+        "schemaVersion": "director-prompt-draft/v1",
+        "id": "prompt-shot-002-image",
+        "shotId": "shot-002",
+        "target": "text_to_image",
+        "modelHint": "GPT Image 2",
+        "promptLanguage": "Chinese",
+        "positivePrompt": "雨夜冷暖对比风格，中景，女人仍穿湿透深色外套，站在门边，冷蓝雨光主导且色温低于4300K；她抬眼看向画面左侧空位，嘴唇轻微动了一下但保持无声克制；一只没有握伞柄的手把零钱或纸条放在门边小桌台上，手指短暂停留，右侧门框下方旧伞仍在固定位置可见，左侧空位安静，玻璃雨痕清晰",
+        "negativePrompt": "手握住伞柄，旧伞位置改变或被拿走，外套变浅色，外套干燥，左侧空位有人，清晰对白文字，明亮暖黄主光，色温高于4300K，小桌台没有零钱或纸条，人物表情夸张，浪漫化拥抱，杂乱道具，镜面倒影出现人物",
+        "continuityAnchors": [
+          "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+          "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+          "对白如果清晰盖过雨声，会削弱克制表达。",
+          "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+          "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+          "深色湿外套必须连续",
+          "旧伞必须从女主手中转移到柜台"
+        ],
+        "keyElementIds": [
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ],
+        "traceIds": [
+          "recipe-rain-night-short",
+          "knowledge-blocking-negative-space",
+          "style-memory.json",
+          "review-memory.json",
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ]
+      },
+      {
+        "schemaVersion": "director-prompt-draft/v1",
+        "id": "prompt-shot-002-video",
+        "shotId": "shot-002",
+        "target": "image_to_video",
+        "modelHint": "Seedance 2.0",
+        "promptLanguage": "Chinese",
+        "positivePrompt": "11秒中景，延续冷蓝雨夜低色温，女人穿同一件深色湿外套；她抬眼看向画面左侧空位，嘴唇只动一下，声音被雨声压住；她没有握住伞柄，而是把零钱或纸条放到门边小桌台上，手指停留半秒后收回；随后她后退半步到门槛线，肩膀先转向右侧雨幕，旧伞保持在右侧门框下方位置不漂移",
+        "negativePrompt": "女人拿起旧伞或移动旧伞，手一直握伞柄，零钱纸条消失，外套变亮变浅，清晰对白盖过雨声，色温超过4300K，左侧空位出现人物或倒影，镜头突然切成暖色日景，夸张哭喊，动作方向混乱，门槛线位置不连续",
+        "continuityAnchors": [
+          "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+          "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+          "对白如果清晰盖过雨声，会削弱克制表达。",
+          "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+          "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+          "深色湿外套必须连续",
+          "旧伞必须从女主手中转移到柜台"
+        ],
+        "keyElementIds": [
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ],
+        "traceIds": [
+          "recipe-rain-night-short",
+          "knowledge-blocking-negative-space",
+          "style-memory.json",
+          "review-memory.json",
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ]
+      },
+      {
+        "schemaVersion": "director-prompt-draft/v1",
+        "id": "prompt-shot-003-image",
+        "shotId": "shot-003",
+        "target": "text_to_image",
+        "modelHint": "GPT Image 2",
+        "promptLanguage": "Chinese",
+        "positivePrompt": "雨夜冷暖对比风格，宽景，女人刚从门槛线向右跨入雨幕并离开画面，深色湿外套在离场瞬间保持近黑湿润质感；人物消失后，画面只剩玻璃门框、右侧门框下方固定位置的旧伞、门边小桌台上的零钱或纸条、被冷光照出的左侧空位；雨水沿玻璃门滑落，色温低于4300K，3秒负空间感，安静告别氛围",
+        "negativePrompt": "女人仍留在画面内，左侧空位有人影或倒影，旧伞位置漂移或消失，旧伞被拿走，外套变浅色，门边小桌台道具消失，清晰对白字幕，色温高于4300K，暖光过强，街景明亮，雨停，画面拥挤，喜剧或悬疑惊吓元素",
+        "continuityAnchors": [
+          "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+          "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+          "对白如果清晰盖过雨声，会削弱克制表达。",
+          "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+          "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+          "深色湿外套必须连续",
+          "旧伞必须从女主手中转移到柜台"
+        ],
+        "keyElementIds": [
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ],
+        "traceIds": [
+          "recipe-rain-night-short",
+          "knowledge-blocking-negative-space",
+          "style-memory.json",
+          "review-memory.json",
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ]
+      },
+      {
+        "schemaVersion": "director-prompt-draft/v1",
+        "id": "prompt-shot-003-video",
+        "shotId": "shot-003",
+        "target": "image_to_video",
+        "modelHint": "Seedance 2.0",
+        "promptLanguage": "Chinese",
+        "positivePrompt": "9秒宽景固定镜头，女人不拿旧伞，从门槛线向右跨入雨幕并走出画面，深色湿外套在离场时仍滴水；人物消失后保持至少3秒空镜，只有玻璃门框、右侧门框下方旧伞、门边小桌台上的零钱或纸条、冷蓝光照出的左侧负空间；雨水持续在玻璃门上滑落，雨声主导，无清晰对白，色温始终低于4300K",
+        "negativePrompt": "离场后有人影或倒影进入空镜，旧伞被移动或拿走，女人返回画面，左侧负空间被填满，外套颜色突然变浅，清晰对白或音乐压过雨声，色温升高超过4300K，暖光闪烁成主光，镜头推拉过度，雨水停止，桌台零钱纸条消失，结尾不足3秒负空间",
+        "continuityAnchors": [
+          "外套如果被灯光打浅会破坏连续性，需保持湿透深色质感。",
+          "旧伞若在不同镜头中位置漂移，会破坏告别动作的因果。",
+          "对白如果清晰盖过雨声，会削弱克制表达。",
+          "结尾空镜若有人影或倒影进入，会破坏 3 秒负空间规则。",
+          "色温若高于 4300K，会偏离雨夜冷蓝统一规则。",
+          "深色湿外套必须连续",
+          "旧伞必须从女主手中转移到柜台"
+        ],
+        "keyElementIds": [
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ],
+        "traceIds": [
+          "recipe-rain-night-short",
+          "knowledge-blocking-negative-space",
+          "style-memory.json",
+          "review-memory.json",
+          "character-rain-woman",
+          "prop-old-umbrella"
+        ]
+      }
+    ],
+    "continuityReport": {
+      "schemaVersion": "director-continuity-report/v1",
+      "status": "block",
+      "issues": [
+        {
+          "id": "semantic-prop-1",
+          "severity": "block",
+          "dimension": "prop",
+          "message": "旧伞的核心连续性规则要求“从女主手中转移到柜台”，但分镜和所有提示词都要求女主不拿伞、不触碰/不移动伞，且旧伞始终停留在右侧门框下方，未发生转移到柜台的动作。",
+          "evidence": [
+            "锁定资产与连续性规则: 旧伞必须从女主手中转移到柜台",
+            "shot-001: 右手伸向伞柄停在半空",
+            "shot-002: 没有握住伞柄的手",
+            "shot-003: 女人不拿旧伞，直接从门槛线向右跨入雨幕",
+            "prompt-shot-001-video: 不触碰不移动旧伞",
+            "prompt-shot-002-video: 她没有握住伞柄，而是把零钱或纸条放到门边小桌台上",
+            "prompt-shot-003-video: 女人不拿旧伞"
+          ],
+          "suggestedFix": "二选一统一：若旧伞必须转移到柜台，则改写分镜和提示词，让女主在某镜头拿起旧伞并放到门边小桌台/柜台；若叙事意图是旧伞被留下在门框下方，则修改锁定规则为“旧伞必须始终留在右侧门框下方，不被女主拿走”。",
+          "confidence": 0.98
+        },
+        {
+          "id": "semantic-prop-2",
+          "severity": "warn",
+          "dimension": "prop",
+          "message": "门边小桌台上的道具被写成“零钱或纸条”，会导致跨镜头生成时道具类型漂移：shot-002 可能生成零钱，shot-003 可能生成纸条，影响连续性。",
+          "evidence": [
+            "shot-002: 她把零钱或纸条放到门边小桌台上",
+            "prompt-shot-002-image: 把零钱或纸条放在门边小桌台上",
+            "prompt-shot-003-image: 门边小桌台上的零钱或纸条",
+            "prompt-shot-003-video: 门边小桌台上的零钱或纸条"
+          ],
+          "suggestedFix": "锁定为单一道具，例如统一写成“折好的纸条”或“几枚湿零钱”，并在后续镜头保持同一位置、数量和外观。",
+          "confidence": 0.74
+        }
+      ]
+    }
+  }
+}

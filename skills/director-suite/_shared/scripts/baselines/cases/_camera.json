@@ -1,0 +1,18 @@
+{
+  "id": "config-camera-path", "kind": "camera_path", "final_text": "",
+  "camera_path": {
+    "moves": {
+      "推": { "color": "#E03B3B" }, "拉": { "color": "#3B7BE0" }, "跟前": { "color": "#E0A23B" },
+      "跟后": { "color": "#8B3BE0" }, "环绕": { "color": "#3BE08B" }, "手持": { "color": "#E03B9B" },
+      "斯坦尼康": { "color": "#3BD7E0" }, "升降上": { "color": "#9BE03B" }, "升降下": { "color": "#E0633B" },
+      "固定": { "color": "#777777" }
+    },
+    "schematic": {
+      "group_id": "G5", "blocks": ["轨迹", "图例", "逐切标注", "节奏框"],
+      "annotations": ["5-1 中近景 缓推", "5-2 近景 固定", "5-3 特写 缓推"],
+      "source_shot_count": 3, "rhythm_total_s": 12, "shots_sum_s": 12,
+      "prompt": "A storyboard camera-path sheet; this is a schematic NOT a final frame; 推=#E03B3B …"
+    },
+    "final_text": "镜头组5 时长：12s 镜头5-1 景别：中近景 运镜：缓推 切镜方式：硬切"
+  }
+}

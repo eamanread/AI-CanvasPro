@@ -1,0 +1,16 @@
+{
+  "_desc": "poison 反例：① seedance 能力位缺 bgm（D3-FR-01 覆盖 FAIL）② 降级链 to=kling-fast 不在适配器（D3-FR-04 疑跨族静默替代 FAIL）→ NO-GO / exit1。证明适配矩阵审计是真闸。",
+  "capability_keys": ["dialogue", "sfx", "bgm", "title_card", "reference_image", "first_last_frame", "multi_shot_incut"],
+  "video": {
+    "default": "seedance-2.0",
+    "adapters": {
+      "seedance-2.0": { "status": "live", "duration_window_s": [4, 15], "capabilities": { "dialogue": true, "sfx": true, "title_card": true, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true } },
+      "seedance-2.0-fast": { "status": "live", "duration_window_s": [4, 15], "capabilities": { "dialogue": true, "sfx": true, "bgm": true, "title_card": true, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true } },
+      "kling-3": { "status": "live", "duration_window_s": [5, 10], "capabilities": { "dialogue": true, "sfx": true, "bgm": false, "title_card": false, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true } }
+    },
+    "fallback": [{ "from": "seedance-2.0", "to": "kling-fast", "trigger": "timeout" }]
+  },
+  "image": { "default": "nano-banana-pro", "tier": { "material": "seedream-4.5" } },
+  "voice": { "zh": "doubao", "en": "elevenlabs" },
+  "music": { "default": "suno-5", "ban_named_artist": true }
+}

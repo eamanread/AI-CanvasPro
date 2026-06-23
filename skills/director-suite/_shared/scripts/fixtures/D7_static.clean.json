@@ -1,0 +1,22 @@
+{
+  "_desc": "clean：3 Hero景别递进/8 Detail每屏1卖点/11图同商品asset_id/主色≥85%/成片无视频字段 → PASS",
+  "static": {
+    "product_asset_id": "[Prop_Watch_01]",
+    "hero": [
+      { "id": "Hero_01", "shot_type": "establishing", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.9 },
+      { "id": "Hero_02", "shot_type": "medium", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.9 },
+      { "id": "Hero_03", "shot_type": "neutral", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.92 }
+    ],
+    "detail": [
+      { "id": "Detail_01", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["生活场景"] },
+      { "id": "Detail_02", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["表盘工艺"] },
+      { "id": "Detail_03", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["机芯特写"] },
+      { "id": "Detail_04", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["卖点结构"] },
+      { "id": "Detail_05", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["防水验证"] },
+      { "id": "Detail_06", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["对比验证"] },
+      { "id": "Detail_07", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["尺寸规格"] },
+      { "id": "Detail_08", "asset_id": "[Prop_Watch_01]", "dominant_ratio": 0.88, "selling_points": ["配件组合"] }
+    ],
+    "final_text": "Hero_01 场景氛围图：低角度仰拍，产品置于视觉重心，深空灰主导约90%。Detail_02 表盘工艺微距，哑光金属拉丝。"
+  }
+}

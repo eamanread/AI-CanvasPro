@@ -1,0 +1,6 @@
+[
+  {
+    "input": "请整理画布，让节点更清楚",
+    "expectSkill": "canvas_layout"
+  }
+]

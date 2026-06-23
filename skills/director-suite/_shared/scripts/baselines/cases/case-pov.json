@@ -1,0 +1,16 @@
+{
+  "id": "case-pov",
+  "kind": "storyboard",
+  "_genre": "POV互动（原创）",
+  "pass_rule": 0.85,
+  "final_text": "镜头组1 时长：10s\n场景：女主卧室 夜 内 暖床头灯\n情绪强度：3（关注升温）\n镜头1-1 时长：5s 主情绪：心动的试探 节奏：文戏·缓\n景别：第一人称POV 中近景\n运镜：手持微抖（Handheld）——拟真临场\n切镜方式：硬切\n镜头1-2 时长：5s 主情绪：靠近的暧昧 节奏：文戏·缓\n景别：近景\n运镜：固定（Static）——凝视画外\n切镜方式：叠化",
+  "expected_features": [
+    { "id": "F1-第一人称", "pattern": "第一人称|POV", "weight": 1 },
+    { "id": "F2-手持拟真", "pattern": "手持|Handheld", "weight": 1 },
+    { "id": "F3-近景", "pattern": "中近景|近景", "weight": 1 },
+    { "id": "F4-暧昧心动", "pattern": "暧昧|心动|试探", "weight": 1 }
+  ],
+  "red_lines": [
+    { "id": "R-POV-第二人", "pattern": "第二个人|男方正脸|男主全身", "fix": "POV只露男方局部，删第二个完整人物/男方正脸" }
+  ]
+}

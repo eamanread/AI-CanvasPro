@@ -1,1 +1,20 @@
-function a76_0x58d4(_0xe0854a,_0x5087fb){const _0x36ded0=a76_0x36de();return a76_0x58d4=function(_0x58d477,_0x5b589c){_0x58d477=_0x58d477-0x114;let _0x3b150a=_0x36ded0[_0x58d477];return _0x3b150a;},a76_0x58d4(_0xe0854a,_0x5087fb);}function a76_0x36de(){const _0x2072d6=['157935RyVyDG','14224878qpAFyq','8wzvFcu','/api/v2/user/file-save-paths/migration/status?jobId=','14197930RvQJnd','local','7109850knfFNN','34eSCFYT','/api/v2/user/file-save-paths/migration/start','/api/v2/user/settings.json','993481ipiekQ','148bULLCM','96819FnaSQt','11KVgOLe','5520557YYaVNf'];a76_0x36de=function(){return _0x2072d6;};return a76_0x36de();}(function(_0x2d8b31,_0x1e5af4){const _0x18a054=a76_0x58d4,_0x1de68f=_0x2d8b31();while(!![]){try{const _0xba0306=-parseInt(_0x18a054(0x120))/0x1+-parseInt(_0x18a054(0x11d))/0x2*(-parseInt(_0x18a054(0x122))/0x3)+parseInt(_0x18a054(0x121))/0x4*(parseInt(_0x18a054(0x116))/0x5)+parseInt(_0x18a054(0x11c))/0x6+-parseInt(_0x18a054(0x115))/0x7*(parseInt(_0x18a054(0x118))/0x8)+-parseInt(_0x18a054(0x117))/0x9+-parseInt(_0x18a054(0x11a))/0xa*(-parseInt(_0x18a054(0x114))/0xb);if(_0xba0306===_0x1e5af4)break;else _0x1de68f['push'](_0x1de68f['shift']());}catch(_0x3a45e4){_0x1de68f['push'](_0x1de68f['shift']());}}}(a76_0x36de,0xea3de));import{get as a76_0x537cdb,post as a76_0x6fb9c5}from'./requester.js';export async function fetchUserSettingsFromServer(){const _0x28b28e=a76_0x58d4,_0x492da5=await a76_0x537cdb(_0x28b28e(0x11f),{'provider':_0x28b28e(0x11b)});return _0x492da5;}export async function saveUserSettingsToServer(_0x4bbdf6){const _0x1230af=a76_0x58d4;return await a76_0x6fb9c5(_0x1230af(0x11f),_0x4bbdf6||{},{'provider':_0x1230af(0x11b)});}export async function startFileSavePathMigration(_0x2ce5bb){const _0x4f3f7d=a76_0x58d4;return await a76_0x6fb9c5(_0x4f3f7d(0x11e),{'settings':_0x2ce5bb||{}},{'provider':'local','timeout':0x2710});}export async function fetchFileSavePathMigrationStatus(_0x40e1b5){const _0x28dea6=a76_0x58d4,_0x31056c=encodeURIComponent(String(_0x40e1b5||''));return await a76_0x537cdb(_0x28dea6(0x119)+_0x31056c,{'provider':_0x28dea6(0x11b),'timeout':0x2710});}
+function a57_0x4151(){const _0x128e46=['/api/v2/user/settings.json','135728zEnJUX','16QygsEY','930183sICmYQ','6547wumgcU','1433940Jmmuye','210679DUtRtZ','local','76WOMsYm','95QWdyMr','5144623iZwfvK','20dNhUza','2157453zkplfu'];a57_0x4151=function(){return _0x128e46;};return a57_0x4151();}(function(_0x34c04e,_0x1f4a85){const _0x597c77=a57_0x402c,_0x266d9f=_0x34c04e();while(!![]){try{const _0x4a5b35=parseInt(_0x597c77(0x16d))/0x1*(parseInt(_0x597c77(0x171))/0x2)+parseInt(_0x597c77(0x16c))/0x3+parseInt(_0x597c77(0x16a))/0x4*(parseInt(_0x597c77(0x172))/0x5)+parseInt(_0x597c77(0x16e))/0x6+parseInt(_0x597c77(0x16f))/0x7*(parseInt(_0x597c77(0x16b))/0x8)+-parseInt(_0x597c77(0x168))/0x9+parseInt(_0x597c77(0x167))/0xa*(-parseInt(_0x597c77(0x166))/0xb);if(_0x4a5b35===_0x1f4a85)break;else _0x266d9f['push'](_0x266d9f['shift']());}catch(_0x111bc9){_0x266d9f['push'](_0x266d9f['shift']());}}}(a57_0x4151,0x4ffd4));import{get as a57_0xec8750,post as a57_0x3bb283}from'./requester.js';export async function fetchUserSettingsFromServer(){const _0x5de37b=a57_0x402c,_0x33b99f=await a57_0xec8750(_0x5de37b(0x169),{'provider':'local'});return _0x33b99f;}function a57_0x402c(_0x4dbec9,_0x39dcaf){_0x4dbec9=_0x4dbec9-0x166;const _0x415196=a57_0x4151();let _0x402ccf=_0x415196[_0x4dbec9];return _0x402ccf;}export async function saveUserSettingsToServer(_0x1f52cc){const _0x16c82f=a57_0x402c;return await a57_0x3bb283(_0x16c82f(0x169),_0x1f52cc||{},{'provider':_0x16c82f(0x170)});}
+
+// === 团队共享库状态（NAS 共享库 方案乙/4.2-B，新增非混淆出口）===
+import { get as getLibraryStatusRequest } from "./requester.js";
+
+/**
+ * GET /api/v2/library/status -> { reachable, writable, counts:{assets,workflows,presets} }
+ * 后端端点由 server 侧 library_status(LIBRARY_DIR) 提供（兄弟任务注册路由）。
+ * 失败时返回安全降级对象，调用方据此渲染"未配置/不可达"。
+ */
+export async function fetchLibraryStatusFromServer() {
+  try {
+    const status = await getLibraryStatusRequest("/api/v2/library/status", {
+      provider: "local",
+    });
+    return status || { reachable: false, writable: false, counts: {} };
+  } catch (err) {
+    return { reachable: false, writable: false, counts: {}, error: err };
+  }
+}

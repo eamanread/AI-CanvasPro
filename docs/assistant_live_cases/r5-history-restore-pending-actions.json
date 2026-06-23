@@ -1,0 +1,42 @@
+{
+  "id": "r5-history-restore-pending-actions",
+  "title": "R5 history restore pending actions",
+  "initialCanvas": {
+    "nodes": [
+      {
+        "id": "seed_prompt",
+        "nodeType": "source-text",
+        "name": "Seed Prompt"
+      }
+    ],
+    "edges": [],
+    "selectedNodeIds": ["seed_prompt"]
+  },
+  "streamFrames": [
+    {
+      "type": "message.start",
+      "conversationId": "conv_r5_history"
+    },
+    {
+      "type": "message.delta",
+      "delta": "I will propose one pending action."
+    },
+    {
+      "type": "message.done",
+      "reply": "A pending action is ready.",
+      "actions": [
+        {
+          "id": "history_note",
+          "type": "create_node",
+          "nodeType": "comment",
+          "name": "History Pending Note"
+        }
+      ],
+      "requiresConfirmation": false
+    }
+  ],
+  "expected": {
+    "restoreKeepsPendingActions": true,
+    "restoreDoesNotAutoExecute": true
+  }
+}

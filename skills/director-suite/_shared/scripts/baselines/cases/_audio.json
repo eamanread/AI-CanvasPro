@@ -1,0 +1,15 @@
+{
+  "id": "config-audio-assembly", "kind": "audio", "final_text": "",
+  "audio": {
+    "audio_layers": [
+      { "audio_id": "[Audio_BGM_01]", "type": "bgm", "range": "G5-G6", "source_ref": "suno-5", "layout": "underscore" },
+      { "audio_id": "[Audio_NAR_01]", "type": "narration", "range": "G5", "source_ref": "[Voice_LinChen]", "layout": "sync" }
+    ],
+    "mix_ladder": { "duck_under_voice_db": 10, "climax_boost_db": 4, "crossfade_s": 0.5 },
+    "groups": [
+      { "id": "G5", "embedded_track_policy": { "mute_bgm": true, "mute_narration": true } },
+      { "id": "G6", "embedded_track_policy": { "mute_bgm": true, "mute_narration": false } }
+    ],
+    "final_text": "镜头组5 时长：12s 切镜方式：硬切 no music no subtitles"
+  }
+}

@@ -1,14 +1,16 @@
 {
-  "name": "ai-canvaspro",
+  "name": "huanying-editor",
   "private": true,
-  "version": "0.4.9",
-  "description": "AI CanvasPro desktop editor",
-  "author": "AI CanvasPro",
+  "version": "0.0.0",
   "type": "module",
-  "main": "electron/main.js",
-  "dependencies": {
-    "electron-updater": "^6.8.3",
-    "extract-zip": "^2.0.1",
-    "yazl": "^3.3.1"
+  "scripts": {
+    "test": "node --test",
+    "test:image-node-models": "node --test components/aigenImage/taskOrchestrationModule.test.js",
+    "test:runninghub": "node --test api/aiImageApi.routing.test.js api/aiVideoApi.test.js api/aiAudioApi.test.js",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "husky": "^9.1.7"
   }
 }

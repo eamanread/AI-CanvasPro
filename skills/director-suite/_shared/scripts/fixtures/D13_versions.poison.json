@@ -1,0 +1,5 @@
+{
+  "_desc": "poison：①props 文件标记v1.1但台账记v1.0(失配) ②orphan 文件有标记但台账漏登 → 2 FAIL/exit1 + 嫌疑指针。证明版本台账审计是真闸。",
+  "ledger": { "production-bible/props-roster.md": "v1.0" },
+  "markers": { "production-bible/props-roster.md": "v1.1", "production-bible/orphan-roster.md": "v2.0" }
+}

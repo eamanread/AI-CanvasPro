@@ -1,0 +1,6 @@
+{
+  "id": "config-model-registry",
+  "kind": "config",
+  "_desc": "D3 配置 case：触发 audit_model_adapters 校验全局 model_registry.json（结构断言，无 final_text）。",
+  "final_text": ""
+}

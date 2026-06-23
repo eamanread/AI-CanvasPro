@@ -1,0 +1,3 @@
+{"type":"message.start","conversationId":"fixture","messageId":"m1","traceId":"t1"}
+{"type":"message.delta","delta":"I will focus the current problem node."}
+{"type":"message.done","reply":"I will focus the current problem node.","actions":[{"type":"focus_nodes","nodeIds":["node-1"]}],"warnings":[],"requiresConfirmation":false}
