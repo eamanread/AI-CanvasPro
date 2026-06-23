@@ -3,7 +3,11 @@
 阈值表（与 continuity-quality 数值口径一致，见 DEV-D05 §FR-02）：
   轮廓/头身比 ±5% · 色相 ±15° · 明度 ±10%(绝对百分点) · 色温 ≤200K · LOGO Δ0.05 · 白底RGB ≥245
 像素对图：case.raw 给 image 路径且环境有 Pillow 时，从图实测主色 HSL 覆盖 candidate；
-         无 Pillow → 优雅降级为 profile 对比（本机当前路径），不擅自安装依赖。
+         无 Pillow → 优雅降级为 profile 对比，不擅自安装依赖。
+⚠️ 真机标定(2026-06-23, 见 baselines/realmachine/)：_measure_from_image 只测【主色 hue/lightness】,
+   已在真图(满帧纯色 + 灰底人物分割)跑通且可复现。**头身比/LOGO坐标/脸结构 不可由像素均值/轮廓估算**
+   (实测:轮廓启发式把8头身测成5.6、Q版方向都反)——这几项的 headbody_ratio/logo_norm_xy 比对仅适用于
+   【已由可信工具(姿态关键点 mediapipe/openpose、检测模型)测得】的数值,不接像素轮廓估算。
 """
 from __future__ import annotations
 import os

@@ -53,5 +53,9 @@
     "D5-FR-02-hue",
     "D5-FR-02-silhouette"
   ],
-  "jadepavilion-zhaoshanhe|leak_scan": []
+  "jadepavilion-zhaoshanhe|leak_scan": [],
+  "realmachine-wuxi|leak_scan": [],
+  "realmachine-wuxi|storyboard": [
+    "D9-feature_hit"
+  ]
 }
