@@ -120,3 +120,11 @@ reverse_test.register_reverse(
     os.path.join(_HERE, "fixtures", "D5_consistency.clean.json"),
     os.path.join(_HERE, "fixtures", "D5_consistency.poison.json"),
 )
+
+# 真机标定对(2026-06-23):数字来自 grsai nano-banana-2 真图经 Pillow 实测(非手写自指),
+# 证明 D5 像素路径在真实生成图上跑通且阈值有判别力。见 baselines/realmachine/D5-realtest-20260623.md。
+reverse_test.register_reverse(
+    "consistency_real", consistency_gate,
+    os.path.join(_HERE, "fixtures", "D5_consistency_real.clean.json"),
+    os.path.join(_HERE, "fixtures", "D5_consistency_real.poison.json"),
+)
