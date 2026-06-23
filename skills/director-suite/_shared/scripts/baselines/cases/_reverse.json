@@ -1,0 +1,19 @@
+{
+  "id": "config-reverse-board",
+  "kind": "reverse",
+  "_desc": "D2 拉片 case：审计校验 clip_skeleton 结构（C 档骨架）。读视频多模态(A/B 档)是 de-risk 探针，涉宿主能力。",
+  "final_text": "",
+  "clip_skeleton": {
+    "source_probe": { "mode": "C", "note": "用户文字描述参考片节奏" },
+    "source_proper_nouns": ["拿铁", "星巴克"],
+    "shot_groups": [
+      { "id": "G1", "duration_s": 12, "shots": [
+        { "rel_duration_s": 4, "shot_size": "全景", "camera_move": "手持", "cut_to_next": "动作匹配", "subject_ref": "<<SUBJECT_MAIN>>", "location_ref": "<<LOCATION>>" },
+        { "rel_duration_s": 4, "shot_size": "中景", "camera_move": "斯坦尼康", "cut_to_next": "硬切", "subject_ref": "<<SUBJECT_MAIN>>", "location_ref": "<<LOCATION>>" },
+        { "rel_duration_s": 4, "shot_size": "近景", "camera_move": "缓推", "cut_to_next": "叠化", "subject_ref": "<<SUBJECT_MAIN>>", "location_ref": "<<LOCATION>>" }
+      ] }
+    ],
+    "invariants_locked": ["运镜方向", "切点节奏"],
+    "final_text": "开始于全景，新主角快步穿过清晨街市，手持跟随交代环境。硬切到中景，斯坦尼康沉浸跟走。缓推近景，停在他望向远处的一瞬，叠化收束。 no subtitles"
+  }
+}

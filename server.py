@@ -39,17 +39,58 @@ import ipaddress
 import shutil
 
 SOURCE_DIR = os.path.abspath(os.path.dirname(__file__))
-IMPORT_ROOT = os.path.abspath(getattr(sys, "_MEIPASS", SOURCE_DIR))
-APP_ROOT = (
-    os.path.abspath(os.path.dirname(sys.executable))
-    if getattr(sys, "frozen", False)
-    else SOURCE_DIR
+from services.runtime_paths import (
+    apply_private_defaults,
+    build_runtime_paths,
+    copy_missing_tree as _copy_missing_runtime_tree,
+    ensure_runtime_dirs,
+    summarize_model_registry_for_log,
 )
+RUNTIME_PATHS = build_runtime_paths(
+    source_root=SOURCE_DIR,
+    bundle_root=getattr(sys, "_MEIPASS", SOURCE_DIR),
+    executable_dir=os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else SOURCE_DIR,
+)
+
+
+def _startup_log(message):
+    try:
+        root = os.environ.get("LOCALAPPDATA") or os.environ.get("TEMP") or os.getcwd()
+        path = os.path.join(root, "AI-CanvasPro", "launcher.log")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"[{timestamp}] server: {message}\n")
+    except Exception:
+        pass
+
+
+_startup_log("module import start")
+IMPORT_ROOT = RUNTIME_PATHS["importRoot"]
+RESOURCE_ROOT = RUNTIME_PATHS["resourceRoot"]
+WRITABLE_ROOT = RUNTIME_PATHS["writableRoot"]
+APP_ROOT = RESOURCE_ROOT
 
 if IMPORT_ROOT not in sys.path:
     sys.path.insert(0, IMPORT_ROOT)
 
-CURRENT_DIR = APP_ROOT
+CURRENT_DIR = RESOURCE_ROOT
+
+def _prepend_bundled_tool_dir(*parts):
+    tool_dir = os.path.join(RESOURCE_ROOT, *parts)
+    if not os.path.isdir(tool_dir):
+        return
+    current_path = os.environ.get("PATH", "") or ""
+    normalized_tool_dir = os.path.normcase(os.path.abspath(tool_dir))
+    existing = [
+        os.path.normcase(os.path.abspath(item.strip().strip('"')))
+        for item in current_path.split(os.pathsep)
+        if item.strip()
+    ]
+    if normalized_tool_dir not in existing:
+        os.environ["PATH"] = tool_dir + os.pathsep + current_path
+
+_prepend_bundled_tool_dir("vendor", "ffmpeg", "bin")
 
 from services.hot_update_service import HotUpdateService
 from services.http_route_dispatcher import HttpRouteDispatcher
@@ -63,8 +104,39 @@ from services.subscription_gate_service import SubscriptionGateService
 from services.local_subscription_client import LocalSubscriptionClient
 from services.dreamina_cli_service import DreaminaCliService
 from services.dreamina_route_service import DreaminaRouteService
+from integrations.seedance_extension_bridge import (
+    SeedanceBrowserLauncher,
+    SeedanceWebBridgeService,
+    SeedanceWebRouteService,
+)
 from services.sam3_service import Sam3Service
 from services.sam3_route_service import Sam3RouteService
+from services.canvas_agent_action_schema import CanvasAgentActionSchema
+from services.director_bridge_service import DirectorBridgeService
+
+DIRECTOR_BRIDGE_SERVICE = DirectorBridgeService()
+from services.canvas_agent_conversation_service import CanvasAgentConversationService
+from services.canvas_agent_context_service import CanvasAgentContextService
+from services.canvas_agent_execution_service import CanvasAgentExecutionService
+from services.canvas_agent_route_service import CanvasAgentRouteService
+from services.canvas_agent_sync_service import CanvasAgentSyncService
+from services.pi_bridge_service import PiBridgeService
+from services.pi_runtime_service import PiRuntimeService
+from services.library_storage import (
+    derive_library_paths,
+    validate_library_dir,
+    library_connection_state as _lib_connection_state,
+    library_status,
+    machine_id,
+    next_gen_filename,
+    parse_gen_seq,
+    atomic_replace_with_retry,
+    resolve_startup_library_dir,
+    migrate_into_library,
+)
+from services.runtime_paths import cleanup_legacy_user_presets as _cleanup_legacy_user_presets
+
+_startup_log("service imports complete")
 
 mimetypes.add_type("text/javascript; charset=utf-8", ".js")
 mimetypes.add_type("text/javascript; charset=utf-8", ".mjs")
@@ -118,8 +190,14 @@ LAN_MODE  = _get_bool_env("AIC_LAN_MODE") or _get_bool_env("AIC_ENABLE_LAN")
 ALLOWED_ORIGINS = tuple(
     origin for origin in (_normalize_origin(item) for item in _split_env_list("AIC_ALLOWED_ORIGINS")) if origin
 )
+SEEDANCE_WEB_ALLOWED_ORIGINS = (
+    "https://dreamina.capcut.com",
+    "https://www.dreamina.ai",
+    "https://jimeng.jianying.com",
+)
 LOCAL_ACCESS_TOKEN = str(os.environ.get("AIC_LOCAL_TOKEN", "") or "").strip()
 DIRECTORY = APP_ROOT   # v2/ 绝对路径
+DIRECTORY = RESOURCE_ROOT
 # --- ???? ---
 # ? index.html ????
 import re
@@ -158,7 +236,37 @@ UPLOADS_DIR    = DEFAULT_UPLOADS_DIR
 OUTPUT_DIR     = DEFAULT_OUTPUT_DIR
 CONFIG_FILE    = os.path.join(USER_DIR, "config.json")
 SETTINGS_FILE  = os.path.join(USER_DIR, "settings.json")
+DEFAULT_USER_DIR = RUNTIME_PATHS["userDir"]
+DEFAULT_OUTPUT_DIR = RUNTIME_PATHS["outputDir"]
+DEFAULT_UPLOADS_DIR = RUNTIME_PATHS["uploadsDir"]
+USER_DIR = DEFAULT_USER_DIR
+CANVAS_DIR = RUNTIME_PATHS["canvasDir"]
+ASSETS_DIR = RUNTIME_PATHS["assetsDir"]
+ASSET_THUMBS_DIR = RUNTIME_PATHS["assetThumbsDir"]
+WORKFLOWS_DIR = RUNTIME_PATHS["workflowsDir"]
+WORKFLOW_THUMBS_DIR = RUNTIME_PATHS["workflowThumbsDir"]
+UPLOADS_DIR = DEFAULT_UPLOADS_DIR
+OUTPUT_DIR = DEFAULT_OUTPUT_DIR
+CONFIG_FILE = RUNTIME_PATHS["configFile"]
+SETTINGS_FILE = RUNTIME_PATHS["settingsFile"]
 GEN_SEQ_STATE_FILE = os.path.join(OUTPUT_DIR, ".gen_seq_state.json")
+
+# === NAS 共享库（方案乙/4.2-B）===
+LIBRARY_DIR = ""
+
+# 启动期判定为"配了库但不可达"时置 True：功能降级、UI 报错、不回退 DEFAULT_*。
+LIBRARY_DISCONNECTED = False
+
+
+def _library_enabled():
+    return bool(LIBRARY_DIR)
+
+
+def _library_connection_status():
+    """server.py 薄包装：把判定逻辑全推给 library_storage 纯函数。"""
+    return _lib_connection_state(LIBRARY_DIR)
+
+
 MAX_UPLOAD_BYTES = _get_int_env("AIC_UPLOAD_MAX_BYTES", 100 * 1024 * 1024, 1)
 IMAGE_DERIVATIVE_DISPLAY_MAX_EDGE = 1280
 IMAGE_DERIVATIVE_THUMB_MAX_EDGE = 320
@@ -199,7 +307,25 @@ SUB_ERROR_CDKEY_ALREADY_USED = "CDKEY_ALREADY_USED"
 SUB_ERROR_REQUIRED = "SUBSCRIPTION_REQUIRED"
 SUB_ERROR_MODEL_NOT_ENTITLED = "SUBSCRIPTION_MODEL_NOT_ENTITLED"
 SUB_MESSAGE_V54_REQUIRED = "请先完成授权激活后再继续生成"
-LOCAL_FIXED_CDKEY = "fcyh0012"
+LOCAL_FIXED_CDKEY = "ycfh5566"
+LOCAL_ONE_TIME_CDKEY = "fcyh0012"
+# 分级一次性授权码：每台设备激活一次即作废，按各自有效期计算到期时间。
+# 原有的 ycfh5566 / fcyh0012 语义不变，本表仅做新增。
+_LOCAL_WEEK_SECONDS = 7 * 24 * 60 * 60
+_LOCAL_MONTH_SECONDS = 30 * 24 * 60 * 60
+_LOCAL_HALF_YEAR_SECONDS = 180 * 24 * 60 * 60
+LOCAL_TIERED_CDKEYS = [
+    # 周卡（7 天）
+    {"code": "wkfh0701", "duration_seconds": _LOCAL_WEEK_SECONDS},
+    {"code": "wkfh0702", "duration_seconds": _LOCAL_WEEK_SECONDS},
+    {"code": "wkfh0703", "duration_seconds": _LOCAL_WEEK_SECONDS},
+    # 月卡（30 天）
+    {"code": "mofh3001", "duration_seconds": _LOCAL_MONTH_SECONDS},
+    {"code": "mofh3002", "duration_seconds": _LOCAL_MONTH_SECONDS},
+    {"code": "mofh3003", "duration_seconds": _LOCAL_MONTH_SECONDS},
+    # 半年卡（180 天）
+    {"code": "byfh1801", "duration_seconds": _LOCAL_HALF_YEAR_SECONDS},
+]
 LOCAL_FIXED_SUBSCRIPTION_ENABLED = True
 DEFAULT_SUB_CONTACT_TEXT = os.environ.get(
     "AIC_SUB_CONTACT_TEXT",
@@ -230,8 +356,8 @@ def _get_system_state_dir():
     return os.path.join(base_dir, app_folder)
 
 
-SYSTEM_STATE_DIR = _get_system_state_dir()
-SYSTEM_SETTINGS_FILE = os.path.join(SYSTEM_STATE_DIR, "settings.json")
+SYSTEM_STATE_DIR = RUNTIME_PATHS["systemStateDir"]
+SYSTEM_SETTINGS_FILE = RUNTIME_PATHS["systemSettingsFile"]
 
 
 def _read_json_file(path, default=None):
@@ -344,9 +470,26 @@ def _copy_missing_tree(src, dst):
                 pass
 
 
+def _migrate_legacy_packaged_storage_if_needed():
+    if RUNTIME_PATHS["distribution"] != "onefile":
+        return
+    legacy_root = os.path.abspath(RUNTIME_PATHS["executableDir"])
+    writable_root = os.path.abspath(RUNTIME_PATHS["writableRoot"])
+    if os.path.normcase(legacy_root) == os.path.normcase(writable_root):
+        return
+    if os.path.exists(SYSTEM_SETTINGS_FILE):
+        return
+    for relative_path in ("user", "output", os.path.join("data", "uploads")):
+        _copy_missing_runtime_tree(
+            os.path.join(legacy_root, relative_path),
+            os.path.join(writable_root, relative_path),
+        )
+
+
 def _refresh_storage_globals(paths):
     global USER_DIR, CANVAS_DIR, UPLOADS_DIR, OUTPUT_DIR, CONFIG_FILE, SETTINGS_FILE
     global GEN_SEQ_STATE_FILE, DREAMINA_CLI_SERVICE, DREAMINA_ROUTE_SERVICE
+    global ASSETS_DIR, ASSET_THUMBS_DIR, WORKFLOWS_DIR, WORKFLOW_THUMBS_DIR
     USER_DIR = os.path.abspath(paths["userDir"])
     CANVAS_DIR = os.path.join(USER_DIR, "Canvas Project")
     UPLOADS_DIR = os.path.abspath(paths["tempDir"])
@@ -354,6 +497,15 @@ def _refresh_storage_globals(paths):
     CONFIG_FILE = os.path.join(USER_DIR, "config.json")
     SETTINGS_FILE = os.path.join(USER_DIR, "settings.json")
     GEN_SEQ_STATE_FILE = os.path.join(OUTPUT_DIR, ".gen_seq_state.json")
+    if _library_enabled():
+        lib = derive_library_paths(LIBRARY_DIR)
+        ASSETS_DIR = os.path.abspath(lib["assetsDir"])
+        ASSET_THUMBS_DIR = os.path.abspath(lib["assetThumbsDir"])
+        WORKFLOWS_DIR = os.path.abspath(lib["workflowsDir"])
+        WORKFLOW_THUMBS_DIR = os.path.abspath(lib["workflowThumbsDir"])
+        OUTPUT_DIR = os.path.abspath(lib["outputDir"])
+        UPLOADS_DIR = os.path.abspath(lib["uploadsDir"])
+        GEN_SEQ_STATE_FILE = os.path.join(OUTPUT_DIR, ".gen_seq_state.json")
     try:
         DREAMINA_CLI_SERVICE = DreaminaCliService(CONFIG_FILE, output_root_dir=OUTPUT_DIR)
         DREAMINA_ROUTE_SERVICE = DreaminaRouteService(
@@ -370,6 +522,11 @@ def _ensure_storage_dirs():
     os.makedirs(CANVAS_DIR, exist_ok=True)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    if _library_enabled():
+        os.makedirs(ASSETS_DIR, exist_ok=True)
+        os.makedirs(ASSET_THUMBS_DIR, exist_ok=True)
+        os.makedirs(WORKFLOWS_DIR, exist_ok=True)
+        os.makedirs(WORKFLOW_THUMBS_DIR, exist_ok=True)
 
 
 def _apply_file_save_paths(paths, migrate=False):
@@ -393,6 +550,78 @@ def _persist_system_file_save_paths(paths):
     if system_settings.get("installId"):
         next_system_settings["installId"] = system_settings.get("installId")
     _write_json_file(SYSTEM_SETTINGS_FILE, next_system_settings)
+
+
+def _persist_system_library_dir(library_dir):
+    """把 libraryDir 写进 system settings（独立键，不并入 fileSavePaths）。"""
+    system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
+    next_system_settings = dict(system_settings)
+    if library_dir:
+        next_system_settings["libraryDir"] = library_dir
+    else:
+        next_system_settings.pop("libraryDir", None)
+    if system_settings.get("installId"):
+        next_system_settings["installId"] = system_settings.get("installId")
+    _write_json_file(SYSTEM_SETTINGS_FILE, next_system_settings)
+
+
+def _apply_library_dir(library_dir, migrate=False):
+    """校验库目录 -> 设 LIBRARY_DIR -> 用 derive_library_paths 覆盖存储 globals。
+
+    返回规范化绝对路径；空串表示关闭共享库，恢复到本机 fileSavePaths 推导的目录。
+    migrate=True（首次设库）：在覆盖 globals 之前，先把本机已有库 copy-missing
+    迁入共享库（Task 10 的 migrate_into_library，目标存在即跳过），迁完再调用
+    cleanup_legacy_user_presets 删本机旧预设残留（§E/§F 接线点）。
+    """
+    global LIBRARY_DIR
+    global ASSETS_DIR, ASSET_THUMBS_DIR, WORKFLOWS_DIR, WORKFLOW_THUMBS_DIR
+    global OUTPUT_DIR, UPLOADS_DIR
+
+    raw = str(library_dir or "").strip()
+    if not raw:
+        LIBRARY_DIR = ""
+        # 关闭库：按本机 fileSavePaths 重新推导（_refresh_storage_globals 在
+        # _library_enabled()==False 时把 ASSETS/WORKFLOWS/OUTPUT/UPLOADS 复位本机默认）。
+        _refresh_storage_globals(_current_file_save_paths())
+        return ""
+
+    normalized = validate_library_dir(raw, USER_DIR)
+    library_paths = derive_library_paths(normalized)
+
+    # §F 首次设库 copy-missing 迁移：必须在切换 LIBRARY_DIR 之前用"迁移前的本机全局"
+    # 组装 previous_paths，把本机 assets/workflows/presets/output/uploads 补缺式迁入库。
+    if migrate:
+        previous_paths = {
+            "userDir": USER_DIR,
+            "outputDir": OUTPUT_DIR,
+            "uploadsDir": UPLOADS_DIR,
+            "assetsDir": ASSETS_DIR,
+            "workflowsDir": WORKFLOWS_DIR,
+            "presetDefinitionsPath": os.path.join(USER_DIR, "prompt-presets.json"),
+            "presetRootDir": os.path.join(USER_DIR, "prompt"),
+        }
+        migrate_into_library(previous_paths, library_paths)  # 目标存在即跳过
+        # §E 迁移完成后真删本机旧预设残留（Task 6 纯函数）。
+        _cleanup_legacy_user_presets(WRITABLE_ROOT, dry_run=False)
+
+    LIBRARY_DIR = normalized
+    for key in (
+        "assetsDir", "assetThumbsDir", "workflowsDir", "workflowThumbsDir",
+        "outputDir", "uploadsDir", "presetRootDir",
+    ):
+        os.makedirs(library_paths[key], exist_ok=True)
+    # 先按本机 fileSavePaths 刷新 USER_DIR 等基础 globals（用户目录始终留在本机），
+    # 再用库路径覆盖共享态四件套 + 输出/上传。_refresh_storage_globals 的库覆盖逻辑
+    # 由 Task 2 实现；本函数在其后再显式覆盖一遍同名 globals 以保证本块可测，语义一致。
+    _refresh_storage_globals(_current_file_save_paths())
+    ASSETS_DIR = library_paths["assetsDir"]
+    ASSET_THUMBS_DIR = library_paths["assetThumbsDir"]
+    WORKFLOWS_DIR = library_paths["workflowsDir"]
+    WORKFLOW_THUMBS_DIR = library_paths["workflowThumbsDir"]
+    OUTPUT_DIR = library_paths["outputDir"]
+    UPLOADS_DIR = library_paths["uploadsDir"]
+    return normalized
+
 
 def _is_enabled_env(name):
     try:
@@ -422,7 +651,7 @@ ENFORCE_GENERATION_SUBSCRIPTION = (
     True if LOCAL_FIXED_SUBSCRIPTION_ENABLED else _is_enabled_env("AIC_ENFORCE_GENERATION_SUBSCRIPTION")
 )
 REQUIRE_CDKEY_SOURCE = (
-    True if LOCAL_FIXED_SUBSCRIPTION_ENABLED else _is_enabled_env("AIC_REQUIRE_CDKEY_SOURCE")
+    _is_enabled_env("AIC_REQUIRE_CDKEY_SOURCE")
 )
 INTERNAL_PROXY_CONTROL_FIELDS = {
     "installId",
@@ -444,23 +673,45 @@ INTERNAL_PROXY_CONTROL_FIELDS = {
     "rhInstanceType",
 }
 
+def _normalize_local_install_id(value):
+    install = str(value or "").strip()
+    if not install or len(install) > 128:
+        return ""
+    if not re.match(r"^[A-Za-z0-9._:-]+$", install):
+        return ""
+    return install
+
+
+def _read_license_install_id():
+    license_payload = _read_json_file(os.path.join(SYSTEM_STATE_DIR, "license.json"), {})
+    if not bool(license_payload.get("activated")):
+        return ""
+    return _normalize_local_install_id(license_payload.get("lastInstallId"))
+
+
 def _read_persisted_install_id():
     system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
-    system_install_id = str(system_settings.get("installId") or "").strip()
+    system_install_id = _normalize_local_install_id(system_settings.get("installId"))
     if system_install_id:
         return system_install_id
     legacy_settings = _read_json_file(os.path.join(DEFAULT_USER_DIR, "settings.json"), {})
-    return str(legacy_settings.get("installId") or "").strip()
+    legacy_install_id = _normalize_local_install_id(legacy_settings.get("installId"))
+    if legacy_install_id:
+        return legacy_install_id
+    return _read_license_install_id()
 
 SUBSCRIPTION_CLIENT = LocalSubscriptionClient(
     state_dir=SYSTEM_STATE_DIR,
     fixed_cdkey=LOCAL_FIXED_CDKEY,
+    one_time_cdkey=LOCAL_ONE_TIME_CDKEY,
+    tiered_cdkeys=LOCAL_TIERED_CDKEYS,
     status_active=SUB_STATUS_ACTIVE,
     err_required=SUB_ERROR_REQUIRED,
     required_message=SUB_MESSAGE_V54_REQUIRED,
     contact_text=DEFAULT_SUB_CONTACT_TEXT,
     contact_url=DEFAULT_SUB_CONTACT_URL,
     invalid_cdkey_error_code=SUB_ERROR_INVALID_CDKEY,
+    cdkey_already_used_error_code=SUB_ERROR_CDKEY_ALREADY_USED,
     local_install_id_resolver=_read_persisted_install_id,
 )
 SUBSCRIPTION_GATE_SERVICE = SubscriptionGateService(
@@ -475,29 +726,108 @@ SUBSCRIPTION_GATE_SERVICE = SubscriptionGateService(
     enforce_generation_subscription=ENFORCE_GENERATION_SUBSCRIPTION,
     require_cdkey_source=REQUIRE_CDKEY_SOURCE,
 )
-os.makedirs(SYSTEM_STATE_DIR, exist_ok=True)
+_startup_log("subscription services ready")
+ensure_runtime_dirs(RUNTIME_PATHS)
+_startup_log("runtime dirs ready")
+_migrate_legacy_packaged_storage_if_needed()
+_startup_log("legacy storage migration checked")
+try:
+    _private_defaults_result = apply_private_defaults(
+        os.path.join(RESOURCE_ROOT, "private_defaults"),
+        WRITABLE_ROOT,
+        logger=_startup_log,
+    )
+    _startup_log(
+        "private defaults status: "
+        f"found={_private_defaults_result.get('found')} "
+        f"applied={_private_defaults_result.get('applied')} "
+        f"reason={_private_defaults_result.get('reason')} "
+        f"copied={_private_defaults_result.get('copied')} "
+        f"overwritten={_private_defaults_result.get('overwritten')} "
+        f"skipped={_private_defaults_result.get('skipped')}"
+    )
+except Exception as exc:
+    _startup_log(f"private defaults failed: {exc}")
 _startup_system_settings = _read_json_file(SYSTEM_SETTINGS_FILE, {})
 _startup_local_settings = _read_json_file(os.path.join(DEFAULT_USER_DIR, "settings.json"), {})
 _startup_settings = dict(_startup_local_settings)
 if isinstance(_startup_system_settings.get("fileSavePaths"), dict):
     _startup_settings["fileSavePaths"] = _startup_system_settings.get("fileSavePaths")
+# 先解析库目录（PRD §8.9）：LIBRARY_DIR 必须在 try/except 前就绪，
+# 使 _library_enabled() 在 except 块内能正确判定"是否配了库"。
+LIBRARY_DIR = resolve_startup_library_dir(_startup_system_settings, USER_DIR)
 try:
     _apply_file_save_paths(_file_save_paths_from_settings(_startup_settings), migrate=False)
-except Exception:
-    _apply_file_save_paths(
-        {
-            "userDir": DEFAULT_USER_DIR,
-            "outputDir": DEFAULT_OUTPUT_DIR,
-            "tempDir": DEFAULT_UPLOADS_DIR,
-        },
-        migrate=False,
+except Exception as exc:
+    # 库不可达不静默回退本地（PRD §8.9）：
+    # 配了库 + 失败 -> 停在"未连接"态（记住配置值、功能降级、日志告警），不抹成 DEFAULT_*。
+    if _library_enabled():
+        _conn = _library_connection_status()
+        if _conn.get("disconnected"):
+            LIBRARY_DISCONNECTED = True
+            _startup_log(
+                "WARNING library unreachable, entering DISCONNECTED state "
+                "(NOT falling back to local). "
+                f"libraryDir={_conn.get('libraryDir')!r} reason={exc}"
+            )
+            # 不调用 _apply_file_save_paths 回退；存储全局保持库路径口径，由 UI 报错。
+        else:
+            # 配了库但失败不是"不可达"（如校验/权限其它原因）-> 仍按未连接处理，避免悄悄回退。
+            LIBRARY_DISCONNECTED = True
+            _startup_log(
+                "WARNING library apply failed but reachable!=disconnected; "
+                f"holding DISCONNECTED, not falling back. reason={exc}"
+            )
+    else:
+        # 未配库（纯本地模式）：维持历史行为——回退本机默认，保证应用可用。
+        _apply_file_save_paths(
+            {
+                "userDir": DEFAULT_USER_DIR,
+                "outputDir": DEFAULT_OUTPUT_DIR,
+                "tempDir": DEFAULT_UPLOADS_DIR,
+            },
+            migrate=False,
+        )
+if _library_enabled():
+    # 库感知刷新（库覆盖逻辑由 Task 2 在 _refresh_storage_globals 内实现）。
+    _refresh_storage_globals(_current_file_save_paths())
+try:
+    _startup_log(
+        "config summary: "
+        + json.dumps(
+            summarize_model_registry_for_log(_read_json_file(CONFIG_FILE, {})),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
     )
+except Exception as exc:
+    _startup_log(f"config summary failed: {exc}")
+SEEDANCE_WEB_BROWSER_LAUNCHER = None
+SEEDANCE_WEB_BRIDGE_SERVICE = None
+SEEDANCE_WEB_ROUTE_SERVICE = None
+
 DREAMINA_CLI_SERVICE = DreaminaCliService(CONFIG_FILE, output_root_dir=OUTPUT_DIR)
+_startup_log("dreamina cli ready")
 DREAMINA_ROUTE_SERVICE = DreaminaRouteService(
     cli_service=DREAMINA_CLI_SERVICE,
     subscription_gate_service=SUBSCRIPTION_GATE_SERVICE,
     video_required_model_id=DREAMINA_VIDEO_VIP_MODEL_ID,
 )
+_startup_log("dreamina route ready")
+SEEDANCE_WEB_BROWSER_LAUNCHER = SeedanceBrowserLauncher(
+    resource_root=RESOURCE_ROOT,
+    writable_root=WRITABLE_ROOT,
+)
+SEEDANCE_WEB_BRIDGE_SERVICE = SeedanceWebBridgeService(
+    browser_launcher=SEEDANCE_WEB_BROWSER_LAUNCHER,
+    logger=_startup_log,
+)
+SEEDANCE_WEB_ROUTE_SERVICE = SeedanceWebRouteService(
+    bridge_service=SEEDANCE_WEB_BRIDGE_SERVICE,
+    upload_dir_getter=lambda: os.path.join(OUTPUT_DIR, "seedance_web"),
+    upload_local_prefix="output/seedance_web",
+)
+_startup_log("seedance web bridge ready")
 # 确保目录存在
 os.makedirs(ASSETS_DIR,  exist_ok=True)
 os.makedirs(ASSET_THUMBS_DIR, exist_ok=True)
@@ -536,12 +866,26 @@ def _read_user_settings():
         )
     else:
         merged["fileSavePaths"] = _current_file_save_paths()
+    # 共享库目录以 system settings（每机各自）为准回显，未启用则回空串。
+    system_library_dir = str(system_settings.get("libraryDir") or "").strip()
+    merged["libraryDir"] = system_library_dir or str(LIBRARY_DIR or "")
     return merged
 
 
 def _write_user_settings(data):
     payload = dict(data) if isinstance(data, dict) else {}
+    # 共享库目录：独立键，先于 fileSavePaths 处理。仅当 payload 显式带 libraryDir 才动，
+    # 避免普通三框保存误触库逻辑。校验失败（ValueError）原样冒泡给路由层返回 4xx。
+    # migrate=True：首次设库触发 copy-missing 迁移（Task 10 的 migrate_into_library，
+    # 目标存在即跳过；幂等，非首次设库时迁移为空操作）。
+    if "libraryDir" in payload:
+        applied_library_dir = _apply_library_dir(payload.get("libraryDir"), migrate=True)
+        payload["libraryDir"] = applied_library_dir
+        _persist_system_library_dir(applied_library_dir)
     if isinstance(payload.get("fileSavePaths"), dict):
+        # 路径不可达时 _apply_file_save_paths 内 os.makedirs 直接抛 —— 故意不在此捕获，
+        # 让异常传到路由层转成明确 JSON 错误（PRD §8.9 / §9 表"运行时保存"口径：
+        # 明确报错、不静默回退本地）。切勿在此加 except 回退默认路径。
         applied_paths = _apply_file_save_paths(payload["fileSavePaths"], migrate=True)
         payload["fileSavePaths"] = applied_paths
         _persist_system_file_save_paths(applied_paths)
@@ -568,15 +912,18 @@ UPDATE_SERVICE = HotUpdateService(
     local_version=LOCAL_VERSION,
     is_dev_build=_is_dev_build,
 )
+_startup_log("update service ready")
 
 SAM3_SERVICE = Sam3Service(
     directory=DIRECTORY,
-    assets_dir=ASSETS_DIR,
+    assets_dir_provider=lambda: ASSETS_DIR,
     uploads_dir_provider=lambda: UPLOADS_DIR,
     output_dir_provider=lambda: OUTPUT_DIR,
     path_inside_checker=_is_path_inside,
 )
+_startup_log("sam3 service ready")
 SAM3_ROUTE_SERVICE = Sam3RouteService(sam3_service=SAM3_SERVICE)
+_startup_log("sam3 route ready")
 CONFIG_ROUTE_SERVICE = ConfigRouteService(config_file_getter=lambda: CONFIG_FILE)
 JSON_FILE_ROUTE_SERVICE = JsonFileRouteService(
     canvas_dir_getter=lambda: CANVAS_DIR,
@@ -591,10 +938,198 @@ LIBRARY_FILE_ROUTE_SERVICE = LibraryFileRouteService(
     user_dir_getter=lambda: USER_DIR,
     asset_thumbs_dir_getter=lambda: ASSET_THUMBS_DIR,
     workflow_thumbs_dir_getter=lambda: WORKFLOW_THUMBS_DIR,
+    preset_definitions_path_getter=lambda: (
+        derive_library_paths(LIBRARY_DIR)["presetDefinitionsPath"]
+        if _library_enabled()
+        else os.path.join(USER_DIR, "prompt-presets.json")
+    ),
+    preset_definitions_seed_path_getter=lambda: RUNTIME_PATHS["seedPresetDefinitionsPath"],
+    preset_root_getter=lambda: (
+        derive_library_paths(LIBRARY_DIR)["presetRootDir"]
+        if _library_enabled()
+        else os.path.join(USER_DIR, "prompt")
+    ),
 )
 
 def _get_custom_ai_config():
     return CONFIG_ROUTE_SERVICE.get_custom_ai_config()
+
+
+def _get_canvas_agent_config():
+    return _read_json_file(CONFIG_FILE, {})
+
+
+def _get_canvas_agent_provider_config(model=None):
+    _provider_name, provider = CanvasAgentRouteService.select_provider_config(
+        _get_canvas_agent_config(),
+        model=model,
+    )
+    return provider
+
+
+def _safe_canvas_agent_text(value, fallback=""):
+    text = str(value or "").strip()
+    return text or fallback
+
+
+def _compact_json_for_prompt(value, max_chars=6000):
+    try:
+        text = json.dumps(value if value is not None else {}, ensure_ascii=False)
+    except (TypeError, ValueError):
+        text = "{}"
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "...[truncated]"
+
+
+def _prepare_canvas_agent_queued_execution(payload):
+    payload = payload if isinstance(payload, dict) else {}
+    execution = payload.get("execution") if isinstance(payload.get("execution"), dict) else {}
+    context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
+    title = _safe_canvas_agent_text(execution.get("title"), "Queued canvas task")
+    agent_mode = _safe_canvas_agent_text(payload.get("agentMode"), "act")
+    video_authorized = payload.get("videoAuthorized") is True
+    conversation_id = _safe_canvas_agent_text(execution.get("conversationId"))
+    previous_plan = execution.get("plan") if isinstance(execution.get("plan"), dict) else {}
+    previous_actions = execution.get("actionsByStep") if isinstance(execution.get("actionsByStep"), dict) else {}
+    video_boundary = (
+        "video generation is authorized for this prepare pass"
+        if video_authorized
+        else "video generation is not authorized; keep video steps waiting for explicit authorization"
+    )
+    message = "\n".join(
+        [
+            "Recompile this queued canvas-agent execution using the latest canvas context.",
+            f"Task title: {title}",
+            f"Agent mode: {agent_mode}",
+            f"Video boundary: {video_boundary}.",
+            "Return the Assistant Response Contract v2 fields: plan, actionsByStep, developer, and reply.",
+            "Do not execute anything. Only rebuild a safe plan/actionsByStep for the current canvas.",
+            "Previous plan:",
+            _compact_json_for_prompt(previous_plan),
+            "Previous actionsByStep:",
+            _compact_json_for_prompt(previous_actions),
+        ]
+    )
+    bridge = globals().get("PI_BRIDGE_SERVICE")
+    if bridge is None or not hasattr(bridge, "chat"):
+        raise RuntimeError("Canvas agent prepare runner is not configured")
+    response = bridge.chat(
+        message=message,
+        context=context,
+        conversation_id=conversation_id or None,
+        mode="actions",
+    )
+    if not isinstance(response, dict):
+        raise RuntimeError("Canvas agent prepare returned an invalid response")
+    if response.get("success") is False:
+        raise RuntimeError(
+            _safe_canvas_agent_text(
+                response.get("reply") or response.get("error") or response.get("message"),
+                "Canvas agent prepare failed",
+            )
+        )
+    plan = response.get("plan") if isinstance(response.get("plan"), dict) else {}
+    actions_by_step = response.get("actionsByStep") if isinstance(response.get("actionsByStep"), dict) else {}
+    actions = response.get("actions") if isinstance(response.get("actions"), list) else []
+    if not actions_by_step and actions:
+        step_id = "step-1"
+        plan = plan or {"id": "plan-prepared", "title": title, "steps": [{"id": step_id, "title": title}]}
+        actions_by_step = {step_id: actions}
+    if not plan and not actions_by_step:
+        raise RuntimeError("Canvas agent prepare returned no plan or actions")
+    reply = _safe_canvas_agent_text(response.get("reply"), "Prepared from latest canvas")
+    prepared = {
+        "plan": plan,
+        "actionsByStep": actions_by_step,
+        "drawerState": {"line2": reply},
+        "summary": reply,
+        "developer": response.get("developer") if isinstance(response.get("developer"), dict) else {},
+    }
+    sanitized = CanvasAgentExecutionService._sanitize_json(prepared)
+    return sanitized if isinstance(sanitized, dict) else {}
+
+
+CANVAS_AGENT_ACTION_SCHEMA = CanvasAgentActionSchema()
+CANVAS_AGENT_CONTEXT_SERVICE = CanvasAgentContextService()
+CANVAS_AGENT_CONVERSATION_SERVICE = CanvasAgentConversationService(
+    storage_path=os.path.join(USER_DIR, "canvas-agent-conversations.json")
+)
+CANVAS_AGENT_EXECUTION_SERVICE = CanvasAgentExecutionService(
+    storage_path=os.path.join(USER_DIR, "canvas-agent-executions.json"),
+    prepare_runner=_prepare_canvas_agent_queued_execution,
+)
+CANVAS_AGENT_SYNC_SERVICE = CanvasAgentSyncService(
+    conversation_service=CANVAS_AGENT_CONVERSATION_SERVICE,
+)
+PI_RUNTIME_SERVICE = PiRuntimeService(
+    project_root=RESOURCE_ROOT,
+    require_bundled_runtime=PiRuntimeService.should_require_bundled_runtime(
+        RUNTIME_PATHS["distribution"]
+    ),
+)
+PI_BRIDGE_SERVICE = PiBridgeService(
+    PI_RUNTIME_SERVICE,
+    provider_config_getter=_get_canvas_agent_provider_config,
+    action_schema=CANVAS_AGENT_ACTION_SCHEMA,
+)
+CANVAS_AGENT_ROUTE_SERVICE = CanvasAgentRouteService(
+    bridge_service=PI_BRIDGE_SERVICE,
+    action_schema=CANVAS_AGENT_ACTION_SCHEMA,
+    director_bridge_service=DIRECTOR_BRIDGE_SERVICE,
+    context_service=CANVAS_AGENT_CONTEXT_SERVICE,
+    runtime_service=PI_RUNTIME_SERVICE,
+    conversation_service=CANVAS_AGENT_CONVERSATION_SERVICE,
+    execution_service=CANVAS_AGENT_EXECUTION_SERVICE,
+    sync_service=CANVAS_AGENT_SYNC_SERVICE,
+    config_getter=_get_canvas_agent_config,
+)
+
+# ViMax bridge (α′ F1/F3). user_dir_getter reads the module global at
+# call time so it tracks the packaged-mode USER_DIR rebinding (H8);
+# HY_VIMAX_HOME is read per request (unset -> status not-configured).
+from services.vimax_bridge_service import VimaxBridgeService
+from services.vimax_route_service import VimaxRouteService
+from services.vimax_broker_service import VimaxBroker
+
+VIMAX_BRIDGE_SERVICE = VimaxBridgeService(
+    user_dir_getter=lambda: USER_DIR,
+)
+VIMAX_BROKER = VimaxBroker(
+    user_dir_getter=lambda: USER_DIR,
+    credentials_getter=VIMAX_BRIDGE_SERVICE._default_credentials,
+)
+
+# ViMax director brain (Phase C, native-only). The external venv plan/render/
+# portraits runtime (huanying_runner + the Popen bridge) was RETIRED in C5.2 after
+# real-machine verification (C4.3); the in-process brain is now the SOLE runtime,
+# always instantiated. VimaxBridgeService survives ONLY as the credential +
+# skills-dir resolver the broker + orchestrator share (single source, H6).
+# Rollback = git revert the C5.2 commit (no runtime flag).
+from services.vimax_native_orchestrator import NativeOrchestratorService
+
+# B5: decompose max_workers tunable; default 1 because the 2026-06-14 probe found
+# grsai concurrency-INtolerant under load (c=3 -> 2/3 timeout). Raise via
+# HY_VIMAX_MAX_WORKERS only after re-probing a healthy grsai.
+try:
+    _vimax_workers = max(1, int(os.environ.get("HY_VIMAX_MAX_WORKERS", "1")))
+except (TypeError, ValueError):
+    _vimax_workers = 1
+VIMAX_NATIVE_ORCHESTRATOR = NativeOrchestratorService(
+    user_dir_getter=lambda: USER_DIR,
+    credentials_getter=VIMAX_BRIDGE_SERVICE._default_credentials,
+    skills_dir_getter=VIMAX_BRIDGE_SERVICE._default_skills_dir,
+    # native render/portraits draws route through the loopback broker (ticketId
+    # Bearer -> /api/v2/vimax/draw); the cost/cap/ledger path is unchanged.
+    broker_url_getter=lambda: f"http://127.0.0.1:{PORT}/api/v2/vimax/draw",
+    max_workers=_vimax_workers,
+)
+
+VIMAX_ROUTE_SERVICE = VimaxRouteService(
+    vimax_bridge_service=VIMAX_BRIDGE_SERVICE,
+    vimax_broker=VIMAX_BROKER,
+    native_orchestrator=VIMAX_NATIVE_ORCHESTRATOR,
+)
 
 
 def _request_server_port(handler):
@@ -617,6 +1152,8 @@ def _is_allowed_origin(handler, origin):
     normalized = _normalize_origin(origin)
     if not normalized:
         return False
+    if normalized in SEEDANCE_WEB_ALLOWED_ORIGINS:
+        return True
     return normalized in _local_allowed_origins(handler) or normalized in ALLOWED_ORIGINS
 
 
@@ -672,6 +1209,7 @@ _SENSITIVE_API_PREFIXES = (
     "/api/v2/proxy",
     "/api/v2/runninghubwf",
     "/api/v2/save_output",
+    "/api/v2/seedance-web",
     "/api/v2/subscription/activate",
     "/api/v2/update/apply",
     "/api/v2/user",
@@ -691,6 +1229,10 @@ def _is_sensitive_api_path(path):
 def _request_passes_local_security(handler, path):
     if not _is_sensitive_api_path(path):
         return True
+    if str(path or "").split("?", 1)[0] == "/api/v2/seedance-web/page-status":
+        return _client_is_loopback(handler)
+    if SeedanceWebRouteService.is_bridge_route(path):
+        return _client_is_loopback(handler)
     origin = handler.headers.get("Origin", "")
     if origin:
         return _is_allowed_origin(handler, origin) or _request_has_valid_local_token(handler)
@@ -946,7 +1488,10 @@ HTTP_ROUTE_DISPATCHER = HttpRouteDispatcher(
     local_media_processing_route_service_getter=lambda: LOCAL_MEDIA_PROCESSING_ROUTE_SERVICE,
     remote_proxy_route_service_getter=lambda: REMOTE_PROXY_ROUTE_SERVICE,
     dreamina_route_service_getter=lambda: DREAMINA_ROUTE_SERVICE,
+    seedance_web_route_service_getter=lambda: SEEDANCE_WEB_ROUTE_SERVICE,
     sam3_route_service_getter=lambda: SAM3_ROUTE_SERVICE,
+    canvas_agent_route_service_getter=lambda: CANVAS_AGENT_ROUTE_SERVICE,
+    vimax_route_service_getter=lambda: VIMAX_ROUTE_SERVICE,
     update_service_getter=lambda: UPDATE_SERVICE,
     smart_clip_cleanup=_smart_clip_cleanup,
     smart_clip_jobs=_smart_clip_jobs,
@@ -959,6 +1504,15 @@ HTTP_ROUTE_DISPATCHER = HttpRouteDispatcher(
     json_err=_json_err,
     send_route_response=_send_route_response,
     read_body=_read_body,
+    runtime_paths_getter=lambda: {
+        "distribution": RUNTIME_PATHS["distribution"],
+        "resourceRoot": RESOURCE_ROOT,
+        "writableRoot": WRITABLE_ROOT,
+        "userDir": USER_DIR,
+        "outputDir": OUTPUT_DIR,
+        "uploadsDir": UPLOADS_DIR,
+    },
+    library_status_getter=lambda: library_status(LIBRARY_DIR),
 )
 
 
@@ -1449,7 +2003,7 @@ def _atomic_write_json(p, data):
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp, p)
+        atomic_replace_with_retry(tmp, p)
     except Exception:
         try:
             if os.path.exists(tmp):
@@ -1460,19 +2014,16 @@ def _atomic_write_json(p, data):
 
 def _scan_max_gen_seq_for_date(date_str):
     try:
-        pat = re.compile(r"^gen_" + re.escape(date_str) + r"_(\d+)\.[a-z0-9]{1,5}$")
+        mid = machine_id()
         max_n = 0
         for root, _, files in os.walk(OUTPUT_DIR):
             for fn in files:
-                m = pat.match(fn)
-                if not m:
+                # 只数本机前缀（含旧的无前缀历史名）；别机文件不纳入，避免跨机拉高序号。
+                n = parse_gen_seq(fn, mid, date_str)
+                if n is None:
                     continue
-                try:
-                    n = int(m.group(1))
-                    if n > max_n:
-                        max_n = n
-                except Exception:
-                    continue
+                if n > max_n:
+                    max_n = n
         return max_n
     except Exception:
         return 0
@@ -1496,8 +2047,7 @@ def _next_gen_output_filename(ext):
             _atomic_write_json(GEN_SEQ_STATE_FILE, state)
         except Exception:
             pass
-    seq = str(n).zfill(4)
-    return f"gen_{date_str}_{seq}.{ext}"
+    return next_gen_filename(machine_id(), date_str, n, ext)
 
 
 def _normalize_posix_rel_path(path_value):
@@ -1540,6 +2090,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         virtual_roots = (
             ("/output/", OUTPUT_DIR),
             ("/data/uploads/", UPLOADS_DIR),
+            ("/data/assets/", ASSETS_DIR),
+            ("/data/workflows/", WORKFLOWS_DIR),
         )
         for prefix, root_dir in virtual_roots:
             if decoded_path == prefix[:-1] or decoded_path.startswith(prefix):
@@ -2246,7 +2798,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 req_body = json.dumps(forward_data)
                 try:
                     # ??????? 300 ???? aiTextApi.js ??????
-                    resp = requests.post(endpoint, data=req_body, headers=headers, timeout=300)
+                    resp = requests.post(endpoint, data=req_body, headers=headers, timeout=600)
                 except requests.exceptions.ConnectionError as ce:
                     _json_err(self, 502, f"????? AI ???: {str(ce)}")
                     return
@@ -2294,7 +2846,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 req_body = json.dumps(forward_data).encode("utf-8")
                 req = urllib.request.Request(endpoint, data=req_body, headers=headers, method="POST")
                 try:
-                    with urllib.request.urlopen(req, timeout=120) as resp:
+                    with urllib.request.urlopen(req, timeout=600) as resp:
                         resp_data = resp.read()
                         resp_text = resp_data.decode('utf-8')
                     
@@ -2368,7 +2920,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 method="POST",
             )
             try:
-                with urllib.request.urlopen(req, timeout=120) as resp:
+                with urllib.request.urlopen(req, timeout=600) as resp:
                     resp_data = json.loads(resp.read().decode("utf-8"))
 
                 content = resp_data["choices"][0]["message"]["content"]
@@ -2453,15 +3005,25 @@ def _display_urls(bind_host, port):
 # --- ?? ---
 if __name__ == "__main__":
     # ????????????
+    _startup_log("main entry")
     _t = threading.Thread(target=UPDATE_SERVICE.update_check_loop, daemon=True, name='AutoUpdateChecker')
     _t.start()
+    _startup_log("update thread started")
     SAM3_SERVICE.start_background_workers()
+    _startup_log("sam3 workers started")
     port, requested_bind_host, lan_mode = _parse_server_args(sys.argv[1:])
+    # Sync the actual serve port into the module global so the ViMax
+    # broker_url_getter (read lazily at render time) points the runner's
+    # draw calls at the real port, not the 8777 default. (Module top-level,
+    # so this rebinds the global the broker lambda closes over.)
+    PORT = port
     bind_host, bind_host_was_restricted = _resolve_bind_host(requested_bind_host, lan_mode)
+    _startup_log(f"binding {bind_host}:{port}")
     with ReusableThreadingTCPServer((bind_host, port), Handler) as httpd:
+        _startup_log(f"bound {bind_host}:{port}")
         print("=" * 56)
         if LOCAL_FIXED_SUBSCRIPTION_ENABLED:
-            print("[subscription] mode = local-fixed-cdkey + mac-binding")
+            print("[subscription] mode = local-admin-cdkey + local-one-time-cdkey + mac-binding")
             print(f"[subscription] license state dir = {SYSTEM_STATE_DIR}")
         elif SUBSCRIPTION_API_BASE_OVERRIDDEN:
             print(f"[subscription] api base override enabled: {SUBSCRIPTION_API_BASE}")
@@ -2476,6 +3038,7 @@ if __name__ == "__main__":
             print(url)
         print("按 Ctrl+C 停止服务")
         print("=" * 56)
+        _startup_log("entering serve_forever")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

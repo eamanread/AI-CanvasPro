@@ -1,0 +1,11 @@
+{
+  "id": "config-cost-aware", "kind": "cost", "final_text": "",
+  "cost_plan": {
+    "groups": [
+      { "id": "G1", "fill_ratio": 0.8, "tier": "standard", "emotion_level": 1, "category": "normal" },
+      { "id": "G4", "fill_ratio": 0.93, "tier": "standard", "emotion_level": 5, "category": "normal" }
+    ],
+    "degrade_to": "seedance-2.0-fast",
+    "final_text": "镜头组1 时长：12s 切镜方式：硬切"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "id": "director",
+  "name": "QMAI 导演计划",
+  "version": "1.0.0",
+  "type": "scenario",
+  "enabled": true,
+  "priority": 95,
+  "injectMode": "when_matched",
+  "triggers": [
+    "导演",
+    "director",
+    "QMAI",
+    "导演计划",
+    "铺分镜",
+    "铺一版分镜"
+  ],
+  "requiredContext": [
+    "context.canvas.nodes"
+  ],
+  "allowedActions": [
+    "create_node",
+    "connect_nodes",
+    "layout_nodes",
+    "focus_nodes",
+    "create_group",
+    "update_node_data",
+    "rename_node"
+  ],
+  "forbiddenActions": [
+    "queue_generation_task",
+    "start_generation",
+    "run_prompt_preset_generation",
+    "delete_nodes",
+    "write_file",
+    "shell_command"
+  ],
+  "qualityRules": [
+    "导演计划只铺结构：知识卡、分镜节点、PREP 图像节点、连线和布局，绝不直接发起生成。",
+    "连续性 warn 必须经用户确认；block 必须拦截全部生成类动作。",
+    "QMAI 记忆只读，本地路径与密钥不得出现在画布节点内容中。"
+  ],
+  "qualityChecks": [
+    {
+      "type": "requiresActionType",
+      "action": "create_node"
+    },
+    {
+      "type": "forbidsActionType",
+      "action": "queue_generation_task"
+    },
+    {
+      "type": "maxActions",
+      "value": 60
+    }
+  ],
+  "riskLevel": "low",
+  "requiresConfirmation": true
+}

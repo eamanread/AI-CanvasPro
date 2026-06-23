@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "vimax-shotplan/v1",
+  "flowId": "flow-test-1",
+  "story": "**Story Title:** The Glass Tide\n\n**Target Audience & Genre:** This story is targeted at Adults, in the Cinematic Poetic Drama genre.\n\n**Story Outline/Summary:** \nElias, an aging, solitary lighthouse k...(trimmed)",
+  "scenes": [
+    {
+      "idx": 0,
+      "script": "EXT. LIGHTHOUSE SHORELINE - DAWN\n\nA bruised-lavender mist heavily drapes the rocky coastline. The towering silhouette of a lighthouse looms in the background, its great lamp finally rotating into darkness as dawn breaks. The world is completely silent, save for the intimate, rhythmic *hiss* of small waves washing over smoothed black pebbles.\n\nSHOT 1 - MEDIUM TRACKING SHOT\n\nELIAS (late sixties), dwarfed by a heavy wool sea-coat, steps carefully among the shallow tide pools at the base of the lighthouse. His worn rubber boots sink slightly into the wet sand. \n\nHe pauses. The dull glint of sea-glass catches his eye. \n\nNestled in a bed of wet kelp is a corked green bottle, its interior clouded with condensation. Elias kneels. He picks up the bottle, wiping away the brine with his thick, calloused thumb, and stares at the tightly rolled paper inside.\n\nSHOT 2 - EXTREME CLOSE-UP\n\nElias’s weather-beaten fingers tremble ever so slightly. With a soft *pop*, he wrestles the decaying cork free. Pulling a rusted pocket knife from his coat, he carefully coaxes the delicate, salt-stained paper out of the glass neck.\n\nHe unrolls the parchment. Faded blue ink bleeds into the fibers. We read the handwriting:\n\n\"The mainland dock. I'm waiting. - Clara.\"\n\nA single, heavy drop of water—ocean mist, or perhaps a tear—falls, splashing against the edge of the paper. \n\nOff-screen, a ragged, unsteady breath breaks the quiet—the sound of a man exhaling years of tightly held guilt.\n\nSHOT 3 - EXTREME WIDE SHOT\n\nThe camera sits low to the glass-like water's surface, looking out into the vast, white void of the morning fog. \n\nElias sits at the center of a small, wooden rowboat, having just pushed off from the rocky shore. His back is to the tide pools, facing the mist. The wooden oars rise and fall in a slow, rhythmic cadence. \n\n*Dip. Pull. Drip.* \n\nThe gentle creak of the oarlocks is the only sound remaining. The boat, and the solitary man within it, slowly dissolve into the quiet white horizon."
+    }
+  ],
+  "characters": [
+    {
+      "idx": 0,
+      "identifierInScene": "Elias",
+      "isVisible": true,
+      "staticFeatures": "A man in his late sixties with deeply weathered, sun-damaged skin, deep wrinkles, and pale, faded blue eyes. He has a thick, broad-shouldered build that is slightly stooped with age. His hands are large, with thick, weather-beaten fingers covered in heavy, yellowish calluses. He has thinning, wind-swept gray hair and a short, coarse white beard.",
+      "dynamicFeatures": "Draped in a heavy, oversized dark navy wool sea-coat and wearing worn, matte-black rubber boots with brine and wet sand clinging to the soles. He carries a rusted metal pocket knife and handles a corked, condensation-clouded green glass bottle containing a rolled-up, salt-stained piece of parchment paper with faded blue ink."
+    },
+    {
+      "idx": 1,
+      "identifierInScene": "Clara",
+      "isVisible": false,
+      "staticFeatures": "",
+      "dynamicFeatures": "None"
+    }
+  ],
+  "shots": [
+    {
+      "idx": 0,
+      "sceneIdx": 0,
+      "localIdx": 0,
+      "camIdx": 0,
+      "visualDesc": "A medium wide shot transitioning into a close-up. In the cool, bluish-grey mist of dawn, <Elias> walks mechanically along a rocky pebble shore, facing left and positioned slightly to the right of the center of the frame. He wears a heavy navy-blue wool coat over a grey fisherman's sweater and knee-high black rubber boots. The towering silhouette of a lighthouse looms in the top right background. <Elias> stops, spotting a dull green glass bottle in the dark kelp near his boots. He bends down, his heavily calloused and scarred hands brushing away wet sand to pick it up. The camera pushes in intimately, focusing directly on his thick, trembling hands in the center of the frame as he wrestles with the stubborn cork, successfully popping it open.",
+      "ffDesc": "A medium wide shot set in the cool, bluish-grey mist of dawn. Elias is positioned slightly to the right of the center of the frame, facing left, captured in a static mid-stride posture on a rocky pebble shore. He wears a heavy navy-blue wool coat over a grey fisherman's sweater and knee-high black rubber boots. The towering silhouette of a lighthouse looms in the top right background.",
+      "motionDesc": "The camera pushes in intimately from a medium wide shot to a close-up. A sturdy man in his 60s with a thick salt-and-pepper beard, wearing a heavy navy-blue wool coat and black rubber boots, walks mechanically along the rocky shore. He stops upon spotting a dull green glass bottle in the dark kelp near his boots and bends down. His thick, trembling hands brush away wet sand to pick up the bottle. As the camera pushes in to focus entirely on his hands in the center of the frame, he wrestles with the stubborn cork and successfully pops it open.",
+      "audioDesc": "[Sound Effect] Rhythmic, gentle lapping of the tide against pebbles. Distant, muffled cry of a gull. The sharp POP of a cork breaking the quiet morning air.",
+      "variationType": "large",
+      "lfDesc": "An intimate close-up shot focused on the center of the frame. The composition is entirely filled by Elias's thick, heavily calloused, and scarred hands. His hands firmly grip a dull green glass bottle and a newly extracted cork. The cuffs of his heavy navy-blue wool coat are visible, while the bluish-grey dawn environment and kelp-covered shore are blurred out of focus in the background."
+    },
+    {
+      "idx": 1,
+      "sceneIdx": 0,
+      "localIdx": 1,
+      "camIdx": 1,
+      "visualDesc": "An over-the-shoulder extreme close-up shot, looking over <Elias>'s shoulder and focusing down on his large, scarred hands, which dominate the lower center of the frame. <Elias> carefully unfurls a damp, yellowed piece of paper pulled from the bottle. The camera's focus sharpens on the faded dark ink at the bottom of the page, revealing the written words: \"I’m still waiting at the old pier. - Clara.\" <Elias>'s sand-coated thumb gently traces the curve of the handwritten name. A single, heavy drop of water falls onto the center of the paper, blurring the edge of the ink. <Elias> slowly folds the note, his hands clutching it tightly against his palm until his knuckles turn bone-white.",
+      "ffDesc": "An over-the-shoulder extreme close-up shot, looking past the shoulder of a man (wearing a heavy, dark navy-blue, salt-stained wool coat) whose back is partially to the camera. The downward angle focuses tightly on his large, scarred, and sand-coated hands, which dominate the lower center of the frame. Within his hands, he is holding a rolled-up, damp, yellowed piece of paper just pulled from a bottle.",
+      "motionDesc": "Static camera with a rack focus. The man (wearing a heavy, dark navy-blue, salt-stained wool coat) carefully unfurls the damp, yellowed piece of paper. The camera's focus sharpens on the faded dark ink at the bottom of the page, clearly revealing the written words: \"I’m still waiting at the old pier. - Clara.\" His sand-coated thumb gently traces the curve of the handwritten name. A single, heavy drop of water falls onto the center of the paper, blurring the edge of the ink. The man then slowly folds the note, clutching it tightly against his palm until his knuckles turn bone-white.",
+      "audioDesc": "[Sound Effect] Soft rustling of damp paper unfurling. A faint splash of a single water drop hitting the paper. A long, shaky breath drawn in by Elias.",
+      "variationType": "small"
+    },
+    {
+      "idx": 2,
+      "sceneIdx": 0,
+      "localIdx": 2,
+      "camIdx": 2,
+      "visualDesc": "A static wide angle shot positioned very low, near the water level in the foreground, looking up the gently sloping pebble beach. In the deep background, slightly left of center, the massive iron door of the lighthouse is slightly ajar. <Elias>, positioned in the left foreground and facing right towards the sea, grips a frayed rope attached to the bow of a small wooden rowboat. He wades knee-deep into the freezing, misty water, pulling the boat along. He climbs awkwardly into the vessel and takes up the oars. The camera remains perfectly still as <Elias> rows toward the center right background, the boat slowly being swallowed entirely by the thick, grey fog until only the empty shore is visible.",
+      "ffDesc": "A static wide-angle shot positioned very low near the water level in the foreground, looking up a gently sloping pebble beach. The environment is heavily enveloped in thick, grey fog. In the deep background, slightly left of center, the massive iron door of a lighthouse stands slightly ajar. In the left foreground, a man in his 60s with a heavily weathered face and a thick salt-and-pepper beard, wearing a heavy dark navy-blue wool coat and knee-high black rubber wading boots, stands knee-deep in the freezing, misty water. He is positioned facing right towards the sea, firmly gripping a frayed rope attached to the bow of a small wooden rowboat.",
+      "motionDesc": "The camera remains perfectly still throughout the shot. The man (in his 60s with a heavily weathered face, thick salt-and-pepper beard, wearing a heavy dark navy-blue wool coat and knee-high black rubber wading boots) wades further into the freezing, misty water, pulling the small wooden rowboat along. He climbs awkwardly into the vessel and takes up the oars. He then rows toward the center-right background, moving deeper into the water until both he and the boat are slowly swallowed entirely by the thick, grey fog.",
+      "audioDesc": "[Sound Effect] Heavy, guttural scrape of a wooden hull dragging over wet stones. The rhythmic splash-creak of wooden oars moving through water, gradually fading out into the profound silence and gentle lapping of the tide.",
+      "variationType": "medium",
+      "lfDesc": "The same low-angle, wide-angle shot of the gently sloping pebble beach. The composition is now entirely devoid of the man and the rowboat, leaving an empty shore. Only the freezing, misty water is visible in the foreground, while the thick, grey fog has completely swallowed the right background area. In the deep background, slightly left of center, the massive iron door of the lighthouse remains slightly ajar."
+    }
+  ],
+  "skillRefs": [],
+  "elapsedSec": 328.1
+}

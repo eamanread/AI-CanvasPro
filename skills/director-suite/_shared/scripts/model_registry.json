@@ -1,0 +1,38 @@
+{
+  "_note": "D3 模型单一事实来源。换模型=改这里1处，0处镜头卡被动。各代码经 harness/registry.py 引用，禁硬编码模型名。capabilities 七位对齐 _model/capability-contract.md。",
+  "capability_keys": ["dialogue", "sfx", "bgm", "title_card", "reference_image", "first_last_frame", "multi_shot_incut"],
+  "video": {
+    "default": "seedance-2.0",
+    "adapters": {
+      "seedance-2.0": {
+        "status": "live", "duration_window_s": [4, 15],
+        "capabilities": { "dialogue": true, "sfx": true, "bgm": true, "title_card": true, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true }
+      },
+      "seedance-2.0-fast": {
+        "status": "live", "duration_window_s": [4, 15],
+        "capabilities": { "dialogue": true, "sfx": true, "bgm": true, "title_card": true, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true }
+      },
+      "kling-3": {
+        "status": "live", "duration_window_s": [5, 10],
+        "capabilities": { "dialogue": true, "sfx": true, "bgm": false, "title_card": false, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true }
+      },
+      "veo": {
+        "status": "stub", "duration_window_s": [4, 8],
+        "capabilities": { "dialogue": true, "sfx": true, "bgm": false, "title_card": false, "reference_image": true, "first_last_frame": false, "multi_shot_incut": false }
+      },
+      "jimeng": {
+        "status": "stub", "duration_window_s": [3, 12],
+        "capabilities": { "dialogue": true, "sfx": true, "bgm": false, "title_card": true, "reference_image": true, "first_last_frame": true, "multi_shot_incut": false }
+      }
+    },
+    "fallback": [
+      { "from": "seedance-2.0", "to": "seedance-2.0-fast", "trigger": "timeout|overload" }
+    ]
+  },
+  "image": {
+    "default": "nano-banana-pro",
+    "tier": { "material": "seedream-4.5", "draft": "nano-banana-2", "text_render": "gpt-image-2" }
+  },
+  "voice": { "zh": "doubao", "en": "elevenlabs" },
+  "music": { "default": "suno-5", "ban_named_artist": true }
+}

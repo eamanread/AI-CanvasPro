@@ -1,0 +1,6 @@
+{
+  "_desc": "clean(真测,非自指):藏青重生 B 对藏青基准 A,数字为 grsai nano-banana-2 真图经 Pillow 实测(见 baselines/realmachine/D5-realtest-20260623.md)。色相0.3°/明度5.9pp 均在阈值内 → PASS。",
+  "baseline": { "asset_id": "[Real_NavySilk_A]", "hue_deg": 216.8, "lightness_pct": 17.9 },
+  "candidate": { "hue_deg": 216.5, "lightness_pct": 12.0 },
+  "final_text": "镜头组1 时长：10s 切镜方式：硬切"
+}

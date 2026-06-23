@@ -6,6 +6,52 @@ import urllib.parse
 
 class HttpRouteDispatcher:
     _TRUE_VALUES = ("1", "true", "yes", "on")
+    _CANVAS_AGENT_CONVERSATIONS_PREFIX = "/api/v2/canvas-agent/conversations"
+    _CANVAS_AGENT_EXECUTIONS_PREFIX = "/api/v2/canvas-agent/executions"
+    _CANVAS_AGENT_SYNC_PROJECT_PATH = "/api/v2/canvas-agent/sync/project"
+    _CANVAS_AGENT_GET_PATHS = frozenset((
+        "/api/v2/canvas-agent/status",
+        "/api/v2/canvas-agent/metrics",
+        "/api/v2/canvas-agent/receipts",
+        "/api/v2/canvas-agent/director/knowledge",
+        "/api/v2/canvas-agent/director/refresh/status",
+        _CANVAS_AGENT_SYNC_PROJECT_PATH,
+    ))
+    _CANVAS_AGENT_POST_PATHS = frozenset(
+        (
+            "/api/v2/canvas-agent/chat",
+            "/api/v2/canvas-agent/chat/stream",
+            "/api/v2/canvas-agent/context/preview",
+            "/api/v2/canvas-agent/actions/validate",
+            "/api/v2/canvas-agent/director/plan",
+            "/api/v2/canvas-agent/director/dailies",
+            "/api/v2/canvas-agent/director/refresh",
+            _CANVAS_AGENT_SYNC_PROJECT_PATH,
+        )
+    )
+    # ViMax bridge (α′ F3). New prefix - the guard block in handle_get/
+    # handle_post 404s anything not listed here BEFORE it reaches the
+    # route service (V0 lesson). jobs is a GET with a ?jobId= query, so
+    # the path check compares the path component only.
+    # The external venv plan/render/portraits/status/jobs routes were retired in
+    # C5.2 (native is the only runtime). 拍法库 skills + the broker sign/draw +
+    # all /native/* remain.
+    _VIMAX_GET_PATHS = frozenset((
+        "/api/v2/vimax/skills",
+        # native orchestrator (Phase B/C): in-process brain, separate job table
+        "/api/v2/vimax/native/status",
+        "/api/v2/vimax/native/jobs",
+    ))
+    _VIMAX_POST_PATHS = frozenset((
+        "/api/v2/vimax/sign",
+        "/api/v2/vimax/draw",
+        # native orchestrator (Phase B/C): plan + resume + render + portraits
+        "/api/v2/vimax/native/plan",
+        "/api/v2/vimax/native/jobs/cancel",
+        "/api/v2/vimax/native/resume",
+        "/api/v2/vimax/native/render",
+        "/api/v2/vimax/native/portraits",
+    ))
 
     def __init__(
         self,
@@ -22,7 +68,10 @@ class HttpRouteDispatcher:
         local_media_processing_route_service_getter,
         remote_proxy_route_service_getter,
         dreamina_route_service_getter,
+        seedance_web_route_service_getter,
         sam3_route_service_getter,
+        canvas_agent_route_service_getter=None,
+        vimax_route_service_getter=None,
         update_service_getter,
         smart_clip_cleanup,
         smart_clip_jobs,
@@ -35,6 +84,8 @@ class HttpRouteDispatcher:
         json_err,
         send_route_response,
         read_body,
+        runtime_paths_getter=None,
+        library_status_getter=None,
     ):
         self.local_version = str(local_version or "")
         self._is_dev_build = is_dev_build
@@ -48,7 +99,12 @@ class HttpRouteDispatcher:
         self._get_local_media_processing_route_service = local_media_processing_route_service_getter
         self._get_remote_proxy_route_service = remote_proxy_route_service_getter
         self._get_dreamina_route_service = dreamina_route_service_getter
+        self._get_seedance_web_route_service = seedance_web_route_service_getter
         self._get_sam3_route_service = sam3_route_service_getter
+        self._get_canvas_agent_route_service = (
+            canvas_agent_route_service_getter or (lambda: None)
+        )
+        self._get_vimax_route_service = vimax_route_service_getter or (lambda: None)
         self._get_update_service = update_service_getter
         self._smart_clip_cleanup = smart_clip_cleanup
         self._smart_clip_jobs = smart_clip_jobs
@@ -61,6 +117,8 @@ class HttpRouteDispatcher:
         self._json_err = json_err
         self._send_route_response = send_route_response
         self._read_body = read_body
+        self._get_runtime_paths = runtime_paths_getter or (lambda: {})
+        self._get_library_status = library_status_getter or (lambda: {})
 
     @classmethod
     def _parse_query(cls, raw_path, *, max_num_fields):
@@ -77,6 +135,42 @@ class HttpRouteDispatcher:
         if raw is None:
             return bool(default)
         return str(raw).strip().lower() in cls._TRUE_VALUES
+
+    @classmethod
+    def _is_canvas_agent_conversation_path(cls, path):
+        value = str(path or "")
+        prefix = cls._CANVAS_AGENT_CONVERSATIONS_PREFIX
+        return value == prefix or value.startswith(prefix + "/")
+
+    @classmethod
+    def _is_canvas_agent_execution_path(cls, path):
+        value = str(path or "")
+        prefix = cls._CANVAS_AGENT_EXECUTIONS_PREFIX
+        return value == prefix or value.startswith(prefix + "/")
+
+    @classmethod
+    def _is_canvas_agent_get_path(cls, path):
+        return path in cls._CANVAS_AGENT_GET_PATHS or cls._is_canvas_agent_conversation_path(path) or cls._is_canvas_agent_execution_path(path)
+
+    @classmethod
+    def _is_canvas_agent_post_path(cls, path):
+        return path in cls._CANVAS_AGENT_POST_PATHS or cls._is_canvas_agent_conversation_path(path) or cls._is_canvas_agent_execution_path(path)
+
+    @classmethod
+    def _is_canvas_agent_patch_or_delete_path(cls, path):
+        return cls._is_canvas_agent_conversation_path(path) or cls._is_canvas_agent_execution_path(path)
+
+    @classmethod
+    def _vimax_path_component(cls, path):
+        return urllib.parse.urlparse(str(path or "")).path
+
+    @classmethod
+    def _is_vimax_get_path(cls, path):
+        return cls._vimax_path_component(path) in cls._VIMAX_GET_PATHS
+
+    @classmethod
+    def _is_vimax_post_path(cls, path):
+        return cls._vimax_path_component(path) in cls._VIMAX_POST_PATHS
 
     def _subscription_missing_payload(self, *, message):
         return {
@@ -108,12 +202,31 @@ class HttpRouteDispatcher:
         }
 
     def _runtime_info_payload(self):
+        runtime_paths = self._get_runtime_paths()
+        if not isinstance(runtime_paths, dict):
+            runtime_paths = {}
+        distribution = str(runtime_paths.get("distribution") or "source")
         return {
             "success": True,
             "isDevBuild": bool(self._is_dev_build()),
             "isAdvancedMode": bool(self._is_advanced_mode()),
             "localVersion": self.local_version,
+            "distribution": distribution,
+            "isPackaged": distribution in ("onedir", "onefile"),
+            "isOnefile": distribution == "onefile",
+            "storage": {
+                "writableRoot": str(runtime_paths.get("writableRoot") or ""),
+                "userDir": str(runtime_paths.get("userDir") or ""),
+                "outputDir": str(runtime_paths.get("outputDir") or ""),
+                "uploadsDir": str(runtime_paths.get("uploadsDir") or ""),
+            },
         }
+
+    def _library_status_payload(self):
+        status = self._get_library_status()
+        if not isinstance(status, dict):
+            return {}
+        return status
 
     def _handle_subscription_status(self, handler):
         client = self._get_subscription_client()
@@ -206,7 +319,7 @@ class HttpRouteDispatcher:
         gate_service = self._get_subscription_gate_service()
         install_id = gate_service.extract_install_id_from_request(handler, data)
         cdkey = str(data.get("cdkey") or "").strip()
-        if not install_id or not cdkey:
+        if not install_id:
             self._json_ok(handler, self._activation_missing_payload())
             return True
         payload = client.activate_cdkey(install_id, cdkey)
@@ -230,6 +343,48 @@ class HttpRouteDispatcher:
         if path == "/api/v2/runtime/info":
             self._json_ok(handler, self._runtime_info_payload())
             return True
+
+        if path == "/api/v2/library/status":
+            self._json_ok(handler, self._library_status_payload())
+            return True
+
+        if path.startswith("/api/v2/canvas-agent/"):
+            if not self._is_canvas_agent_get_path(path):
+                self._json_err(handler, 404, "Not found")
+                return True
+            try:
+                route_service = self._get_canvas_agent_route_service()
+                if route_service is None:
+                    self._json_err(handler, 503, "Canvas agent route unavailable")
+                    return True
+                response = route_service.handle_get(handler, path)
+                if response is not None:
+                    self._send_route_response(handler, response)
+                    return True
+                self._json_err(handler, 404, "Not found")
+                return True
+            except Exception:
+                self._json_err(handler, 500, "Canvas agent route failed")
+                return True
+
+        if path.startswith("/api/v2/vimax/"):
+            if not self._is_vimax_get_path(path):
+                self._json_err(handler, 404, "Not found")
+                return True
+            try:
+                route_service = self._get_vimax_route_service()
+                if route_service is None:
+                    self._json_err(handler, 503, "ViMax route unavailable")
+                    return True
+                response = route_service.handle_get(handler, path)
+                if response is not None:
+                    self._send_route_response(handler, response)
+                    return True
+                self._json_err(handler, 404, "Not found")
+                return True
+            except Exception:
+                self._json_err(handler, 500, "ViMax route failed")
+                return True
 
         if path == "/api/v2/subscription/status":
             return self._handle_subscription_status(handler)
@@ -256,6 +411,14 @@ class HttpRouteDispatcher:
         )
         if library_file_get_response is not None:
             self._send_route_response(handler, library_file_get_response)
+            return True
+
+        seedance_web_get_response = self._get_seedance_web_route_service().handle_get(
+            handler,
+            path,
+        )
+        if seedance_web_get_response is not None:
+            self._send_route_response(handler, seedance_web_get_response)
             return True
 
         dreamina_get_response = self._get_dreamina_route_service().handle_get(
@@ -296,6 +459,48 @@ class HttpRouteDispatcher:
     def handle_post(self, handler, path):
         if path == "/api/v2/subscription/activate":
             return self._handle_subscription_activate(handler)
+
+        if path.startswith("/api/v2/canvas-agent/"):
+            if not self._is_canvas_agent_post_path(path):
+                self._json_err(handler, 404, "Not found")
+                return True
+            try:
+                route_service = self._get_canvas_agent_route_service()
+                if route_service is None:
+                    self._json_err(handler, 503, "Canvas agent route unavailable")
+                    return True
+                response = route_service.handle_post(
+                    handler,
+                    path,
+                    self._read_body(handler),
+                )
+                if response is not None:
+                    self._send_route_response(handler, response)
+                    return True
+                self._json_err(handler, 404, "Not found")
+                return True
+            except Exception:
+                self._json_err(handler, 500, "Canvas agent route failed")
+                return True
+
+        if path.startswith("/api/v2/vimax/"):
+            if not self._is_vimax_post_path(path):
+                self._json_err(handler, 404, "Not found")
+                return True
+            try:
+                route_service = self._get_vimax_route_service()
+                if route_service is None:
+                    self._json_err(handler, 503, "ViMax route unavailable")
+                    return True
+                response = route_service.handle_post(handler, path, self._read_body(handler))
+                if response is not None:
+                    self._send_route_response(handler, response)
+                    return True
+                self._json_err(handler, 404, "Not found")
+                return True
+            except Exception:
+                self._json_err(handler, 500, "ViMax route failed")
+                return True
 
         config_post_response = self._get_config_route_service().handle_post(
             handler,
@@ -344,6 +549,15 @@ class HttpRouteDispatcher:
         )
         if library_file_post_response is not None:
             self._send_route_response(handler, library_file_post_response)
+            return True
+
+        seedance_web_post_response = self._get_seedance_web_route_service().handle_post(
+            handler,
+            path,
+            self._read_body(handler) if path.startswith("/api/v2/seedance-web/") else b"",
+        )
+        if seedance_web_post_response is not None:
+            self._send_route_response(handler, seedance_web_post_response)
             return True
 
         dreamina_post_response = self._get_dreamina_route_service().handle_post(
@@ -396,6 +610,25 @@ class HttpRouteDispatcher:
         return False
 
     def handle_delete(self, handler, path):
+        if path.startswith("/api/v2/canvas-agent/"):
+            if not self._is_canvas_agent_patch_or_delete_path(path):
+                self._json_err(handler, 404, "Not found")
+                return True
+            try:
+                route_service = self._get_canvas_agent_route_service()
+                if route_service is None or not hasattr(route_service, "handle_delete"):
+                    self._json_err(handler, 503, "Canvas agent route unavailable")
+                    return True
+                response = route_service.handle_delete(handler, path)
+                if response is not None:
+                    self._send_route_response(handler, response)
+                    return True
+                self._json_err(handler, 404, "Not found")
+                return True
+            except Exception:
+                self._json_err(handler, 500, "Canvas agent route failed")
+                return True
+
         library_file_delete_response = self._get_library_file_route_service().handle_delete(
             handler,
             path,
@@ -414,6 +647,25 @@ class HttpRouteDispatcher:
         return False
 
     def handle_patch(self, handler, path):
+        if path.startswith("/api/v2/canvas-agent/"):
+            if not self._is_canvas_agent_patch_or_delete_path(path):
+                self._json_err(handler, 404, "Not found")
+                return True
+            try:
+                route_service = self._get_canvas_agent_route_service()
+                if route_service is None or not hasattr(route_service, "handle_patch"):
+                    self._json_err(handler, 503, "Canvas agent route unavailable")
+                    return True
+                response = route_service.handle_patch(handler, path, self._read_body(handler))
+                if response is not None:
+                    self._send_route_response(handler, response)
+                    return True
+                self._json_err(handler, 404, "Not found")
+                return True
+            except Exception:
+                self._json_err(handler, 500, "Canvas agent route failed")
+                return True
+
         json_file_patch_response = self._get_json_file_route_service().handle_patch(
             handler,
             path,

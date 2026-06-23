@@ -1,0 +1,19 @@
+{
+  "name": "huanying-pi-canvas-agent",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=22.19.0" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "pretest": "npm run build",
+    "test": "node --test dist/**/*.test.js",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "latest",
+    "@earendil-works/pi-agent-core": "latest",
+    "@earendil-works/pi-coding-agent": "latest"
+  },
+  "devDependencies": { "typescript": "^5.8.3" }
+}

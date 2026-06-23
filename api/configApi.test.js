@@ -108,3 +108,67 @@ test("configApi: grsai 无 provider 配置时回退 apiUrlInput/apiKeyInput，ru
     globalThis.fetch = originalFetch;
   }
 });
+
+test("configApi: canvas agent providers reuse unified api key config", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    mockFetchOnceJson({
+      providers: {
+        canvas_agent: {
+          apiUrl: "https://agent.example.com/v1///",
+          apiKey: "k_canvas_agent",
+          model: "pi-agent-model",
+          providerType: "openai_compatible",
+        },
+        pi_canvas_agent: {
+          proxyBaseUrl: "http://127.0.0.1:4317/v1///",
+          proxyToken: "k_pi_proxy",
+          model: "pi-sidecar",
+        },
+      },
+    });
+
+    const configApi = await import("./configApi.js");
+    configApi.clearApiConfig();
+    await configApi.ensureConfig();
+
+    const canvasAgent = configApi.getProviderConfig("canvas_agent");
+    assert.equal(canvasAgent.apiUrl, "https://agent.example.com/v1");
+    assert.equal(canvasAgent.apiKey, "k_canvas_agent");
+    assert.equal(canvasAgent.model, "pi-agent-model");
+    assert.equal(canvasAgent.providerType, "openai_compatible");
+
+    const piAgent = configApi.getProviderConfig("pi_canvas_agent");
+    assert.equal(piAgent.proxyBaseUrl, "http://127.0.0.1:4317/v1");
+    assert.equal(piAgent.proxyToken, "k_pi_proxy");
+    assert.equal(piAgent.model, "pi-sidecar");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("configApi: blank canvas agent providers do not inherit grsai defaults", async () => {
+  const originalFetch = globalThis.fetch;
+
+  try {
+    mockFetchOnceJson({ providers: {} });
+
+    const configApi = await import("./configApi.js");
+    configApi.clearApiConfig();
+    await configApi.ensureConfig();
+
+    const canvasAgent = configApi.getProviderConfig("canvas_agent");
+    assert.equal(canvasAgent.apiUrl, "");
+    assert.equal(canvasAgent.apiKey, "");
+    assert.equal(canvasAgent.model, "");
+    assert.equal(canvasAgent.providerType, "");
+
+    const piAgent = configApi.getProviderConfig("pi_canvas_agent");
+    assert.equal(piAgent.apiUrl, "");
+    assert.equal(piAgent.proxyBaseUrl, "");
+    assert.equal(piAgent.proxyToken, "");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -1,4 +1,7 @@
 import unittest
+import json
+import os
+import tempfile
 
 import server
 
@@ -55,6 +58,30 @@ class ServerSubscriptionProxyTests(unittest.TestCase):
         self.assertNotIn("activationSource", forwarded)
         self.assertNotIn("generationScope", forwarded)
         self.assertNotIn("entitledNodeTypes", forwarded)
+
+    def test_read_persisted_install_id_falls_back_to_local_license(self):
+        original_system_state_dir = server.SYSTEM_STATE_DIR
+        original_system_settings_file = server.SYSTEM_SETTINGS_FILE
+        original_default_user_dir = server.DEFAULT_USER_DIR
+        with tempfile.TemporaryDirectory() as temp_dir:
+            try:
+                server.SYSTEM_STATE_DIR = temp_dir
+                server.SYSTEM_SETTINGS_FILE = os.path.join(temp_dir, "settings.json")
+                server.DEFAULT_USER_DIR = os.path.join(temp_dir, "user")
+                with open(os.path.join(temp_dir, "license.json"), "w", encoding="utf-8") as file:
+                    json.dump(
+                        {
+                            "activated": True,
+                            "lastInstallId": "aic-license",
+                        },
+                        file,
+                    )
+
+                self.assertEqual(server._read_persisted_install_id(), "aic-license")
+            finally:
+                server.SYSTEM_STATE_DIR = original_system_state_dir
+                server.SYSTEM_SETTINGS_FILE = original_system_settings_file
+                server.DEFAULT_USER_DIR = original_default_user_dir
 
 
 if __name__ == "__main__":

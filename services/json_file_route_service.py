@@ -187,7 +187,7 @@ class JsonFileRouteService:
         if not asset_id:
             return self._json_err(400, "Asset ID required")
         filename = self._safe_name(asset_id) + ".json"
-        self._write_json_file(os.path.join(self._get_assets_dir(), filename), data)
+        self._atomic_write_json(os.path.join(self._get_assets_dir(), filename), data)
         return self._json_ok({"success": True, "id": asset_id})
 
     def _save_workflow(self, body):
@@ -200,7 +200,7 @@ class JsonFileRouteService:
         filename = self._safe_name(workflow_id) + ".json"
         if not data.get("scope"):
             data["scope"] = "private"
-        self._write_json_file(os.path.join(self._get_workflows_dir(), filename), data)
+        self._atomic_write_json(os.path.join(self._get_workflows_dir(), filename), data)
         return self._json_ok({"success": True, "id": workflow_id})
 
     def _save_user_json(self, path, body):
@@ -248,7 +248,12 @@ class JsonFileRouteService:
         if not new_name:
             return self._json_err(400, "Name required")
         new_filename = self._safe_name(new_name) + ".json"
-        os.rename(file_path, os.path.join(self._get_canvas_dir(), new_filename))
+        new_path = os.path.join(self._get_canvas_dir(), new_filename)
+        # Windows 上 os.rename 目标已存在会抛 FileExistsError→未捕获→500；显式转可读 409
+        # （除非改成自己的同名，那是 no-op，放行）。
+        if os.path.exists(new_path) and os.path.abspath(new_path) != os.path.abspath(file_path):
+            return self._json_err(409, "同名项目已存在")
+        os.rename(file_path, new_path)
         return self._json_ok({"success": True, "filename": new_filename})
 
     def handle_get(self, handler, path):

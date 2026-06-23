@@ -1,0 +1,5 @@
+{
+  "_desc": "clean：4 个单产物成员 mega 全在 → PASS",
+  "expected": ["storyboard", "character-board", "color-palette", "keyframe"],
+  "present": ["storyboard", "character-board", "color-palette", "keyframe"]
+}

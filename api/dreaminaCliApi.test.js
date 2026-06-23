@@ -1,1 +1,114 @@
-const a25_0x47cd65=a25_0x339e;(function(_0x538c81,_0x80437c){const _0x412004=a25_0x339e,_0x449491=_0x538c81();while(!![]){try{const _0x23f3fb=parseInt(_0x412004(0x10a))/0x1+parseInt(_0x412004(0x11b))/0x2*(parseInt(_0x412004(0x114))/0x3)+parseInt(_0x412004(0xfa))/0x4+parseInt(_0x412004(0x120))/0x5+parseInt(_0x412004(0x116))/0x6*(-parseInt(_0x412004(0x10e))/0x7)+-parseInt(_0x412004(0x112))/0x8+-parseInt(_0x412004(0x119))/0x9;if(_0x23f3fb===_0x80437c)break;else _0x449491['push'](_0x449491['shift']());}catch(_0x33373a){_0x449491['push'](_0x449491['shift']());}}}(a25_0x4597,0xa7423));import a25_0x97ed40 from'node:test';import a25_0x2103c9 from'node:assert/strict';const originalFetch=globalThis[a25_0x47cd65(0x11c)];function createJsonResponse(_0x4fc558,_0x2ff29d,_0xd9df8d=a25_0x47cd65(0x10c),_0xf6e077=null){globalThis['fetch']=async(_0xb66667,_0x497411={})=>{const _0x170132=a25_0x339e;return a25_0x2103c9[_0x170132(0xfc)](String(_0xb66667),_0x2ff29d),a25_0x2103c9['equal'](String(_0x497411?.['method']||_0x170132(0x10c)),_0xd9df8d),typeof _0xf6e077===_0x170132(0x109)&&_0xf6e077(_0x497411?.['body']),{'ok':!![],'status':0xc8,'headers':{'get':()=>_0x170132(0x102)},'json':async()=>_0x4fc558,'text':async()=>JSON[_0x170132(0x108)](_0x4fc558)};};}function a25_0x339e(_0x3c70ff,_0x2ffe71){_0x3c70ff=_0x3c70ff-0xf9;const _0x459710=a25_0x4597();let _0x339e55=_0x459710[_0x3c70ff];return _0x339e55;}a25_0x97ed40(a25_0x47cd65(0x106),async()=>{const _0x17fa90=a25_0x47cd65;try{createJsonResponse({'installed':!![],'loggedIn':!![]},_0x17fa90(0x11a));const {fetchDreaminaCliStatusFromServer:_0x20f26a}=await import(_0x17fa90(0x10d)),_0xb6c8e2=await _0x20f26a({'refresh':!![]});a25_0x2103c9[_0x17fa90(0xfc)](_0xb6c8e2['installed'],!![]),a25_0x2103c9[_0x17fa90(0xfc)](_0xb6c8e2[_0x17fa90(0x101)],!![]);}finally{globalThis[_0x17fa90(0x11c)]=originalFetch;}}),a25_0x97ed40('dreaminaCliApi:\x20start\x20headless\x20login\x20posts\x20mode\x20only',async()=>{const _0x220ae3=a25_0x47cd65;try{createJsonResponse({'success':!![]},_0x220ae3(0x11d),_0x220ae3(0x118),_0x2ec1d6=>{const _0x4fca6a=_0x220ae3,_0x4c4597=JSON[_0x4fca6a(0x110)](String(_0x2ec1d6||'{}'));a25_0x2103c9[_0x4fca6a(0xfc)](_0x4c4597[_0x4fca6a(0xf9)],_0x4fca6a(0x103)),a25_0x2103c9['equal'](_0x4fca6a(0x11e)in _0x4c4597,![]);});const {startDreaminaHeadlessLoginFromServer:_0x1f09cf}=await import(_0x220ae3(0x10d)),_0x1ab0bc=await _0x1f09cf();a25_0x2103c9[_0x220ae3(0xfc)](_0x1ab0bc[_0x220ae3(0x11f)],!![]);}finally{globalThis[_0x220ae3(0x11c)]=originalFetch;}}),a25_0x97ed40(a25_0x47cd65(0xfb),async()=>{const _0x1766dc=a25_0x47cd65;try{createJsonResponse({'success':!![],'runtime':{'loginMode':_0x1766dc(0x105)}},'/api/v2/dreamina/login/web','POST',_0xf9f5a1=>{const _0xa197d=_0x1766dc,_0x30b6ba=JSON[_0xa197d(0x110)](String(_0xf9f5a1||'{}'));a25_0x2103c9[_0xa197d(0xfc)](_0x30b6ba['mode'],_0xa197d(0x105)),a25_0x2103c9[_0xa197d(0xfc)](_0x30b6ba[_0xa197d(0x10b)],!![]);});const {startDreaminaWebLoginFromServer:_0x450d3b}=await import(_0x1766dc(0x10d)),_0x42932e=await _0x450d3b({'force':!![]});a25_0x2103c9['equal'](_0x42932e[_0x1766dc(0x11f)],!![]),a25_0x2103c9[_0x1766dc(0xfc)](_0x42932e[_0x1766dc(0xfe)][_0x1766dc(0x111)],_0x1766dc(0x105));}finally{globalThis[_0x1766dc(0x11c)]=originalFetch;}}),a25_0x97ed40(a25_0x47cd65(0x117),async()=>{const _0x495423=a25_0x47cd65;try{createJsonResponse({'success':!![],'runtime':{'phase':_0x495423(0x113)}},_0x495423(0x115),_0x495423(0x118),_0x2da3d8=>{const _0x53b873=_0x495423,_0x3cfc10=JSON[_0x53b873(0x110)](String(_0x2da3d8||'{}'));a25_0x2103c9[_0x53b873(0xfc)](typeof _0x3cfc10[_0x53b873(0x104)],_0x53b873(0x107)),a25_0x2103c9[_0x53b873(0xfc)](_0x3cfc10[_0x53b873(0x104)][_0x53b873(0x100)],'abc123');});const {importDreaminaLoginResponseFromServer:_0x2f5eef}=await import(_0x495423(0x10d)),_0x5ab62c=await _0x2f5eef({'submit_id':_0x495423(0x10f),'ok':!![]});a25_0x2103c9[_0x495423(0xfc)](_0x5ab62c['success'],!![]),a25_0x2103c9[_0x495423(0xfc)](_0x5ab62c[_0x495423(0xfe)][_0x495423(0xfd)],'starting');}finally{globalThis['fetch']=originalFetch;}}),a25_0x97ed40(a25_0x47cd65(0xff),async()=>{const _0x22ce15=a25_0x47cd65;try{createJsonResponse({'success':!![]},'/api/v2/dreamina/logout','POST');const {logoutDreaminaFromServer:_0x3d326a}=await import(_0x22ce15(0x10d)),_0x5a1303=await _0x3d326a();a25_0x2103c9[_0x22ce15(0xfc)](_0x5a1303[_0x22ce15(0x11f)],!![]);}finally{globalThis[_0x22ce15(0x11c)]=originalFetch;}});function a25_0x4597(){const _0x194426=['headless','loginResponse','web','dreaminaCliApi:\x20fetch\x20status\x20with\x20refresh','object','stringify','function','992359KApVIQ','force','GET','./dreaminaCliApi.js','7798973gGGUoA','abc123','parse','loginMode','4805920OwwsZH','starting','81UlaaLr','/api/v2/dreamina/login/import','6gWKgpR','dreaminaCliApi:\x20import\x20login\x20response\x20posts\x20JSON\x20payload','POST','10265427MutpgF','/api/v2/dreamina/status?refresh=1','64792nFrULo','fetch','/api/v2/dreamina/login','commandPath','success','5525720rquAeM','mode','2273512yMLbQO','dreaminaCliApi:\x20start\x20web\x20login\x20posts\x20web\x20mode\x20and\x20force\x20flag','equal','phase','runtime','dreaminaCliApi:\x20logout\x20posts\x20to\x20logout\x20endpoint','submit_id','loggedIn','application/json'];a25_0x4597=function(){return _0x194426;};return a25_0x4597();}
+import test from "node:test";
+import assert from "node:assert/strict";
+
+const originalFetch = globalThis.fetch;
+
+function createJsonResponse(data, expectedUrl, expectedMethod = "GET", verifyBody = null) {
+  globalThis.fetch = async (url, options = {}) => {
+    assert.equal(String(url), expectedUrl);
+    assert.equal(String(options?.method || "GET"), expectedMethod);
+    if (typeof verifyBody === "function") {
+      verifyBody(options?.body);
+    }
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
+      json: async () => data,
+      text: async () => JSON.stringify(data),
+    };
+  };
+}
+
+test("dreaminaCliApi: fetch status with refresh", async () => {
+  try {
+    createJsonResponse({ installed: true, loggedIn: true }, "/api/v2/dreamina/status?refresh=1");
+    const { fetchDreaminaCliStatusFromServer } = await import("./dreaminaCliApi.js");
+
+    const status = await fetchDreaminaCliStatusFromServer({ refresh: true });
+
+    assert.equal(status.installed, true);
+    assert.equal(status.loggedIn, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("dreaminaCliApi: headless login helpers are not exported", async () => {
+  const api = await import("./dreaminaCliApi.js");
+
+  assert.equal(Object.hasOwn(api, "startDreaminaHeadlessLoginFromServer"), false);
+  assert.equal(Object.hasOwn(api, "startDreaminaHeadlessReloginFromServer"), false);
+});
+
+test("dreaminaCliApi: start web login posts web mode and force flag", async () => {
+  try {
+    createJsonResponse(
+      { success: true, runtime: { loginMode: "web" } },
+      "/api/v2/dreamina/login/web",
+      "POST",
+      (body) => {
+        const payload = JSON.parse(String(body || "{}"));
+        assert.equal(payload.mode, "web");
+        assert.equal(payload.force, true);
+      },
+    );
+    const { startDreaminaWebLoginFromServer } = await import("./dreaminaCliApi.js");
+
+    const result = await startDreaminaWebLoginFromServer({ force: true });
+
+    assert.equal(result.success, true);
+    assert.equal(result.runtime.loginMode, "web");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("dreaminaCliApi: import login response posts JSON payload", async () => {
+  try {
+    createJsonResponse(
+      { success: true, runtime: { phase: "starting" } },
+      "/api/v2/dreamina/login/import",
+      "POST",
+      (body) => {
+        const payload = JSON.parse(String(body || "{}"));
+        assert.equal(typeof payload.loginResponse, "object");
+        assert.equal(payload.loginResponse.submit_id, "abc123");
+      },
+    );
+    const { importDreaminaLoginResponseFromServer } = await import("./dreaminaCliApi.js");
+
+    const result = await importDreaminaLoginResponseFromServer({ submit_id: "abc123", ok: true });
+
+    assert.equal(result.success, true);
+    assert.equal(result.runtime.phase, "starting");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("dreaminaCliApi: logout posts to logout endpoint", async () => {
+  try {
+    createJsonResponse({ success: true }, "/api/v2/dreamina/logout", "POST");
+    const { logoutDreaminaFromServer } = await import("./dreaminaCliApi.js");
+
+    const result = await logoutDreaminaFromServer();
+
+    assert.equal(result.success, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("dreaminaCliApi: cancel login posts to cancel endpoint", async () => {
+  try {
+    createJsonResponse({ success: true }, "/api/v2/dreamina/login/cancel", "POST");
+    const { cancelDreaminaLoginFromServer } = await import("./dreaminaCliApi.js");
+
+    const result = await cancelDreaminaLoginFromServer();
+
+    assert.equal(result.success, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -107,7 +107,7 @@ test("modelRegistryRuntime: 注册模型图片节点提交本地代理时自动�
   assert.equal(result.localPath, "output/registry-direct.png");
 });
 
-test("modelRegistryRuntime: openai-compatible 图片模型多图提交透传 n 且提交超时为 200s", async () => {
+test("modelRegistryRuntime: openai-compatible 图片模型多图提交透传 n 且提交超时为 600s", async () => {
   let submitBody = null;
   const timeoutValues = [];
   let timerId = 0;
@@ -133,12 +133,17 @@ test("modelRegistryRuntime: openai-compatible 图片模型多图提交透传 n �
     if (requestUrl === "/api/v2/proxy/image") {
       submitBody = JSON.parse(String(options.body || "{}"));
       return makeJsonResponse({
-        results: [{ url: "https://img.example.com/registry-direct-2.png" }],
+        results: [
+          { url: "https://img.example.com/registry-direct-2-a.png" },
+          { url: "https://img.example.com/registry-direct-2-b.png" },
+        ],
       });
     }
 
     if (requestUrl === "/api/v2/save_output_from_url") {
-      return makeJsonResponse({ path: "output/registry-direct-2.png" });
+      const body = JSON.parse(String(options.body || "{}"));
+      const fileName = String(body.url || "").split("/").pop();
+      return makeJsonResponse({ path: `output/${fileName}` });
     }
 
     throw new Error(`unexpected fetch url: ${requestUrl}`);
@@ -156,8 +161,12 @@ test("modelRegistryRuntime: openai-compatible 图片模型多图提交透传 n �
 
   assert.equal(submitBody.n, 2);
   assert.equal("batchSize" in submitBody, false);
-  assert.ok(timeoutValues.includes(200_000));
-  assert.equal(result.localPath, "output/registry-direct-2.png");
+  assert.ok(timeoutValues.includes(600_000));
+  assert.equal(result.isBatch, true);
+  assert.deepEqual(
+    result.images.map((item) => item.localPath),
+    ["output/registry-direct-2-a.png", "output/registry-direct-2-b.png"]
+  );
 });
 
 test("modelRegistryRuntime: success 包裹下 data 字符串 taskId 也会继续轮询生成", async () => {

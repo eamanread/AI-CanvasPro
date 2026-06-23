@@ -1,0 +1,11 @@
+{
+  "_desc": "poison：①G1 fill0.4无理由 ②G4高潮降fast(禁降档) ③降级目标nano-banana-pro(跨族) ④含货币5元/次 ⑤成片含gen_cost/降级到Fast/省积分泄漏 → 多FAIL/NO-GO",
+  "cost_plan": {
+    "groups": [
+      { "id": "G1", "fill_ratio": 0.4, "tier": "standard", "emotion_level": 1, "category": "normal", "note": "约5元/次" },
+      { "id": "G4", "fill_ratio": 0.9, "tier": "fast", "emotion_level": 5, "category": "normal" }
+    ],
+    "degrade_to": "nano-banana-pro",
+    "final_text": "镜头组1 gen_cost=0.6× 降级到Fast 省积分。"
+  }
+}

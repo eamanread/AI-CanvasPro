@@ -1,0 +1,21 @@
+{
+  "id": "config-bible-interlock", "kind": "bible", "final_text": "",
+  "_desc": "D13 四表互锁 case：翡翠楼紧凑四表基线，验引用闭合/焦点覆盖/状态轴单调/L1锚不漂。",
+  "bible": {
+    "characters": [
+      { "id": "[Element_ZhaoShanhe]", "anchor": { "hair": "#2A2622" }, "focus": true },
+      { "id": "[Element_LinChen]", "anchor": { "hair": "#1A1A1A" }, "focus": true }
+    ],
+    "scenes": [ { "id": "[Element_PrivateRoom_BanquetWarm]", "focus": true } ],
+    "props": [ { "id": "[Prop_Candle_Banquet_01]", "states": ["s1", "s2", "s3"] } ],
+    "storyboard": [
+      { "group": "G5", "refs": ["[Element_ZhaoShanhe]", "[Element_PrivateRoom_BanquetWarm]", "[Prop_Candle_Banquet_01]@s1"],
+        "looks": { "[Element_ZhaoShanhe]": { "hair": "#2A2622" } } },
+      { "group": "G6", "refs": ["[Element_LinChen]", "[Element_PrivateRoom_BanquetWarm]", "[Prop_Candle_Banquet_01]@s2"],
+        "looks": { "[Element_LinChen]": { "hair": "#1A1A1A" } } },
+      { "group": "G11", "refs": ["[Element_ZhaoShanhe]", "[Element_PrivateRoom_BanquetWarm]", "[Prop_Candle_Banquet_01]@s3"],
+        "looks": { "[Element_ZhaoShanhe]": { "hair": "#2A2622" } } }
+    ],
+    "final_text": "镜头组5 时长：12s 切镜方式：硬切"
+  }
+}

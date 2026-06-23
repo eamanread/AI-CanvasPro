@@ -1,0 +1,173 @@
+{
+  "caseId": "STV-SAMPLE-PASS",
+  "actions": [
+    {
+      "type": "create_node",
+      "nodeId": "outline",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "story_outline"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "style",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "style_bible"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "script_1",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_script",
+        "shotIndex": 1,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 1 keyframe",
+        "shotVideoPrompt": "shot 1 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "keyframe_1",
+      "nodeType": "ai-image",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_keyframe",
+        "shotIndex": 1,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 1 keyframe",
+        "shotVideoPrompt": "shot 1 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "video_1",
+      "nodeType": "ai-video",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_video",
+        "shotIndex": 1,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 1 keyframe",
+        "shotVideoPrompt": "shot 1 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "script_2",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_script",
+        "shotIndex": 2,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 2 keyframe",
+        "shotVideoPrompt": "shot 2 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "keyframe_2",
+      "nodeType": "ai-image",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_keyframe",
+        "shotIndex": 2,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 2 keyframe",
+        "shotVideoPrompt": "shot 2 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "video_2",
+      "nodeType": "ai-video",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_video",
+        "shotIndex": 2,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 2 keyframe",
+        "shotVideoPrompt": "shot 2 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "script_3",
+      "nodeType": "ai-text",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_script",
+        "shotIndex": 3,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 3 keyframe",
+        "shotVideoPrompt": "shot 3 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "keyframe_3",
+      "nodeType": "ai-image",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_keyframe",
+        "shotIndex": 3,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 3 keyframe",
+        "shotVideoPrompt": "shot 3 camera motion"
+      }
+    },
+    {
+      "type": "create_node",
+      "nodeId": "video_3",
+      "nodeType": "ai-video",
+      "metadata": {
+        "workflowKind": "story_to_video",
+        "workflowGroupId": "wf_sample_pass",
+        "workflowStep": "shot_video",
+        "shotIndex": 3,
+        "shotDurationSec": 3,
+        "shotPrompt": "shot 3 keyframe",
+        "shotVideoPrompt": "shot 3 camera motion"
+      }
+    },
+    {
+      "type": "queue_generation_task",
+      "nodeId": "script_1",
+      "nodeType": "ai-text"
+    },
+    {
+      "type": "queue_generation_task",
+      "nodeId": "keyframe_1",
+      "nodeType": "ai-image"
+    }
+  ],
+  "schema": {
+    "valid": true,
+    "warnings": [
+      "safe Class A repair applied"
+    ],
+    "errors": []
+  },
+  "browserAcceptance": {
+    "applied": true,
+    "nonOverlapping": true,
+    "orderedStoryboard": false
+  }
+}

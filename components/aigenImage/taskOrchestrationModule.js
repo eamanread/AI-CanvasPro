@@ -1,4 +1,9 @@
 import { createAIGenerateNodeTaskOrchestrationModule as createLegacyTaskOrchestrationModule } from "./taskOrchestrationModule.impl.js";
+import "../../modules/ImageFreeAngleController.registry.js";
+import {
+  PROMPT_PRESET_PILL_SELECTOR,
+  getPromptTextWithPresetSelection,
+} from "../../modules/promptPresetPillRuntime.js";
 import {
   applyImageNodeSelectionPatch,
   buildRegistryImagePayload,
@@ -7,9 +12,31 @@ import {
   REGISTRY_IMAGE_PROVIDER,
   resolveImageNodeModelState,
 } from "./modelRegistryRuntime.js";
+import {
+  buildPersistentGenerationFailurePatch,
+  buildPersistentGenerationStartPatch,
+  buildPersistentGenerationSuccessPatch,
+  persistGenerationFailure,
+} from "../../src/core/persistentGenerationError.js";
+import {
+  applyGenerationSubmitButtonState,
+  beginGenerationRun,
+  isGenerationAbortError,
+} from "../../src/core/generationRunController.js";
 
 function trimText(value) {
   return String(value ?? "").trim();
+}
+
+function hasMatchingPromptPresetSelection(node) {
+  const selection = node?._data?.promptPresetSelection;
+  const title = trimText(selection?.title);
+  const pill = node?.promptEl?.querySelector?.(PROMPT_PRESET_PILL_SELECTOR);
+  if (!title || !pill) {
+    return false;
+  }
+  const pillTitle = trimText(pill.getAttribute?.("data-prompt-preset-title") || pill.textContent);
+  return pillTitle === title;
 }
 
 function showToast(message, level = "error") {
@@ -35,11 +62,15 @@ function setGeneratingState(node, isGenerating) {
     return;
   }
 
-  node.btnEl.disabled = isGenerating;
-  node.btnEl.textContent = isGenerating ? "生成中" : "生成";
-  if (!isGenerating && typeof node._updateSubmitButtonState === "function") {
-    node._updateSubmitButtonState();
+  applyGenerationSubmitButtonState(node, isGenerating ? "running" : "idle");
+}
+
+function applyImageStopButtonState(node) {
+  if (!node?.btnEl || node?._isGenerating !== true) {
+    return;
   }
+
+  applyGenerationSubmitButtonState(node, "running");
 }
 
 function normalizeImages(result) {
@@ -68,6 +99,7 @@ function buildRegistrySuccessPatch(result, startedAt) {
     thumbLocalPath: trimText(firstImage.thumbLocalPath),
     isGenerating: false,
     jobStatus: "success",
+    jobError: null,
     error: null,
     generationDuration: Date.now() - startedAt,
     asyncTaskStatus: "success",
@@ -83,6 +115,36 @@ function syncNodeDataFromStore(node, store) {
   node._data = latestNodeData;
 }
 
+function submitGenerationFromAgent(node, prompt = "", task = {}) {
+  if (node?._isGenerating) {
+    return {
+      started: true,
+      alreadyRunning: true,
+      nodeId: trimText(node.nodeId || node._data?.id || task.nodeId),
+      source: "assistant",
+    };
+  }
+
+  const run = node?._onGenerate;
+  if (typeof run !== "function") {
+    return {
+      started: false,
+      retryable: true,
+      nodeId: trimText(node?.nodeId || node?._data?.id || task.nodeId),
+      source: "assistant",
+      warning: "node generation method unavailable",
+    };
+  }
+
+  Promise.resolve(run.call(node, prompt)).catch(() => {});
+  return {
+    started: true,
+    nodeId: trimText(node.nodeId || node._data?.id || task.nodeId),
+    nodeType: trimText(task.nodeType || node._data?.type),
+    source: "assistant",
+  };
+}
+
 function createWrappedModule(legacyModule, overrides) {
   const wrappedModule = {};
   Object.defineProperties(wrappedModule, Object.getOwnPropertyDescriptors(legacyModule));
@@ -93,25 +155,86 @@ function createWrappedModule(legacyModule, overrides) {
 export function createAIGenerateNodeTaskOrchestrationModule(deps) {
   const legacyModule = createLegacyTaskOrchestrationModule(deps);
   const originalBuildPayload = legacyModule._buildPayload;
+  const originalUpdateSubmitButtonState = legacyModule._updateSubmitButtonState;
+  const originalHandleGenerateOrCancel = legacyModule._handleGenerateOrCancel;
+  const originalCancelRunningHubTask = legacyModule._cancelRunningHubTask;
 
   return createWrappedModule(legacyModule, {
+    submitGenerationFromAgent(prompt = "", task = {}) {
+      return submitGenerationFromAgent(this, prompt, task);
+    },
+
+    _updateSubmitButtonState(...args) {
+      const result = originalUpdateSubmitButtonState?.apply(this, args);
+      applyImageStopButtonState(this);
+      return result;
+    },
+
+    async _handleGenerateOrCancel(...args) {
+      if (this._isGenerating) {
+        if (this._generationRun && typeof this._generationRun.cancelNow === "function") {
+          this._generationRun.cancelNow();
+        } else {
+          this._rhCancelRequested = true;
+          this._rhAbortController?.abort?.();
+          setGeneratingState(this, false);
+          deps.store?.updateNodeData?.(this.nodeId, {
+            isGenerating: false,
+            jobStatus: null,
+            asyncTaskStatus: "cancelled",
+          });
+          deps.stopLoading?.(this.previewEl);
+          if (typeof originalCancelRunningHubTask === "function") {
+            Promise.resolve()
+              .then(() => originalCancelRunningHubTask.apply(this, args))
+              .catch(() => {});
+          }
+        }
+        return;
+      }
+      const result = originalHandleGenerateOrCancel?.apply(this, args);
+      applyImageStopButtonState(this);
+      return await result;
+    },
+
+    async _cancelRunningHubTask(...args) {
+      const result = originalCancelRunningHubTask?.apply(this, args);
+      applyImageStopButtonState(this);
+      return await result;
+    },
+
     async _buildPayload(userInput = null) {
       syncNodeDataFromStore(this, deps.store);
+      const resolvedUserInput = hasMatchingPromptPresetSelection(this)
+        ? getPromptTextWithPresetSelection({
+            promptEl: this.promptEl,
+            nodeData: this._data,
+            fallbackText: userInput ?? this.promptEl?.textContent ?? "",
+          })
+        : userInput;
 
       if (!isRegistryImageNodeData(this._data)) {
-        return originalBuildPayload.call(this, userInput);
+        return originalBuildPayload.call(this, resolvedUserInput);
       }
 
       const runtimeState = resolveImageNodeModelState(this._data);
       applyImageNodeSelectionPatch(this, deps.store, runtimeState.patch);
 
       if (runtimeState.state === "deleted") {
-        showToast("模型已删除，请重新选择");
+        const message = "模型已删除，请重新选择";
+        showToast(message);
+        persistGenerationFailure(deps.store, this.nodeId, message, {
+          asyncTaskStatus: "failed",
+        });
         return null;
       }
 
       if (runtimeState.state === "unconfigured" || !runtimeState.model) {
-        showToast("该模型未配置", "warn");
+        const message = "该模型未配置";
+        showToast(message, "warn");
+        persistGenerationFailure(deps.store, this.nodeId, message, {
+          asyncTaskStatus: "failed",
+        });
         return null;
       }
 
@@ -125,7 +248,7 @@ export function createAIGenerateNodeTaskOrchestrationModule(deps) {
       let basePayload = null;
       try {
         this._data = safeData;
-        basePayload = await originalBuildPayload.call(this, userInput);
+        basePayload = await originalBuildPayload.call(this, resolvedUserInput);
       } finally {
         this._data = originalData;
       }
@@ -139,10 +262,15 @@ export function createAIGenerateNodeTaskOrchestrationModule(deps) {
 
     async _onGenerate(userInput = null) {
       if (!isRegistryImageNodeData(this._data)) {
-        return legacyModule._onGenerate.call(this, userInput);
+        const result = legacyModule._onGenerate.call(this, userInput);
+        applyImageStopButtonState(this);
+        return await result;
       }
 
       if (this._isGenerating) {
+        if (this._generationRun && typeof this._generationRun.cancelNow === "function") {
+          this._generationRun.cancelNow();
+        }
         return;
       }
 
@@ -160,9 +288,16 @@ export function createAIGenerateNodeTaskOrchestrationModule(deps) {
       }
 
       const generationStartTime = Date.now();
-      setGeneratingState(this, true);
-      deps.startLoading?.(this.previewEl);
+      const run = beginGenerationRun(this, {
+        store: deps.store,
+        nodeId: this.nodeId,
+        previewEl: this.previewEl,
+        startLoading: deps.startLoading,
+        stopLoading: deps.stopLoading,
+        startedAt: generationStartTime,
+      });
       deps.store.updateNodeData(this.nodeId, {
+        ...buildPersistentGenerationStartPatch(),
         isGenerating: true,
         jobStatus: "generating",
         error: null,
@@ -172,15 +307,40 @@ export function createAIGenerateNodeTaskOrchestrationModule(deps) {
       });
 
       try {
-        const result = await generateImageWithRegistryModel(payload);
+        const result = await generateImageWithRegistryModel(payload, {
+          signal: run.signal,
+          onTaskMeta: ({ taskId, apiKey }) => run.setTaskMeta({ taskId, apiKey }),
+          onTaskId: (taskId) => run.setTaskMeta({ taskId }),
+        });
+        if (!run.isCurrent() || run.cancelled) {
+          return;
+        }
         deps.store.updateNodeData(
           this.nodeId,
-          buildRegistrySuccessPatch(result, generationStartTime)
+          {
+            ...buildPersistentGenerationSuccessPatch(),
+            ...buildRegistrySuccessPatch(result, generationStartTime),
+          }
         );
       } catch (error) {
+        if (run.cancelled || isGenerationAbortError(error)) {
+          if (run.isCurrent()) {
+            deps.store.updateNodeData(this.nodeId, {
+              isGenerating: false,
+              jobStatus: null,
+              generationDuration: Date.now() - generationStartTime,
+              asyncTaskStatus: "cancelled",
+            });
+          }
+          return;
+        }
+        if (!run.isCurrent()) {
+          return;
+        }
         const message = normalizeRegistryGenerationErrorMessage(error?.message || error);
         showToast(`图片生成失败: ${message}`);
         deps.store.updateNodeData(this.nodeId, {
+          ...buildPersistentGenerationFailurePatch(message),
           isGenerating: false,
           jobStatus: "error",
           error: message,
@@ -188,8 +348,11 @@ export function createAIGenerateNodeTaskOrchestrationModule(deps) {
           asyncTaskStatus: "failed",
         });
       } finally {
-        setGeneratingState(this, false);
-        deps.stopLoading?.(this.previewEl);
+        if (run.isCurrent()) {
+          setGeneratingState(this, false);
+          deps.stopLoading?.(this.previewEl);
+          run.finish();
+        }
       }
     },
   });

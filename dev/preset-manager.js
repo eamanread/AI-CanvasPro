@@ -5,9 +5,16 @@ import {
   savePromptPresetDefinitionsToServer,
   savePromptPresetToServer,
 } from "../api/index.js";
+import {
+  PRESET_PACK_EXTENSION,
+  decodePresetImportText,
+  encodePresetPack,
+} from "./preset-pack-codec.js";
 
 const PRESET_SYNC_CHANNEL = "huanying-preset-manager";
 const DEFAULT_NODE_TYPES = ["ai-image", "ai-text", "ai-video", "ai-audio"];
+const HIDDEN_TEMPLATE_COPY = "提示词内容已隐藏，不在此页面展示。";
+const HIDDEN_TEMPLATE_SNIPPET = "提示词内容已隐藏";
 const NODE_TYPE_LABELS = {
   "ai-image": "AI 图片节点",
   "ai-text": "AI 文本节点",
@@ -42,9 +49,12 @@ const elements = {
   fileHint: document.getElementById("file-hint"),
   secondaryHint: document.getElementById("secondary-hint"),
   pageMessage: document.getElementById("page-message"),
+  importFileInput: document.getElementById("import-file-input"),
+  importButton: document.getElementById("import-button"),
+  exportButton: document.getElementById("export-button"),
   refreshButton: document.getElementById("refresh-button"),
+  newSystemGroupButton: document.getElementById("new-system-group-button"),
   newSystemButton: document.getElementById("new-system-button"),
-  newCustomButton: document.getElementById("new-custom-button"),
   newSubitemButton: document.getElementById("new-subitem-button"),
   saveButton: document.getElementById("save-button"),
   deleteButton: document.getElementById("delete-button"),
@@ -79,14 +89,11 @@ function normalizePresetItem(value, { allowSubItems }) {
     normalized.desc = desc;
   }
 
-  if (allowSubItems && Array.isArray(value.subItems) && value.subItems.length) {
-    const subItems = value.subItems
+  if (allowSubItems && Array.isArray(value.subItems)) {
+    normalized.subItems = value.subItems
       .map((item) => normalizePresetItem(item, { allowSubItems: false }))
       .filter(Boolean);
-    if (subItems.length) {
-      normalized.subItems = subItems;
-      return normalized;
-    }
+    return normalized;
   }
 
   const template = String(value.template || "");
@@ -132,7 +139,7 @@ function updateStatusChip(message, stateName = "saved") {
 }
 
 function updateNodeTypeHint() {
-  elements.presetRootHint.textContent = `user/prompt/${state.nodeType}`;
+  // 节点类型路径提示已并入弹窗头部, 此处无需展示。
 }
 
 function getSystemItems() {
@@ -153,6 +160,18 @@ function getSystemChild(itemIndex, childIndex) {
     return null;
   }
   return parent.subItems[childIndex] || null;
+}
+
+function createSystemGroupTarget() {
+  return {
+    source: "system",
+    mode: "create",
+    kind: "group",
+    nodeType: state.nodeType,
+    itemIndex: null,
+    childIndex: null,
+    parentItemIndex: null,
+  };
 }
 
 function createSystemLeafTarget() {
@@ -176,15 +195,6 @@ function createSystemChildTarget(parentItemIndex) {
     itemIndex: null,
     childIndex: null,
     parentItemIndex,
-  };
-}
-
-function createCustomTarget() {
-  return {
-    source: "custom",
-    mode: "create",
-    nodeType: state.nodeType,
-    title: "",
   };
 }
 
@@ -277,7 +287,6 @@ function buildFingerprint() {
     title: String(draft.title || "").trim(),
     icon: String(draft.icon || ""),
     desc: String(draft.desc || ""),
-    template: String(draft.template || ""),
   });
 }
 
@@ -298,6 +307,39 @@ function appendIconContent(container, icon) {
   container.textContent = raw;
 }
 
+function getVisibleSnippetText(item) {
+  const desc = String(item?.desc || "").trim();
+  if (desc) {
+    return desc;
+  }
+  if (Array.isArray(item?.subItems) && item.subItems.length) {
+    return `包含 ${item.subItems.length} 个子预设`;
+  }
+  return HIDDEN_TEMPLATE_SNIPPET;
+}
+
+function getTemplateForTarget(target) {
+  if (!target || target.source !== "system" && target.source !== "custom") {
+    return "";
+  }
+  if (target.source === "custom") {
+    if (target.mode !== "edit") {
+      return "";
+    }
+    const preset = getCustomPresets().find((item) => item.title === target.title);
+    return String(preset?.template || "");
+  }
+
+  if (target.kind === "group") {
+    return "";
+  }
+  if (target.mode === "create") {
+    return elements.presetTemplateInput.value;
+  }
+  const item = getSystemTargetItem(target);
+  return String(item?.template || "");
+}
+
 function renderPresetList() {
   const systemItems = getSystemItems();
   const customItems = getCustomPresets();
@@ -307,46 +349,34 @@ function renderPresetList() {
   const content = [];
   content.push(
     createSection({
-      eyebrow: "System Tree",
-      title: "系统预设树",
-      description: "这里会完整显示原始顶层项和 subItems 两层结构。",
+      title: "系统预设",
       body: systemItems.length
         ? buildSystemTree(systemItems, activeKey)
-        : buildEmptyBlock("当前节点类型还没有系统预设。"),
+        : buildEmptyBlock("暂无系统预设"),
     }),
   );
   content.push(
     createSection({
-      eyebrow: "Custom TXT",
-      title: "自定义 TXT 预设",
-      description: "这些条目会继续写回 user/prompt/<nodeType>/*.txt。",
+      title: "自定义",
       body: customItems.length
         ? buildCustomTree(customItems, activeKey)
-        : buildEmptyBlock("当前节点类型还没有自定义 TXT 预设。"),
+        : buildEmptyBlock("暂无自定义预设"),
     }),
   );
 
   elements.presetList.replaceChildren(...content);
 }
 
-function createSection({ eyebrow, title, description, body }) {
+function createSection({ title, body }) {
   const section = document.createElement("section");
   section.className = "preset-section";
 
   const head = document.createElement("div");
   head.className = "preset-section-head";
-
-  const textWrap = document.createElement("div");
-  const eyebrowEl = document.createElement("p");
-  eyebrowEl.className = "panel-eyebrow";
-  eyebrowEl.textContent = eyebrow;
   const titleEl = document.createElement("h3");
   titleEl.textContent = title;
-  const descEl = document.createElement("p");
-  descEl.textContent = description;
-  textWrap.append(eyebrowEl, titleEl, descEl);
+  head.append(titleEl);
 
-  head.append(textWrap);
   section.append(head, body);
   return section;
 }
@@ -420,7 +450,7 @@ function buildCustomTree(items, activeKey) {
 
     const snippet = document.createElement("p");
     snippet.className = "preset-card-snippet";
-    snippet.textContent = preset.template || "";
+    snippet.textContent = getVisibleSnippetText(preset);
 
     button.append(head, snippet);
     head.append(left, meta);
@@ -467,7 +497,7 @@ function createSystemCard(item, activeKey, itemIndex, childIndex) {
 
   const snippet = document.createElement("p");
   snippet.className = "preset-card-snippet";
-  snippet.textContent = item.desc || item.template || "未填写描述";
+  snippet.textContent = getVisibleSnippetText(item);
 
   button.append(head, snippet);
   head.append(left, meta);
@@ -514,6 +544,15 @@ function getEditorPresentation(target) {
     };
   }
 
+  if (target.mode === "create" && target.kind === "group") {
+    return {
+      title: "新建系统分组",
+      meta: "系统分组会写入预设树顶层，可以先保存为空分组；后续选中分组后再新增子预设。",
+      sourceLabel: "系统分组",
+      sourceClass: "",
+    };
+  }
+
   if (target.mode === "create") {
     return {
       title: "新建系统叶子预设",
@@ -554,49 +593,25 @@ function getEditorPresentation(target) {
 }
 
 function updateDerivedHints() {
-  updateNodeTypeHint();
-  const target = state.editorTarget;
-  const draft = readDraft();
-  const safeTitle = String(draft.title || "").trim() || "新预设";
-
-  if (target?.source === "custom") {
-    elements.fileHint.textContent = `会写入：user/prompt/${state.nodeType}/${safeTitle}.txt`;
-    elements.secondaryHint.textContent =
-      "自定义 TXT 预设不支持 icon / desc / subItems，只会在运行时追加到系统预设后面。";
-    return;
-  }
-
-  elements.fileHint.textContent = "会写入：config/prompt-presets.json";
-  if (target?.kind === "group") {
-    elements.secondaryHint.textContent =
-      "系统分组会保留原始两层 subItems 结构；如需新增子预设，请使用下方按钮。";
-    return;
-  }
-
-  if (target?.parentItemIndex != null) {
-    const group = getSystemItem(target.parentItemIndex);
-    elements.secondaryHint.textContent = `该条目会作为分组「${group?.title || ""}」的子预设保存。`;
-    return;
-  }
-
-  elements.secondaryHint.textContent =
-    "系统叶子预设会直接成为运行时内置预设，主画布收到同步广播后可即时刷新。";
+  // 文件路径/结构说明等解释性提示已移除(交互精简)。落盘逻辑不变。
 }
 
 function updateEditorChrome() {
   const target = state.editorTarget;
   const presentation = getEditorPresentation(target);
   elements.editorTitle.textContent = presentation.title;
-  elements.editorMeta.textContent = presentation.meta;
   elements.sourceChip.textContent = presentation.sourceLabel;
   elements.sourceChip.classList.toggle("is-custom", presentation.sourceClass === "is-custom");
 
   const isSystemTarget = target?.source === "system";
   const isSystemGroup = isSystemTarget && target.kind === "group";
+  const canEditTemplate =
+    target?.source === "custom" || (isSystemTarget && target.mode === "create" && target.kind !== "group");
   const groupContext = getSystemGroupContext(target);
 
   elements.systemFields.classList.toggle("is-hidden", !isSystemTarget);
   elements.templateField.classList.toggle("is-hidden", isSystemGroup);
+  elements.presetTemplateInput.readOnly = !canEditTemplate;
   elements.newSubitemButton.disabled = !groupContext;
   elements.deleteButton.disabled = !(target && target.mode === "edit");
 
@@ -637,11 +652,11 @@ function setEditorTarget(target) {
   elements.presetIconInput.value = sourceValue?.icon || "";
   elements.presetDescInput.value = sourceValue?.desc || "";
   elements.presetTemplateInput.value =
-    target.source === "custom"
-      ? sourceValue?.template || ""
-      : target.kind === "group"
-        ? ""
-        : sourceValue?.template || "";
+    target.kind === "group" || target.mode === "create"
+      ? ""
+      : target.source === "custom"
+        ? String(sourceValue?.template || "")
+        : HIDDEN_TEMPLATE_COPY;
 
   state.lastSavedFingerprint = buildFingerprint();
   updateEditorChrome();
@@ -746,6 +761,89 @@ function syncNodeTypeFromQuery() {
   }
 }
 
+function buildPresetExportFileName() {
+  const date = new Date().toISOString().slice(0, 10);
+  return `huanying-presets-${date}${PRESET_PACK_EXTENSION}`;
+}
+
+function downloadTextFile(fileName, content, mimeType = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("文件读取失败"));
+    reader.readAsText(file, "utf-8");
+  });
+}
+
+async function handleExportPresets() {
+  elements.exportButton.disabled = true;
+  updateStatusChip("导出中...");
+
+  try {
+    const latestDefinitions = normalizePresetCollection(
+      await fetchPromptPresetDefinitionsFromServer(),
+      { allowSubItems: true },
+    );
+    const encoded = await encodePresetPack(latestDefinitions);
+    downloadTextFile(buildPresetExportFileName(), encoded);
+    updateStatusChip("已同步");
+    showMessage("全节点系统预设已导出为加密文件。");
+  } catch (error) {
+    updateStatusChip("导出失败", "error");
+    showMessage(error?.message || "导出失败");
+  } finally {
+    elements.exportButton.disabled = false;
+    updateEditorChrome();
+  }
+}
+
+async function importPresetFile(file) {
+  const text = await readFileAsText(file);
+  const definitions = await decodePresetImportText(text);
+  await savePromptPresetDefinitionsToServer(definitions);
+  state.definitionsByType = normalizePresetCollection(definitions, { allowSubItems: true });
+  await reloadPresets({ preserveCurrent: false });
+  broadcastPresetChange();
+}
+
+async function handleImportPresets(event) {
+  const file = event?.target?.files?.[0] || null;
+  if (!file) {
+    return;
+  }
+
+  elements.importButton.disabled = true;
+  updateStatusChip("导入中...");
+
+  try {
+    await importPresetFile(file);
+    updateStatusChip("已同步");
+    showMessage("导入成功：全节点系统预设已替换。");
+  } catch (error) {
+    updateStatusChip("导入失败", "error");
+    showMessage(error?.message || "导入失败");
+  } finally {
+    elements.importButton.disabled = false;
+    if (elements.importFileInput) {
+      elements.importFileInput.value = "";
+    }
+    updateEditorChrome();
+  }
+}
+
 function getSiblingItemsForSystemTarget(target) {
   if (target.parentItemIndex != null) {
     const parent = getSystemItem(target.parentItemIndex);
@@ -760,15 +858,8 @@ function validateSystemDraft(target, draft) {
     return "标题不能为空";
   }
 
-  if (target.kind !== "group" && !String(draft.template || "").trim()) {
+  if (target.kind !== "group" && !String(getTemplateForTarget(target) || "").trim()) {
     return "模板不能为空";
-  }
-
-  if (target.kind === "group") {
-    const item = getSystemTargetItem(target);
-    if (!Array.isArray(item?.subItems) || !item.subItems.length) {
-      return "系统分组至少需要保留一个子预设";
-    }
   }
 
   const siblings = getSiblingItemsForSystemTarget(target);
@@ -811,7 +902,7 @@ function buildSystemItemFromDraft(target, draft) {
     return item;
   }
 
-  item.template = String(draft.template || "");
+  item.template = target.mode === "create" ? draft.template : getTemplateForTarget(target);
   return item;
 }
 
@@ -903,7 +994,7 @@ async function handleSave() {
       if (!String(draft.title || "").trim()) {
         throw new Error("标题不能为空");
       }
-      if (!String(draft.template || "").trim()) {
+      if (!String(getTemplateForTarget(target) || "").trim()) {
         throw new Error("模板不能为空");
       }
 
@@ -911,7 +1002,7 @@ async function handleSave() {
         nodeType: state.nodeType,
         title: draft.title,
         originalTitle: target.mode === "edit" ? target.title : "",
-        template: draft.template,
+        template: getTemplateForTarget(target),
       });
       await reloadPresets({
         preserveCurrent: false,
@@ -950,8 +1041,8 @@ function buildNextDefinitionsForDelete(target) {
 
   if (target.childIndex != null) {
     const parent = nextItems[target.itemIndex];
-    if (!Array.isArray(parent?.subItems) || parent.subItems.length <= 1) {
-      throw new Error("系统分组至少需要保留一个子预设；若不再需要该组，请直接删除整个分组。");
+    if (!Array.isArray(parent?.subItems)) {
+      return nextDefinitions;
     }
     parent.subItems.splice(target.childIndex, 1);
     return nextDefinitions;
@@ -1006,13 +1097,13 @@ function handleDraftChange() {
   updateStatusChip(isDirty() ? "未保存" : "已同步", isDirty() ? "dirty" : "saved");
 }
 
-function startNewSystemPreset() {
-  setEditorTarget(createSystemLeafTarget());
+function startNewSystemGroup() {
+  setEditorTarget(createSystemGroupTarget());
   elements.presetTitleInput.focus();
 }
 
-function startNewCustomPreset() {
-  setEditorTarget(createCustomTarget());
+function startNewSystemPreset() {
+  setEditorTarget(createSystemLeafTarget());
   elements.presetTitleInput.focus();
 }
 
@@ -1029,12 +1120,17 @@ function startNewSubitemPreset() {
 async function init() {
   syncNodeTypeFromQuery();
 
+  elements.importButton.addEventListener("click", () => {
+    elements.importFileInput.click();
+  });
+  elements.importFileInput.addEventListener("change", handleImportPresets);
+  elements.exportButton.addEventListener("click", handleExportPresets);
   elements.refreshButton.addEventListener("click", async () => {
     await reloadPresets();
     showMessage("已重新从本地目录与系统定义文件读取预设。");
   });
+  elements.newSystemGroupButton.addEventListener("click", startNewSystemGroup);
   elements.newSystemButton.addEventListener("click", startNewSystemPreset);
-  elements.newCustomButton.addEventListener("click", startNewCustomPreset);
   elements.newSubitemButton.addEventListener("click", startNewSubitemPreset);
   elements.saveButton.addEventListener("click", handleSave);
   elements.deleteButton.addEventListener("click", handleDelete);
@@ -1055,6 +1151,16 @@ async function init() {
   await reloadPresets({ preserveCurrent: false });
   showMessage("预设管理器已就绪。");
 }
+
+// Esc 桥接: 作为应用内弹窗(iframe)内嵌时, 焦点在本页内 Esc 不会冒泡到父级文档,
+// 故主动同源 postMessage 通知父窗口关闭弹窗。独立打开时无父级, 不触发。
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage({ type: "hy-preset-mgr-close" }, window.location.origin);
+    } catch (_) {}
+  }
+});
 
 init().catch((error) => {
   console.error("[preset-manager] init failed", error);

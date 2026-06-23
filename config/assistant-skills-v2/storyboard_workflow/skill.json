@@ -1,0 +1,65 @@
+{
+  "id": "storyboard_workflow",
+  "name": "故事分镜工作流",
+  "version": "1.0.0",
+  "type": "scenario",
+  "enabled": true,
+  "priority": 96,
+  "injectMode": "when_matched",
+  "triggers": [
+    "分镜",
+    "分镜工作流",
+    "做 6 个分镜",
+    "做6个分镜",
+    "生成分镜",
+    "分镜文本",
+    "storyboard workflow"
+  ],
+  "requiredContext": [
+    "context.canvas.nodes",
+    "context.canvas.edges",
+    "context.selection.selectedNodeIds",
+    "context.project.preferences",
+    "context.promptPresets"
+  ],
+  "allowedActions": [
+    "create_node",
+    "connect_nodes",
+    "layout_nodes",
+    "create_group",
+    "focus_nodes",
+    "queue_generation_task",
+    "run_prompt_preset_generation",
+    "update_node_data",
+    "rename_node"
+  ],
+  "forbiddenActions": [
+    "delete_nodes",
+    "overwrite_user_content",
+    "write_file",
+    "shell_command",
+    "queue_generation_task:ai-video"
+  ],
+  "qualityRules": [
+    "故事大纲是一个总节点；分镜文本按镜头拆成多个 shot_script 节点。",
+    "每个镜头应包含秒数、画面、镜头运动、风格、可用于文生图的 shotPrompt。",
+    "每个镜头的文本节点应连接到对应关键帧图片节点。",
+    "图片生成可以自动执行；视频节点只准备草稿，真实视频生成必须授权视频。"
+  ],
+  "riskLevel": "low",
+  "requiresConfirmation": false,
+  "qualityChecks": [
+    {
+      "type": "requiresActionType",
+      "action": "create_node"
+    },
+    {
+      "type": "forbidsActionType",
+      "action": "delete_nodes"
+    },
+    {
+      "type": "maxActions",
+      "value": 30
+    }
+  ]
+}

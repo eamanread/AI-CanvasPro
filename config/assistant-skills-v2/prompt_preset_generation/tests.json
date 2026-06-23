@@ -1,0 +1,6 @@
+[
+  {
+    "input": "用预设生成图片",
+    "expectSkill": "prompt_preset_generation"
+  }
+]

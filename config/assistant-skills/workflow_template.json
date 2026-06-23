@@ -1,0 +1,68 @@
+{
+  "id": "workflow_template",
+  "name": "Huanying Workflow Template",
+  "version": "0.3.0",
+  "enabled": true,
+  "priority": 100,
+  "injectMode": "when_matched",
+  "triggers": [
+    "save as template",
+    "project template",
+    "workflow template",
+    "template",
+    "reuse workflow",
+    "save this selected workflow",
+    "team template",
+    "team library",
+    "publish template",
+    "review template",
+    "bao cun cheng mo ban",
+    "gong zuo liu mo ban"
+  ],
+  "allowedActions": [
+    "create_workflow_template",
+    "apply_workflow_template",
+    "submit_workflow_template_review",
+    "review_workflow_template",
+    "publish_workflow_template",
+    "deprecate_workflow_template",
+    "rollback_workflow_template",
+    "record_workflow_template_reuse",
+    "focus_nodes"
+  ],
+  "forbiddenActions": [
+    "write_file",
+    "shell",
+    "delete_nodes",
+    "queue_generation_task",
+    "team_library_write"
+  ],
+  "requiredContext": [
+    "context.canvas.nodes",
+    "context.canvas.edges",
+    "context.selection.selectedNodeIds"
+  ],
+  "body": "Goal: identify reusable workflow inputs, processing steps, outputs, and parameters. Template creation changes reusable project state, so create_workflow_template is high risk and requires confirmation. First version is project scope by default. Reuse existing project templates with apply_workflow_template by templateId. Team template governance is high risk and only for explicit team-library intent: use submit_workflow_template_review, review_workflow_template, publish_workflow_template, deprecate_workflow_template, rollback_workflow_template, and record_workflow_template_reuse with templateId, teamId, reviewStatus/reviewer, reuseCount when known, version, author, tags, and strong confirmation. Include templateId, scope, version, author, tags, deprecated/rollback metadata when known. Do not claim a template has been saved or published until executor/storage confirms it. Do not write files, call shell, start generation, or push raw files to a team library.",
+  "compactBody": "Template: create/apply project templates; team template governance uses review/publish/deprecate/rollback/reuse stats with teamId; strong confirmation; no files/shell/generation.",
+  "qualityRubric": [
+    "Template boundaries are clear.",
+    "Reusable parameters are explicit.",
+    "Governance metadata is present.",
+    "No secrets or local paths are embedded."
+  ],
+  "decisionGuide": [
+    "Prefer selected workflow; otherwise ask for scope.",
+    "Separate fixed assets from user-replaceable inputs.",
+    "Require confirmation before persistence.",
+    "Require explicit teamId and reviewStatus before team publishing.",
+    "Never claim saved before executor confirmation."
+  ],
+  "antiPatterns": [
+    "Saving the entire canvas as one template.",
+    "Embedding API keys or local paths.",
+    "Writing files or team libraries from the agent.",
+    "Publishing a team template without review/audit fields.",
+    "Claiming a team template was saved when only a preview exists."
+  ],
+  "examples": []
+}

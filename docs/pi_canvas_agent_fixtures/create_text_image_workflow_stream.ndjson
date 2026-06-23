@@ -1,0 +1,4 @@
+{"type":"message.start","conversationId":"fixture","messageId":"m2","traceId":"t2"}
+{"type":"message.delta","delta":"I will create a script node, an image node, and connect them."}
+{"type":"tool.status","message":"Proposing Huanying canvas actions"}
+{"type":"message.done","reply":"The script and keyframe workflow is ready for preview.","actions":[{"type":"create_node","id":"script_1","nodeType":"ai-text","name":"Short film script","data":{"prompt":"Write a 15 second short film script","workflowKind":"story_to_video","workflowStep":"story_outline"}},{"type":"create_node","id":"image_1","nodeType":"ai-image","name":"Keyframe","data":{"prompt":"Generate a keyframe from the script","workflowKind":"story_to_video","workflowStep":"shot_keyframe"}},{"type":"connect_nodes","from":"script_1","to":"image_1"},{"type":"layout_nodes","nodeIds":["script_1","image_1"],"layout":"single_chain"}],"warnings":[],"requiresConfirmation":true}

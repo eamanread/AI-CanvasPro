@@ -1,0 +1,7 @@
+[
+  {
+    "id": "director_case",
+    "input": "导演：按 QMAI 项目铺一版导演计划",
+    "expectSkill": "director"
+  }
+]

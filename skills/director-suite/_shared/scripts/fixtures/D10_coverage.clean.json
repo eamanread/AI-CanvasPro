@@ -1,0 +1,19 @@
+{
+  "_desc": "clean：ledger 9行齐(覆盖+d9基线)/POV摊平3==可达终局3/变身4态+不变量锁/成片无过程产物 → PASS",
+  "coverage": {
+    "ledger": [
+      { "source": "HappyHorse东亚文艺", "coverage": "style-refs §六 L120", "d9_baseline_id": "BL-D10-DOC-01" },
+      { "source": "人文纪录", "coverage": "补深 §六含专属反向锚定", "d9_baseline_id": "BL-D10-DOC-02" },
+      { "source": "一图成片执行导演", "coverage": "并入 D8 图像入口", "d9_baseline_id": "BL-D10-VGD-01" },
+      { "source": "主题变身特效", "coverage": "§六新增拟人变身行", "d9_baseline_id": "BL-D10-TRANS-01" },
+      { "source": "POV互动", "coverage": "新成员 pov-interactive", "d9_baseline_id": "BL-D10-POV-01" },
+      { "source": "一镜到底", "coverage": "style-refs §六 oneer", "d9_baseline_id": "BL-D10-ONER-01" },
+      { "source": "动作previz", "coverage": "简化卡 only景别+技术标注", "d9_baseline_id": "BL-D10-PREVIZ-01" },
+      { "source": "拟人风格化", "coverage": "§六新增行", "d9_baseline_id": "BL-D10-VGD-02" },
+      { "source": "转播伪纪实", "coverage": "§六含禁联赛Logo球员名", "d9_baseline_id": "BL-D10-BCAST-01" }
+    ],
+    "pov_branch": { "reachable_endings": 3, "flattened_boards": 3 },
+    "transmute": { "states": ["原态", "中间1", "中间2", "目标态"], "invariant_locks": ["毛色花纹", "脸型"] },
+    "final_text": "镜头组1 时长：10s 小猫上班，跟随前行。切镜方式：硬切"
+  }
+}

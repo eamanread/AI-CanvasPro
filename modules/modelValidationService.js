@@ -1,4 +1,8 @@
 import { get, post } from "../api/apiBase.js";
+import {
+  buildMidjourneyTaskFetchApiUrl,
+  buildRegistryImageSubmitRequest,
+} from "./registryImageRequestAdapter.js";
 
 export const SUPPORTED_VALIDATION_NODE_TYPES = Object.freeze(["text", "image"]);
 
@@ -46,6 +50,56 @@ function pickFirstNonEmptyString(values) {
     }
   }
   return "";
+}
+
+function stringifyErrorValue(value) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (!isPlainObject(value)) {
+    return "";
+  }
+
+  const nested = pickFirstErrorText([
+    value.message,
+    value.errorMessage,
+    value.error_description,
+    value.description,
+    value.reason,
+    value.error?.message,
+    value.error?.errorMessage,
+    value.data?.message,
+    value.data?.error,
+    value.data?.error?.message,
+  ]);
+  if (nested) {
+    return nested;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "";
+  }
+}
+
+function pickFirstErrorText(values) {
+  for (const value of values) {
+    const message = stringifyErrorValue(value);
+    if (message && !isBenignStatusMessage(message)) {
+      return message;
+    }
+  }
+  return "";
+}
+
+function isBenignStatusMessage(value) {
+  return ["success", "succeeded", "completed", "complete", "done", "ok"].includes(
+    trimText(value).toLowerCase()
+  );
 }
 
 function looksLikeTaskToken(value) {
@@ -208,7 +262,7 @@ function collectImageUrls(value, bucket) {
     "output",
   ].forEach((field) => collectImageUrls(value[field], bucket));
 
-  ["results", "images", "outputs", "data", "image_urls"].forEach((field) => {
+  ["task", "result", "results", "images", "outputs", "data", "response", "image_urls"].forEach((field) => {
     collectImageUrls(value[field], bucket);
   });
 }
@@ -239,6 +293,7 @@ export function extractTaskId(payload) {
     payload?.job,
     payload?.request,
     payload?.submit,
+    payload?.result,
     payload?.data?.task_id,
     payload?.data?.taskId,
     payload?.data?.taskid,
@@ -261,6 +316,7 @@ export function extractTaskId(payload) {
     payload?.data?.submit?.submit_id,
     payload?.data?.submit?.submitId,
     payload?.data?.submit?.id,
+    payload?.data?.result,
     payload?.response?.task_id,
     payload?.response?.taskId,
     payload?.response?.request_id,
@@ -294,6 +350,10 @@ export function extractTaskStatus(payload) {
       payload?.data?.status,
       payload?.data?.task_status,
       payload?.data?.taskStatus,
+      payload?.data?.result?.status,
+      payload?.data?.result?.task_status,
+      payload?.result?.status,
+      payload?.result?.task_status,
       payload?.response?.status,
       payload?.response?.task_status,
     ])
@@ -303,6 +363,7 @@ export function extractTaskStatus(payload) {
 function isFailureStatus(status) {
   return [
     "failed",
+    "failure",
     "fail",
     "error",
     "cancelled",
@@ -324,11 +385,14 @@ function isPendingStatus(status) {
     "querying",
     "waiting",
     "in_progress",
+    "not_start",
+    "starting",
+    "inqueue",
   ].includes(trimText(status).toLowerCase());
 }
 
 export function extractErrorMessage(payload, fallback = "模型验证失败") {
-  const message = pickFirstNonEmptyString([
+  const message = pickFirstErrorText([
     payload?.error,
     payload?.errorMessage,
     payload?.failure_reason,
@@ -347,6 +411,22 @@ export function extractErrorMessage(payload, fallback = "模型验证失败") {
 
   if (message) {
     return truncateText(message);
+  }
+
+  const statusMessage = pickFirstNonEmptyString([
+    payload?.msg,
+    payload?.message,
+    payload?.status,
+    payload?.task_status,
+    payload?.taskStatus,
+    payload?.data?.msg,
+    payload?.data?.message,
+    payload?.data?.status,
+    payload?.data?.task_status,
+    payload?.data?.taskStatus,
+  ]);
+  if (isBenignStatusMessage(statusMessage)) {
+    return fallback;
   }
 
   try {
@@ -380,6 +460,11 @@ export function buildImageQueryCandidates(baseUrl, taskId) {
 
     if (/\/v1\/tasks(?:\/[^/?#]+)?$/i.test(pathname) || /api\.apimart\.ai/i.test(origin)) {
       candidates.push(`${origin}/v1/tasks/${encodeURIComponent(normalizedTaskId)}`);
+    }
+
+    const midjourneyFetchUrl = buildMidjourneyTaskFetchApiUrl(normalizedBaseUrl, normalizedTaskId);
+    if (midjourneyFetchUrl) {
+      candidates.push(midjourneyFetchUrl);
     }
   } catch {
     const trimmed = normalizedBaseUrl.replace(/[?#].*$/, "").replace(/\/+$/, "");
@@ -561,18 +646,27 @@ async function waitForImageTask(model, taskId) {
 }
 
 async function validateImageModel(model) {
-  const response = await post(
-    "/api/v2/proxy/image",
+  const submitRequest = buildRegistryImageSubmitRequest(
     {
       apiUrl: trimText(model.baseUrl),
       apiKey: trimText(model.apiKey),
       model: trimText(model.modelId),
+      adapterType: trimText(model.adapterType),
       prompt: IMAGE_TEST_PROMPT,
-      urls: [],
+      inputUrls: [],
       batchSize: 1,
-      shutProgress: true,
       aspectRatio: "1:1",
       imageSize: "1K",
+    },
+    1
+  );
+
+  const response = await post(
+    "/api/v2/proxy/image",
+    {
+      apiKey: trimText(model.apiKey),
+      ...submitRequest.body,
+      apiUrl: submitRequest.apiUrl,
     },
     IMAGE_SUBMIT_TIMEOUT_MS
   );
@@ -598,7 +692,7 @@ async function validateImageModel(model) {
     );
   }
 
-  return waitForImageTask(model, taskId);
+  return waitForImageTask({ ...model, baseUrl: submitRequest.apiUrl }, taskId);
 }
 
 export async function validateModel(model) {

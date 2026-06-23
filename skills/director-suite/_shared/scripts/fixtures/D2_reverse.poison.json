@@ -1,0 +1,13 @@
+{
+  "_desc": "poison 反例：① 组时长17(>15) ② Σ镜9偏离组17 >±1 ③ subject_ref='拿铁'非占位且专名泄漏 ④ final_text 含『00:03/拉片/clip_skeleton』(时间码+泄漏) → 多 FAIL / NO-GO / exit1。证明拉片审计是真闸。",
+  "clip_skeleton": {
+    "source_probe": { "mode": "C" },
+    "source_proper_nouns": ["拿铁"],
+    "shot_groups": [
+      { "id": "G1", "duration_s": 17, "shots": [
+        { "rel_duration_s": 9, "shot_size": "全景", "camera_move": "手持", "cut_to_next": "动作匹配", "subject_ref": "拿铁", "location_ref": "<<LOCATION>>" }
+      ] }
+    ],
+    "final_text": "00:03 拉片骨架 clip_skeleton：新主角登场。"
+  }
+}

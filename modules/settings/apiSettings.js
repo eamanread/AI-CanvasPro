@@ -1,16 +1,23 @@
 import { showError, showToast, showWarning } from "../../services/toastService.js";
 import {
+  fetchApiConfigFromServer,
+  getApiConfigSnapshot,
+  saveApiConfigToServer,
+} from "../../api/configApi.js";
+import {
   MODEL_NODE_TYPES,
   createDefaultRegistry,
   getModelRegistry,
   saveModelRegistry,
 } from "../modelRegistryService.js";
+import { PROVIDERS_META } from "../providers.js";
 import {
   SUPPORTED_VALIDATION_NODE_TYPES,
   buildValidationConfigSignature,
   hasCompleteModelConfig,
   validateModel,
 } from "../modelValidationService.js";
+import { initSeedanceWebSettings } from "./seedanceWebSettings.js";
 
 const NODE_TYPE_META = Object.freeze({
   text: {
@@ -56,10 +63,111 @@ const TEMPLATE_ENDPOINTS = Object.freeze({
   other: "https://example.com/v1/chat/completions",
 });
 
+const SPECIAL_PROVIDER_SECTION_ID = "specialProviderSettingsSection";
+
+const SPECIAL_PROVIDER_CONFIGS = Object.freeze([
+  {
+    providerId: "runninghub",
+    badge: "RH",
+    title: "RunningHUB",
+    description:
+      "用于 RunningHUB 工作流与模型代理的特殊接入配置。`apiKey` 供 workflow 类链路使用，`modelApiKey` 供 model/api 类链路使用。",
+    note: "当前 `runninghubwf` 会复用 RunningHUB 这张卡的数据。",
+    fields: [
+      {
+        key: "apiUrl",
+        label: "apiUrl",
+        placeholder: PROVIDERS_META.runninghub?.defaultUrl || "https://www.runninghub.cn",
+      },
+      {
+        key: "apiKey",
+        label: "apiKey",
+        placeholder: "RunningHUB workflow API Key",
+      },
+      {
+        key: "modelApiKey",
+        label: "modelApiKey",
+        placeholder: "RunningHUB model API Key",
+      },
+      {
+        key: "defaultDurationSec",
+        label: "defaultDurationSec",
+        placeholder: "5",
+      },
+    ],
+  },
+  {
+    providerId: "grsai",
+    badge: "GR",
+    title: "GRSAI",
+    description:
+      "保留给仍依赖旧 provider 配置的文本/图片链路与辅助工具。标准 registry 模型优先使用节点自己的 model config。",
+    fields: [
+      {
+        key: "apiUrl",
+        label: "apiUrl",
+        placeholder: PROVIDERS_META.grsai?.defaultUrl || "https://grsai.dakka.com.cn",
+      },
+      {
+        key: "apiKey",
+        label: "apiKey",
+        placeholder: "GRSAI API Key",
+      },
+    ],
+  },
+  {
+    providerId: "ppio",
+    badge: "PP",
+    title: "PPIO",
+    description:
+      "保留给旧 provider 推断链路和未迁移的图像/文本工具入口。标准 registry 模型不应长期依赖这里。",
+    fields: [
+      {
+        key: "apiUrl",
+        label: "apiUrl",
+        placeholder: PROVIDERS_META.ppio?.defaultUrl || "https://api.ppio.com",
+      },
+      {
+        key: "apiKey",
+        label: "apiKey",
+        placeholder: "PPIO API Key",
+      },
+    ],
+  },
+  {
+    providerId: "apimart",
+    badge: "AM",
+    title: "APIMart",
+    description:
+      "保留给旧 provider 推断链路和部分辅助图像/文本能力。标准 registry 模型优先使用模型条目里的 `apiKey / baseUrl`。",
+    fields: [
+      {
+        key: "apiUrl",
+        label: "apiUrl",
+        placeholder: PROVIDERS_META.apimart?.defaultUrl || "https://api.apimart.ai",
+      },
+      {
+        key: "apiKey",
+        label: "apiKey",
+        placeholder: "APIMart API Key",
+      },
+    ],
+  },
+
+
+]);
+
 let draftCounter = 0;
 
 function trimText(value) {
   return String(value ?? "").trim();
+}
+
+export function getSpecialProviderConfigs() {
+  return SPECIAL_PROVIDER_CONFIGS.map((config) => ({
+    ...config,
+    fields: config.fields.map((field) => ({ ...field })),
+  }));
 }
 
 function cloneJson(value) {
@@ -377,6 +485,121 @@ function renderRegistry(root, state) {
   root.innerHTML = MODEL_NODE_TYPES.map((nodeType) => renderNodeTypeSection(nodeType, state)).join("");
 }
 
+function normalizeProvidersSnapshot(configSnapshot) {
+  const source =
+    configSnapshot && typeof configSnapshot === "object" && !Array.isArray(configSnapshot)
+      ? configSnapshot
+      : {};
+  const providers =
+    source.providers && typeof source.providers === "object" && !Array.isArray(source.providers)
+      ? cloneJson(source.providers)
+      : {};
+
+  SPECIAL_PROVIDER_CONFIGS.forEach(({ providerId }) => {
+    if (!providers[providerId] || typeof providers[providerId] !== "object") {
+      providers[providerId] = {};
+    }
+  });
+
+  return providers;
+}
+
+function getSpecialProviderFieldValue(providers, providerId, fieldKey) {
+  const provider = providers?.[providerId];
+  if (!provider || typeof provider !== "object") {
+    return "";
+  }
+  return trimText(provider[fieldKey]);
+}
+
+function renderSpecialProviderCard(cardConfig, providers, state) {
+  const isSaving = state.specialSavingProviderId === cardConfig.providerId;
+  const disabledAttr = isSaving ? " disabled" : "";
+
+  return `
+    <div class="settings-section settings-card special-provider-card" data-special-provider="${cardConfig.providerId}">
+      <div class="settings-card-head">
+        <div class="settings-card-badge">${cardConfig.badge}</div>
+        <span class="settings-card-title">${cardConfig.title}</span>
+        <span class="settings-getkey settings-getkey--muted">特殊接入</span>
+      </div>
+      <div class="settings-desc">${escapeHtml(cardConfig.description)}</div>
+      <div class="model-registry-grid">
+        ${cardConfig.fields
+          .map(
+            (field) => `
+              <label class="model-registry-field${field.key === "apiUrl" ? " model-registry-field--full" : ""}">
+                <span class="settings-label">${field.label}</span>
+                <input
+                  type="${field.key.toLowerCase().includes("key") ? "password" : "text"}"
+                  class="settings-input"
+                  data-special-field="${field.key}"
+                  value="${escapeHtml(getSpecialProviderFieldValue(providers, cardConfig.providerId, field.key))}"
+                  placeholder="${escapeHtml(field.placeholder || "")}"${disabledAttr}
+                >
+              </label>
+            `
+          )
+          .join("")}
+      </div>
+      ${
+        cardConfig.note
+          ? `<div class="model-registry-inline-note">${escapeHtml(cardConfig.note)}</div>`
+          : ""
+      }
+      <div class="settings-save-row" style="margin-top:12px;">
+        <button
+          type="button"
+          class="settings-save-btn settings-btn-ghost"
+          data-action="save-special-provider"
+          data-provider-id="${cardConfig.providerId}"${disabledAttr}
+        >${isSaving ? "保存中..." : "保存特殊配置"}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSpecialProviderSection(container, providers, state) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="settings-section settings-card">
+      <div class="settings-card-head">
+        <div class="settings-card-badge">特</div>
+        <span class="settings-card-title">特殊接入配置</span>
+        <span class="settings-getkey settings-getkey--muted">旧链路 / 非标准 Provider</span>
+      </div>
+      <div class="settings-desc">
+        这些配置供当前仍未完全标准化的 provider 或工具链使用。位置放在即梦卡下方，和即梦一样属于“特殊接入”而不是 registry 模型条目本身。
+      </div>
+    </div>
+    ${SPECIAL_PROVIDER_CONFIGS.map((cardConfig) =>
+      renderSpecialProviderCard(cardConfig, providers, state)
+    ).join("")}
+  `;
+}
+
+function ensureSpecialProviderSection(root) {
+  let section = document.getElementById(SPECIAL_PROVIDER_SECTION_ID);
+  if (section) {
+    return section;
+  }
+
+  section = document.createElement("div");
+  section.id = SPECIAL_PROVIDER_SECTION_ID;
+
+  const dreaminaCard = document.getElementById("dreaminaSettingsCard");
+  if (dreaminaCard?.parentNode) {
+    dreaminaCard.insertAdjacentElement("afterend", section);
+    return section;
+  }
+
+  root.insertAdjacentElement("afterend", section);
+  return section;
+}
+
 function updateSaveButton(button, state) {
   if (!button) {
     return;
@@ -484,6 +707,8 @@ export function initApiSettings() {
   if (!root || !saveButton) {
     return;
   }
+  const specialProviderSection = ensureSpecialProviderSection(root);
+  initSeedanceWebSettings();
 
   const state = {
     registry: createDefaultRegistry(),
@@ -492,23 +717,31 @@ export function initApiSettings() {
     saving: false,
     dirty: false,
     testingModelId: "",
+    configSnapshot: {},
+    specialProviders: normalizeProvidersSnapshot({}),
+    specialSavingProviderId: "",
   };
 
   updateSaveButton(saveButton, state);
   renderRegistry(root, state);
+  renderSpecialProviderSection(specialProviderSection, state.specialProviders, state);
 
   getModelRegistry()
     .then((registry) => {
       state.registry = cloneJson(registry);
       state.lastSavedRegistry = cloneJson(registry);
+      state.configSnapshot = getApiConfigSnapshot() || {};
+      state.specialProviders = normalizeProvidersSnapshot(state.configSnapshot);
       state.loading = false;
       renderRegistry(root, state);
+      renderSpecialProviderSection(specialProviderSection, state.specialProviders, state);
       updateSaveButton(saveButton, state);
     })
     .catch((error) => {
       console.error("[Settings] 加载模型注册表失败:", error);
       state.loading = false;
       renderRegistry(root, state);
+      renderSpecialProviderSection(specialProviderSection, state.specialProviders, state);
       updateSaveButton(saveButton, state);
       showError(error?.message || "加载模型注册表失败");
     });
@@ -664,6 +897,51 @@ export function initApiSettings() {
       if (!persisted && validationResult.status === "failed") {
         showWarning(validationResult.lastError || "模型测试失败");
       }
+    }
+  });
+
+  specialProviderSection.addEventListener("click", async (event) => {
+    const trigger = event.target.closest('[data-action="save-special-provider"]');
+    if (!trigger) {
+      return;
+    }
+
+    const providerId = trimText(trigger.dataset.providerId);
+    const cardConfig = SPECIAL_PROVIDER_CONFIGS.find((item) => item.providerId === providerId);
+    const cardEl = trigger.closest("[data-special-provider]");
+    if (!providerId || !cardConfig || !cardEl) {
+      return;
+    }
+
+    const nextProviderConfig = {};
+    cardConfig.fields.forEach((field) => {
+      const input = cardEl.querySelector(`[data-special-field="${field.key}"]`);
+      nextProviderConfig[field.key] = trimText(input?.value);
+    });
+
+    state.specialSavingProviderId = providerId;
+    renderSpecialProviderSection(specialProviderSection, state.specialProviders, state);
+
+    try {
+      const latestConfig = getApiConfigSnapshot() || (await fetchApiConfigFromServer());
+      const nextConfig = cloneJson(latestConfig || {});
+      const nextProviders = normalizeProvidersSnapshot(nextConfig);
+      nextProviders[providerId] = {
+        ...nextProviders[providerId],
+        ...nextProviderConfig,
+      };
+      nextConfig.providers = nextProviders;
+
+      await saveApiConfigToServer(nextConfig);
+      const savedConfig = await fetchApiConfigFromServer();
+      state.configSnapshot = savedConfig || {};
+      state.specialProviders = normalizeProvidersSnapshot(savedConfig);
+      showToast(`${cardConfig.title} 特殊配置已保存`, "success");
+    } catch (error) {
+      showError(error?.message || `${cardConfig.title} 特殊配置保存失败`);
+    } finally {
+      state.specialSavingProviderId = "";
+      renderSpecialProviderSection(specialProviderSection, state.specialProviders, state);
     }
   });
 }

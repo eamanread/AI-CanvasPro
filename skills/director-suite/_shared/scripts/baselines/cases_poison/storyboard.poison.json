@@ -1,0 +1,11 @@
+{
+  "_desc": "红演示（分镜）：情绪5级+中景（映射违例）+ 注入『自检确认/Σ镜时长/引擎隐身✓』（泄漏）→ run_eval 应 NO-GO/exit1。",
+  "id": "storyboard-POISON",
+  "kind": "storyboard",
+  "pass_rule": 0.85,
+  "final_text": "镜头组3 时长：12s\n场景：荒山隘口 日 外\n情绪强度：5（极致爆发）\n镜头3-1 时长：2s 主情绪：临战的紧 节奏：武戏·急\n景别：中景\n运镜：手持（Handheld）\n切镜方式：动作匹配\n自检确认：Σ镜时长=2s ✓ 引擎隐身✓",
+  "expected_features": [
+    { "id": "F1-手持", "pattern": "手持|Handheld", "weight": 1 }
+  ],
+  "red_lines": []
+}

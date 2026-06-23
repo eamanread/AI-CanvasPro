@@ -1,0 +1,8 @@
+{
+  "asset_id": "[Element_ZhaoShanhe]",
+  "consistency_level": "L1",
+  "hue_deg": 212,
+  "headbody_ratio": 8.0,
+  "_source": "翡翠楼-全案demo · character-roster：赵山河 8 头身；藏青唐装识别色 #1C2A3A → HSL hue≈212° / L≈17%",
+  "_note": "L1 硬锚：色相/头身比全片不可变；步行骨架黄金基线（完整 6 类特征档案见 DEV-D05 §FR-01）"
+}

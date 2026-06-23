@@ -1,0 +1,11 @@
+[
+  {
+    "input": "做 6 个分镜",
+    "matchedSkill": "storyboard_workflow",
+    "actions": [
+      "create_node",
+      "connect_nodes",
+      "layout_nodes"
+    ]
+  }
+]

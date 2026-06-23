@@ -247,6 +247,73 @@ test("requester: service-provided nodeType overrides /proxy/image fallback infer
   }
 });
 
+test("requester: text generation response still triggers subscription gate when body is JSON text", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalLocalStorage = globalThis.localStorage;
+  const originalInstallId = globalThis.__aicInstallId;
+  const originalHandleSubscriptionRequired = globalThis.handleSubscriptionRequired;
+  const calls = [];
+
+  globalThis.localStorage = createStorage();
+  globalThis.localStorage.setItem("aic-install-id", "aic-fixed");
+  globalThis.handleSubscriptionRequired = (payload) => {
+    calls.push(payload);
+  };
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => "text/plain" },
+    json: async () => ({
+      success: false,
+      code: "SUBSCRIPTION_REQUIRED",
+    }),
+    text: async () =>
+      JSON.stringify({
+        success: false,
+        code: "SUBSCRIPTION_REQUIRED",
+        message: "请先完成授权激活后再继续生成（未激活）",
+        requiredModelId: "nano-banana-2",
+        reasonCode: "NOT_ACTIVE",
+        nodeType: "image",
+        provider: "grsai",
+      }),
+    blob: async () => new Blob(),
+  });
+
+  try {
+    await assert.rejects(
+      () =>
+        requester({
+          url: "/api/v2/proxy/image",
+          buildUrl: false,
+          method: "POST",
+          provider: "registry-openai",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: "hello" }),
+          responseType: "text",
+        }),
+      (error) => {
+        assert.ok(error instanceof ApiError);
+        assert.equal(error.code, "SUBSCRIPTION_REQUIRED");
+        assert.equal(error.message, "请先完成授权激活后再继续生成（未激活）");
+        assert.equal(error.provider, "grsai");
+        assert.equal(error.nodeType, "image");
+        return true;
+      },
+    );
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].provider, "grsai");
+    assert.equal(calls[0].nodeType, "image");
+    assert.equal(calls[0].reasonCode, "NOT_ACTIVE");
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.localStorage = originalLocalStorage;
+    globalThis.__aicInstallId = originalInstallId;
+    globalThis.handleSubscriptionRequired = originalHandleSubscriptionRequired;
+  }
+});
+
 test("requester: service-provided provider overrides /proxy/image fallback inference", async () => {
   const originalFetch = globalThis.fetch;
   const originalLocalStorage = globalThis.localStorage;

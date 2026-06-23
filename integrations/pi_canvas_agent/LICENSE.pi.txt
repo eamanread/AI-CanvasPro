@@ -1,0 +1,6 @@
+﻿Pi Canvas Agent integration dependency notice
+
+This sidecar package is distributed as part of Huanying Canvas Agent integration.
+The Pi SDK packages referenced by package.json keep their upstream licenses.
+Before release, regenerate package-lock.json with the approved npm environment
+and include all third-party license notices from the resolved dependency tree.

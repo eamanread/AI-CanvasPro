@@ -12,13 +12,13 @@ class Sam3Service:
         self,
         *,
         directory,
-        assets_dir,
+        assets_dir_provider,
         uploads_dir_provider,
         output_dir_provider,
         path_inside_checker,
     ):
         self.directory = os.path.abspath(directory)
-        self.assets_dir = os.path.abspath(assets_dir)
+        self._get_assets_dir = assets_dir_provider
         self._get_uploads_dir = uploads_dir_provider
         self._get_output_dir = output_dir_provider
         self._is_path_inside = path_inside_checker
@@ -328,8 +328,9 @@ class Sam3Service:
             if self._is_path_inside(abs_path, output_dir) and os.path.isfile(abs_path):
                 return abs_path
         if value.startswith("data/assets/"):
+            assets_dir = os.path.abspath(self._get_assets_dir())
             abs_path = os.path.abspath(os.path.join(self.directory, value))
-            if self._is_path_inside(abs_path, self.assets_dir) and os.path.isfile(abs_path):
+            if self._is_path_inside(abs_path, assets_dir) and os.path.isfile(abs_path):
                 return abs_path
         return None
 

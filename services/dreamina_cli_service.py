@@ -19,9 +19,15 @@ class DreaminaCliService:
     _WINDOWS_BINARY_URL = f"{_DOWNLOAD_BASE}/dreamina_cli_windows_amd64.exe"
     _LOGIN_SUCCESS_MARKER = "[DREAMINA:LOGIN_SUCCESS]"
     _LOGIN_REUSED_MARKER = "[DREAMINA:LOGIN_REUSED]"
-    _QR_READY_MARKER = "[DREAMINA:QR_READY]"
     _DEFAULT_LOGIN_TIMEOUT_SEC = 90
-    _LOGIN_PAGE_URL = "https://jimeng.jianying.com/"
+    _LOGIN_PAGE_URL = "https://jimeng.jianying.com/ai-tool/login"
+    _OVERSEAS_LOGIN_PAGE_URL = "https://dreamina.capcut.com/ai-tool/login"
+    _LOGIN_REGION_ALIASES = {
+        "overseas": "overseas",
+        "global": "overseas",
+        "international": "overseas",
+        "intl": "overseas",
+    }
     _ANSI_ESCAPE_RE = re.compile(r"\x1B\[[0-9;?]*[ -/]*[@-~]")
 
     def __init__(self, config_file, output_root_dir=None):
@@ -55,7 +61,35 @@ class DreaminaCliService:
             timeout_sec = self._DEFAULT_LOGIN_TIMEOUT_SEC
         return max(30, timeout_sec)
 
+    @classmethod
+    def _normalize_login_region(cls, value):
+        region = str(value or "").strip().lower()
+        return cls._LOGIN_REGION_ALIASES.get(region, "cn")
+
+    @classmethod
+    def _login_page_url_for_region(cls, region):
+        return (
+            cls._OVERSEAS_LOGIN_PAGE_URL
+            if cls._normalize_login_region(region) == "overseas"
+            else cls._LOGIN_PAGE_URL
+        )
+
+    def _apply_login_region_to_url(self, url, region):
+        value = str(url or "").strip()
+        if not value:
+            return ""
+        if self._normalize_login_region(region) == "overseas":
+            return (
+                value.replace("jimeng.jianying.com", "dreamina.capcut.com")
+                .replace("jimeng.douyin.com", "dreamina.capcut.com")
+            )
+        return (
+            value.replace("dreamina.capcut.com", "jimeng.jianying.com")
+            .replace("www.dreamina.ai", "jimeng.jianying.com")
+        )
+
     def _build_login_runtime(self):
+        login_region = self._normalize_login_region(self._load_settings().get("region"))
         return {
             "active": False,
             "phase": "idle",
@@ -64,16 +98,15 @@ class DreaminaCliService:
             "startedAt": 0,
             "completedAt": 0,
             "exitCode": None,
-            "qrPath": "",
-            "qrVersion": 0,
-            "qrUpdatedAt": 0,
             "verificationUrl": "",
             "userCode": "",
-            "loginMode": "headless",
-            "loginPageUrl": self._LOGIN_PAGE_URL,
+            "loginMode": "web",
+            "loginRegion": login_region,
+            "loginPageUrl": self._login_page_url_for_region(login_region),
             "authorizeUrl": "",
             "callbackUrl": "",
             "manualLoginAvailable": False,
+            "cancelRequested": False,
             "outputTail": [],
         }
 
@@ -94,7 +127,8 @@ class DreaminaCliService:
             raw = {}
         return {
             "commandPath": str(raw.get("commandPath") or raw.get("command") or "").strip(),
-            "loginMode": str(raw.get("loginMode") or "headless").strip().lower() or "headless",
+            "loginMode": str(raw.get("loginMode") or "web").strip().lower() or "web",
+            "region": self._normalize_login_region(raw.get("region") or raw.get("loginRegion")),
         }
 
     def _candidate_commands(self):
@@ -117,11 +151,15 @@ class DreaminaCliService:
 
     def _resolve_command_path(self):
         for candidate in self._candidate_commands():
-            if os.path.isabs(candidate) and os.path.isfile(candidate):
-                return os.path.abspath(candidate)
-            resolved = shutil.which(candidate)
-            if resolved:
-                return os.path.abspath(resolved)
+            resolved = candidate
+            if not (os.path.isabs(candidate) and os.path.isfile(candidate)):
+                resolved = shutil.which(candidate) or ""
+            if not resolved:
+                continue
+            resolved = os.path.abspath(resolved)
+            probe = self._run_command(["version"], timeout=15, command_path=resolved)
+            if probe.get("ok"):
+                return resolved
         return ""
 
     def _create_subprocess_env(self):
@@ -137,10 +175,8 @@ class DreaminaCliService:
         lower = text.lower()
         if "bind:" in lower or "only one usage of each socket address" in lower:
             return "检测到上次未完成的登录流程，已自动重置，请重新点击登录"
-        if "读取二维码响应失败" in text or "empty response body" in lower:
-            return "即梦二维码获取失败，请重新点击登录"
         if "等待登录超时" in text:
-            return "扫码登录已超时，请重新点击登录"
+            return "即梦登录已超时，请重新点击登录"
         return text
 
     def _run_command(self, args, timeout=30, command_path=""):
@@ -213,6 +249,20 @@ class DreaminaCliService:
         value = re.sub(r"[，。；;、]+$", "", value)
         return value if value.startswith(("http://", "https://")) else ""
 
+    def _is_real_dreamina_auth_url(self, url):
+        value = self._normalize_manual_url_candidate(url)
+        if not value:
+            return False
+        return any(
+            token in value
+            for token in (
+                "/passport/web_login",
+                "/passport/web/web_login",
+                "/passport/qr_login",
+                "/dreamina/cli/v1/dreamina_cli_login",
+            )
+        )
+
     def _extract_manual_login_links_from_lines(self, lines):
         normalized_lines = lines if isinstance(lines, list) else []
         urls = []
@@ -234,20 +284,14 @@ class DreaminaCliService:
             else ""
         )
         strict_authorize_url = (
-            normalized_next
-            or next((url for url in urls if "/passport/web_login" in url), "")
-            or next((url for url in urls if "/passport/web/web_login" in url), "")
-        )
+            normalized_next if self._is_real_dreamina_auth_url(normalized_next) else ""
+        ) or next((url for url in urls if self._is_real_dreamina_auth_url(url)), "")
         callback_url = next(
             (url for url in urls if "/dreamina/cli/v1/dreamina_cli_login" in url),
             "",
         )
-        fallback_continue_url = (
-            callback_url
-            or next((url for url in urls if url != self._LOGIN_PAGE_URL), "")
-        )
         return {
-            "authorizeUrl": callback_url or strict_authorize_url or fallback_continue_url or "",
+            "authorizeUrl": callback_url or strict_authorize_url or "",
             "strictAuthorizeUrl": strict_authorize_url or "",
             "callbackUrl": callback_url or "",
         }
@@ -255,13 +299,23 @@ class DreaminaCliService:
     def _sync_manual_login_links_locked(self):
         runtime = self._login_runtime
         links = self._extract_manual_login_links_from_lines(runtime.get("outputTail") or [])
-        runtime["loginPageUrl"] = self._LOGIN_PAGE_URL
-        runtime["authorizeUrl"] = (
-            str(runtime.get("verificationUrl") or "").strip()
-            or links.get("authorizeUrl")
+        login_region = self._normalize_login_region(
+            runtime.get("loginRegion") or self._load_settings().get("region")
+        )
+        verification_url = self._apply_login_region_to_url(
+            runtime.get("verificationUrl"), login_region
+        )
+        runtime["loginRegion"] = login_region
+        runtime["loginPageUrl"] = self._login_page_url_for_region(login_region)
+        authorize_url = (
+            links.get("authorizeUrl")
+            or (verification_url if verification_url and self._is_real_dreamina_auth_url(verification_url) else "")
             or ""
         )
-        runtime["callbackUrl"] = links.get("callbackUrl") or ""
+        runtime["authorizeUrl"] = self._apply_login_region_to_url(authorize_url, login_region)
+        runtime["callbackUrl"] = self._apply_login_region_to_url(
+            links.get("callbackUrl") or "", login_region
+        )
         runtime["manualLoginAvailable"] = bool(
             runtime.get("authorizeUrl")
             or runtime.get("callbackUrl")
@@ -272,8 +326,6 @@ class DreaminaCliService:
         for line in reversed(tail_lines or []):
             s = str(line or "").strip()
             if not s:
-                continue
-            if self._QR_READY_MARKER in s:
                 continue
             return s
         return ""
@@ -288,24 +340,27 @@ class DreaminaCliService:
             "startedAt": int(runtime.get("startedAt") or 0),
             "completedAt": int(runtime.get("completedAt") or 0),
             "exitCode": runtime.get("exitCode"),
-            "qrAvailable": bool(runtime.get("qrPath")) and os.path.isfile(str(runtime.get("qrPath") or "")),
-            "qrVersion": int(runtime.get("qrVersion") or 0),
-            "qrUpdatedAt": int(runtime.get("qrUpdatedAt") or 0),
             "verificationUrl": str(runtime.get("verificationUrl") or ""),
             "userCode": str(runtime.get("userCode") or ""),
-            "loginMode": str(runtime.get("loginMode") or "headless"),
-            "loginPageUrl": str(runtime.get("loginPageUrl") or self._LOGIN_PAGE_URL),
+            "loginMode": str(runtime.get("loginMode") or "web"),
+            "loginRegion": self._normalize_login_region(runtime.get("loginRegion")),
+            "loginPageUrl": str(
+                runtime.get("loginPageUrl")
+                or self._login_page_url_for_region(runtime.get("loginRegion"))
+            ),
             "authorizeUrl": str(runtime.get("authorizeUrl") or ""),
             "callbackUrl": str(runtime.get("callbackUrl") or ""),
             "manualLoginAvailable": bool(runtime.get("manualLoginAvailable")),
             "outputTail": list(runtime.get("outputTail") or []),
         }
 
-    def _reset_runtime_locked(self, phase="idle", message="", active=False):
+    def _reset_runtime_locked(self, phase="idle", message="", active=False, login_region=None):
         self._login_runtime = self._build_login_runtime()
         self._login_runtime["phase"] = phase
         self._login_runtime["message"] = message
         self._login_runtime["active"] = active
+        if login_region is not None:
+            self._login_runtime["loginRegion"] = self._normalize_login_region(login_region)
         now_ms = int(time.time() * 1000)
         if active:
             self._login_runtime["startedAt"] = now_ms
@@ -313,23 +368,23 @@ class DreaminaCliService:
             self._login_runtime["completedAt"] = now_ms
         self._sync_manual_login_links_locked()
 
+    def _is_current_active_login_session_locked(self, session_started_at):
+        return (
+            bool(self._login_runtime.get("active"))
+            and int(self._login_runtime.get("startedAt") or 0) == int(session_started_at or 0)
+            and not bool(self._login_runtime.get("cancelRequested"))
+        )
+
     def _set_runtime_failure(self, message):
         with self._lock:
+            if self._login_runtime.get("phase") == "cancelled":
+                return
             self._login_runtime["active"] = False
             self._login_runtime["phase"] = "failed"
             normalized = self._normalize_runtime_message(message)
             self._login_runtime["message"] = normalized
             self._login_runtime["error"] = normalized
             self._login_runtime["completedAt"] = int(time.time() * 1000)
-
-    def _mark_qr_ready(self, qr_path):
-        runtime = self._login_runtime
-        runtime["phase"] = "qr_ready"
-        runtime["qrPath"] = qr_path
-        runtime["qrVersion"] = int(runtime.get("qrVersion") or 0) + 1
-        runtime["qrUpdatedAt"] = int(time.time() * 1000)
-        runtime["message"] = "请使用抖音 App 扫码，并在手机上确认即梦授权"
-        runtime["error"] = ""
 
     def _mark_login_success(self, reused=False):
         runtime = self._login_runtime
@@ -351,6 +406,8 @@ class DreaminaCliService:
             if phase in ("success", "reused"):
                 self._credit_cache = None
                 return
+            if phase == "cancelled":
+                return
             if returncode == 0:
                 runtime["phase"] = "done"
                 runtime["message"] = runtime.get("message") or "即梦登录流程已完成"
@@ -363,6 +420,34 @@ class DreaminaCliService:
             )
             runtime["message"] = runtime["error"] or "即梦登录失败，请重试"
 
+    def cancel_login(self):
+        with self._lock:
+            proc = self._active_login_proc
+            if not self._login_runtime.get("active") and not proc:
+                return self._runtime_snapshot()
+            self._login_runtime["active"] = False
+            self._login_runtime["phase"] = "cancelled"
+            self._login_runtime["message"] = "即梦登录已取消"
+            self._login_runtime["error"] = ""
+            self._login_runtime["completedAt"] = int(time.time() * 1000)
+            self._login_runtime["cancelRequested"] = True
+            old_cache = dict(self._credit_cache) if isinstance(self._credit_cache, dict) else None
+            old_logged_in = bool(old_cache.get("loggedIn")) if old_cache else False
+            self._credit_cache = {
+                "checkedAt": time.time(),
+                "loggedIn": old_logged_in,
+                "credit": old_cache.get("credit") if old_logged_in and old_cache else None,
+                "message": old_cache.get("message") if old_logged_in and old_cache else "未登录，点击登录即可使用",
+            }
+            self._append_runtime_output("即梦登录已取消")
+            self._active_login_proc = None
+
+        self._terminate_login_process(proc)
+        with self._lock:
+            if self._active_login_proc is proc:
+                self._active_login_proc = None
+        return self.get_login_runtime()
+
     def _monitor_login_process(self, proc):
         try:
             while True:
@@ -374,12 +459,10 @@ class DreaminaCliService:
                     continue
                 clean_line = str(line).rstrip("\r\n")
                 with self._lock:
+                    if self._login_runtime.get("phase") == "cancelled":
+                        continue
                     self._append_runtime_output(clean_line)
-                    if self._QR_READY_MARKER in clean_line:
-                        qr_path = clean_line.split(self._QR_READY_MARKER, 1)[1].strip()
-                        if qr_path:
-                            self._mark_qr_ready(qr_path)
-                    elif self._LOGIN_SUCCESS_MARKER in clean_line:
+                    if self._LOGIN_SUCCESS_MARKER in clean_line:
                         self._mark_login_success(reused=False)
                     elif self._LOGIN_REUSED_MARKER in clean_line:
                         self._mark_login_success(reused=True)
@@ -387,8 +470,8 @@ class DreaminaCliService:
                         url = self._normalize_manual_url_candidate(
                             clean_line.split("verification_uri:", 1)[1].strip()
                         )
-                        if url:
-                            self._login_runtime["phase"] = "qr_ready"
+                        if self._is_real_dreamina_auth_url(url):
+                            self._login_runtime["phase"] = "starting"
                             self._login_runtime["verificationUrl"] = url
                             self._login_runtime["authorizeUrl"] = url
                             self._login_runtime["manualLoginAvailable"] = True
@@ -397,14 +480,14 @@ class DreaminaCliService:
                     elif "user_code:" in clean_line:
                         code = clean_line.split("user_code:", 1)[1].strip()
                         self._login_runtime["userCode"] = code
-                        self._login_runtime["phase"] = "qr_ready"
+                        self._login_runtime["phase"] = "starting"
                         self._login_runtime["message"] = f"请在浏览器中完成即梦授权，验证码：{code}"
                         self._login_runtime["error"] = ""
                     elif self._login_runtime.get("phase") in ("preparing", "starting"):
                         self._login_runtime["message"] = (
                             "即梦网页登录已启动，正在等待授权链接"
                             if self._login_runtime.get("loginMode") == "web"
-                            else "即梦登录已启动，正在等待二维码"
+                            else "即梦登录已启动，正在等待授权链接"
                         )
                         self._login_runtime["phase"] = "starting"
         finally:
@@ -433,7 +516,7 @@ class DreaminaCliService:
             self._append_runtime_output(timeout_message)
             self._login_runtime["phase"] = "failed"
             self._login_runtime["error"] = timeout_message
-            self._login_runtime["message"] = "扫码登录超时，正在结束本次登录流程..."
+            self._login_runtime["message"] = "即梦登录超时，正在结束本次登录流程..."
 
     def _terminate_login_process(self, proc):
         if proc is None:
@@ -500,10 +583,8 @@ class DreaminaCliService:
             return [item for item in data if isinstance(item, dict)]
         return []
 
-    def _is_headless_login_command(self, command_line):
+    def _is_stale_login_command(self, command_line):
         normalized = f" {str(command_line or '').replace(chr(34), '').lower()} "
-        if "--headless" not in normalized:
-            return False
         return " login " in normalized or " relogin " in normalized
 
     def _terminate_process_tree(self, pid):
@@ -531,7 +612,7 @@ class DreaminaCliService:
             pid = int(item.get("ProcessId") or 0)
             if pid <= 0:
                 continue
-            if not self._is_headless_login_command(item.get("CommandLine")):
+            if not self._is_stale_login_command(item.get("CommandLine")):
                 continue
             if self._terminate_process_tree(pid):
                 cleaned += 1
@@ -1440,31 +1521,32 @@ class DreaminaCliService:
             response["failReason"] = fail_reason
         return response
 
-    def _run_login_sequence(self, force=False, mode="headless"):
+    def _run_login_sequence(self, force=False, mode="web", session_started_at=0):
         try:
-            login_mode = str(mode or "headless").strip().lower() or "headless"
-            is_web_mode = login_mode == "web"
+            login_mode = str(mode or "web").strip().lower() or "web"
             cleaned = self._cleanup_stale_login_processes()
             if cleaned:
                 with self._lock:
+                    if not self._is_current_active_login_session_locked(session_started_at):
+                        return
                     self._login_runtime["phase"] = "preparing"
                     self._login_runtime["message"] = "正在恢复上次未完成的登录流程..."
 
             command_path = self._resolve_command_path()
             if not command_path:
                 with self._lock:
+                    if not self._is_current_active_login_session_locked(session_started_at):
+                        return
                     self._login_runtime["phase"] = "preparing"
                     self._login_runtime["message"] = "首次使用正在准备即梦组件..."
                 command_path = self._ensure_managed_cli()
 
             with self._lock:
+                if not self._is_current_active_login_session_locked(session_started_at):
+                    return
                 self._login_runtime["phase"] = "starting"
                 self._login_runtime["loginMode"] = login_mode
-                self._login_runtime["message"] = (
-                    "正在启动即梦网页登录，请在浏览器完成授权..."
-                    if is_web_mode
-                    else "正在启动即梦扫码登录..."
-                )
+                self._login_runtime["message"] = "正在启动即梦网页登录，请在浏览器完成授权..."
                 self._sync_manual_login_links_locked()
 
             creation_flags = 0
@@ -1472,8 +1554,6 @@ class DreaminaCliService:
                 creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
             login_args = [command_path, "relogin" if force else "login"]
-            if not is_web_mode:
-                login_args.append("--headless")
 
             proc = subprocess.Popen(
                 login_args,
@@ -1486,8 +1566,15 @@ class DreaminaCliService:
                 cwd=self._user_dir,
                 creationflags=creation_flags,
             )
+            terminate_started_proc = False
             with self._lock:
-                self._active_login_proc = proc
+                if self._is_current_active_login_session_locked(session_started_at):
+                    self._active_login_proc = proc
+                else:
+                    terminate_started_proc = True
+            if terminate_started_proc:
+                self._terminate_login_process(proc)
+                return
             timeout_marker = threading.Event()
             timeout_sec = int(self._login_timeout_sec or self._DEFAULT_LOGIN_TIMEOUT_SEC)
 
@@ -1508,10 +1595,13 @@ class DreaminaCliService:
         except Exception as exc:
             self._set_runtime_failure(str(exc) or "即梦登录失败")
 
-    def start_login(self, force=False, mode="headless"):
-        login_mode = str(mode or "headless").strip().lower() or "headless"
-        if login_mode not in ("headless", "web"):
-            raise RuntimeError("当前仅支持网页登录或扫码登录")
+    def start_login(self, force=False, mode="web", region=None):
+        login_mode = str(mode or "web").strip().lower() or "web"
+        if login_mode != "web":
+            raise RuntimeError("当前仅支持网页登录")
+        login_region = self._normalize_login_region(
+            region if region is not None else self._load_settings().get("region")
+        )
 
         with self._lock:
             if self._login_runtime.get("active"):
@@ -1519,21 +1609,20 @@ class DreaminaCliService:
             self._credit_cache = None
             self._reset_runtime_locked(
                 phase="preparing",
-                message=(
-                    "正在准备即梦网页登录..."
-                    if login_mode == "web"
-                    else "正在准备即梦扫码登录..."
-                ),
+                message="正在准备即梦网页登录...",
                 active=True,
+                login_region=login_region,
             )
             self._login_runtime["loginMode"] = login_mode
+            self._login_runtime["loginRegion"] = login_region
             self._sync_manual_login_links_locked()
+            session_started_at = int(self._login_runtime.get("startedAt") or 0)
 
         worker = threading.Thread(
             target=self._run_login_sequence,
-            args=(bool(force), login_mode),
+            args=(bool(force), login_mode, session_started_at),
             daemon=True,
-            name="DreaminaWebLogin" if login_mode == "web" else "DreaminaHeadlessLogin",
+            name="DreaminaWebLogin",
         )
         worker.start()
         return self.get_login_runtime()
@@ -1578,7 +1667,7 @@ class DreaminaCliService:
 
         status = {
             "installed": installed,
-            "loginMode": settings.get("loginMode") or "headless",
+            "loginMode": settings.get("loginMode") or "web",
             "loggedIn": False,
             "credit": None,
             "message": "首次登录时会自动准备即梦组件",
@@ -1637,17 +1726,6 @@ class DreaminaCliService:
     def get_login_runtime(self):
         with self._lock:
             return self._runtime_snapshot()
-
-    def get_qr_png(self):
-        with self._lock:
-            qr_path = str(self._login_runtime.get("qrPath") or "").strip()
-        if not qr_path or not os.path.isfile(qr_path):
-            return None
-        try:
-            with open(qr_path, "rb") as f:
-                return f.read()
-        except Exception:
-            return None
 
     def _normalize_login_response_payload(self, login_response):
         if isinstance(login_response, dict):

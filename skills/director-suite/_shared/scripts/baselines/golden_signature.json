@@ -1,0 +1,61 @@
+{
+  "VERSIONS.md|versions": [],
+  "_megaprompts/|megaprompt_sync": [],
+  "_shared/mapping-tables.md|mapping_integrity": [],
+  "case-nirenhua|leak_scan": [],
+  "case-nirenhua|storyboard": [
+    "D9-feature_hit"
+  ],
+  "case-pov|leak_scan": [],
+  "case-pov|storyboard": [
+    "D9-feature_hit"
+  ],
+  "case-shangye|leak_scan": [],
+  "case-shangye|storyboard": [
+    "D9-feature_hit"
+  ],
+  "case-wenxi|leak_scan": [],
+  "case-wenxi|storyboard": [
+    "D9-feature_hit"
+  ],
+  "case-wuxi|leak_scan": [],
+  "case-wuxi|storyboard": [
+    "D9-feature_hit"
+  ],
+  "config-audio-assembly|audio_assembly": [],
+  "config-audio-assembly|leak_scan": [],
+  "config-bible-interlock|bible_interlock": [],
+  "config-bible-interlock|leak_scan": [],
+  "config-camera-path|camera_path": [],
+  "config-camera-path|leak_scan": [],
+  "config-cost-aware|cost": [],
+  "config-cost-aware|leak_scan": [],
+  "config-coverage|coverage": [],
+  "config-coverage|leak_scan": [],
+  "config-execution-jadepavilion|execution": [],
+  "config-execution-jadepavilion|leak_scan": [],
+  "config-image-genome|image_genome": [],
+  "config-image-genome|leak_scan": [],
+  "config-mapping-integrity|leak_scan": [],
+  "config-megaprompt-sync|leak_scan": [],
+  "config-model-registry|leak_scan": [],
+  "config-model-registry|model_adapters": [],
+  "config-productization|leak_scan": [],
+  "config-productization|terminology": [],
+  "config-reverse-board|leak_scan": [],
+  "config-reverse-board|reverse_board": [],
+  "config-static-board|leak_scan": [],
+  "config-static-board|static_board": [],
+  "config-style-fidelity|leak_scan": [],
+  "config-style-fidelity|style_fidelity": [],
+  "config-versions|leak_scan": [],
+  "jadepavilion-zhaoshanhe|consistency": [
+    "D5-FR-02-hue",
+    "D5-FR-02-silhouette"
+  ],
+  "jadepavilion-zhaoshanhe|leak_scan": [],
+  "realmachine-wuxi|leak_scan": [],
+  "realmachine-wuxi|storyboard": [
+    "D9-feature_hit"
+  ]
+}

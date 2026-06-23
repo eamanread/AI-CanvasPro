@@ -1,4 +1,5 @@
 import io
+import os
 import ssl
 import tempfile
 import unittest
@@ -86,6 +87,24 @@ class MediaFileRouteServiceTests(unittest.TestCase):
             self.assertEqual(len(calls), 2)
             self.assertIsNone(calls[0])
             self.assertIsNotNone(calls[1])
+
+    def test_ensure_image_derivatives_falls_back_to_original_when_derivative_generation_fails(self):
+        with tempfile.TemporaryDirectory() as output_dir:
+            service = self._build_service(output_dir)
+            source_path = os.path.join(output_dir, "source.jpg")
+            with open(source_path, "wb") as file:
+                file.write(b"not-a-real-image-but-existing")
+
+            handler = _FakeHandler(b'{"localPath":"data/uploads/source.jpg"}')
+
+            with patch.object(service, "collect_image_derivative_payload", return_value={}):
+                result = service._handle_images_derivatives_ensure(handler)
+
+            self.assertEqual(result["kind"], "json_ok")
+            self.assertEqual(result["data"]["success"], True)
+            self.assertEqual(result["data"]["localPath"], "data/uploads/source.jpg")
+            self.assertEqual(result["data"]["originalLocalPath"], "data/uploads/source.jpg")
+            self.assertEqual(result["data"]["url"], "/data/uploads/source.jpg")
 
 
 if __name__ == "__main__":

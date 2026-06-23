@@ -1,0 +1,10 @@
+[
+  {
+    "input": "整理画布",
+    "matchedSkill": "canvas_layout",
+    "actions": [
+      "layout_nodes",
+      "focus_nodes"
+    ]
+  }
+]

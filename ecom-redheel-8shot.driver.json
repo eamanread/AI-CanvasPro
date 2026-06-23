@@ -1,0 +1,191 @@
+{
+  "_meta": {
+    "skill": "director-ecom-board (反推自创意简报)",
+    "version": "0.1",
+    "runtime": "grsai-direct",
+    "runtime_note": "本驱动针对 grsai 直连接口（用户提供）。一致性锚定走 body.urls[]（已真机验证），禁用 Flova 平台的 <<<image_N>>> 标签语义——两者互斥，混用会静默丢锚。",
+    "endpoints": {
+      "image_main": "https://grsai.dakka.com.cn/v1/draw/nano-banana",
+      "image_text_render": "https://grsai.dakka.com.cn/v1/draw/completions"
+    },
+    "body_whitelist": ["model", "prompt", "aspectRatio", "urls"],
+    "body_whitelist_note": "grsai body 仅认这四键（实证 integrations/vimax/brain/image_gen.py:72-85 会过滤其余键）。无 seed/negative_prompt/n/steps；负向词内嵌 prompt 末段；批量靠编排层多次 POST。",
+    "response": "SSE：逐行 data:{...}，取末个 status=='succeeded' 的 results[0].url；status=='failed' 立即抛 failure_reason。",
+    "model_tier_resolve": "model 字段经 model_registry.json image.tier 解析：default=nano-banana-pro · material=seedream-4.5 · draft=nano-banana-2 · text_render=gpt-image-2(-vip)。"
+  },
+
+  "spec_lock": {
+    "_comment": "第一层·规格锁定。写一次，8镜只引 asset_id 不重述。这是 D5 量化审计基线档案的可量化 SoT。",
+    "asset_id": "[Product_RedHeel_01]",
+    "physical": {
+      "heel": { "type": "patent_stiletto", "height_cm": 15 },
+      "platform": { "material": "glitter", "height_cm": 4.5 },
+      "straps": { "material": "clear_PVC", "count": 3, "note": "2 踝带 + 1 脚背带" },
+      "buckle": { "type": "adjustable_metal", "color": "silver", "count_per_shoe": 1, "location": "outer ankle strap" }
+    },
+    "color": {
+      "patent_red": { "hex": "#C20E1F", "H": 356, "S": 82, "L": 44 },
+      "glitter_red": { "hex": "#E63A4A", "H": 353, "S": 74, "L": 52, "note": "与漆面红同色相族 ΔH≤8°，靠离散高光区分，不靠色相" },
+      "hue_family_max_delta_deg": 8
+    }
+  },
+
+  "global_locks": {
+    "_comment": "场景级二元锚 + 母色脊柱 + 固有色铁律。跨同基调镜不漂。",
+    "aspect_ratio_default": "9:16",
+    "aspect_ratio_note": "8镜种草短视频统一竖屏 9:16（直连 grsai nano-banana 已实测 honors aspectRatio）。基准 packshot 走 1:1 白底。注意：部分模型路由有 suppressAspectRatio（api/imageRatioPolicy.js），换模型需复验。",
+    "color_spine": {
+      "dominant": "patent_red",
+      "red_dominance_pct_min": 55,
+      "accents": { "cream": { "hex": "#F2EBDD", "max_pct": 18 }, "violet_navy": { "hex": "#2B2746", "max_pct": 12, "only_in": "party_cool" } }
+    },
+    "scene_duality": {
+      "home_warm": { "color_temp_k": [2700, 3200], "lighting_ratio": "3:1", "shadow": "soft wrap" },
+      "party_cool": { "color_temp_k": [6500, 7000], "lighting_ratio": "8:1", "accent": "blue-purple bokeh spots, strong contrast" }
+    },
+    "intrinsic_color_rule": "商品固有漆面红 HSL 跨暖/冷场恒定（H ±15° 内）；只允许环境光色温变。冷场对商品本体补 3200K 暖光守红，禁红被推成品红/橙红。D5 审计取『商品像素子区域』测 HSL，非全图。",
+    "negative_block_base": "no product morphing, no distorted proportions, no messy reflections, no floating artifacts, no random on-screen text, no watermarks, no brand identifiers, no subtitles, no oversaturated colors, no physically impossible shadows, no ugly digital noise",
+    "negative_block_shoe": "no wrong heel height (heel must read as a tall 15cm thin stiletto), no chunky wedge or platform other than 4.5cm, no extra or missing straps (exactly 3 clear PVC straps), no opaque or frosted straps, no straps merging into skin, no gold or plastic buckle, no extra or missing buckle, no logo, no color shift (red stays patent red, not pink/magenta/orange), no distorted or extra toes, no deformed foot"
+  },
+
+  "shots": [
+    {
+      "shot_id": "S0_anchor",
+      "role": "anchor / 基准锚镜（前置，唯一 text2image）",
+      "model_tier": "default",
+      "gate": "出图后必须人工 GO（跟台比 / 漆面红 / 透明绑带 / 搭扣数达标）才能冻结其 result url 为 {HERO_URL}，供 S1-S8 锚定。锚错则8镜全错——暂停门第0关。",
+      "grsai_body": {
+        "model": "nano-banana-pro",
+        "aspectRatio": "1:1",
+        "prompt": "Studio packshot, eye-level 3/4 view at ~45 degrees, the full shoe in frame, ~100mm equivalent no distortion. ONE red platform high-heel shoe: a 15cm tall glossy patent-red stiletto heel, a 4.5cm red glitter platform sole, transparent clear PVC ankle straps with exactly one polished silver adjustable metal buckle on the outer ankle strap. Pure white seamless background filling the frame, soft natural contact shadow beneath, no props. Large softbox overhead at 90 degrees plus 20% front fill, neutral 5000K, lighting ratio <=2:1 high-key. Patent red intrinsic color, crisp small specular highlights on the patent surface, fine discrete red sparkle on the glitter platform only, glass-like translucent PVC straps with visible refraction edges. Photorealistic commercial product photography, razor-sharp contour, clean white negative space, 1:1 ratio. no product morphing, no distorted proportions, no messy reflections, no floating artifacts, no random on-screen text, no watermarks, no brand identifiers, no subtitles, no oversaturated colors, no physically impossible shadows, no ugly digital noise, no wrong heel height, no chunky wedge, no extra or missing straps, no opaque straps, no gold or plastic buckle, no logo, no color shift, white seamless background only, no environment props, no colored cast"
+      }
+    },
+    {
+      "shot_id": "S1",
+      "shot_grammar": { "camera_height_cm": [15, 25], "focal_mm": 24, "focus_xy": [0.5, 0.62], "shot_type": "low-angle wide -> CU", "scene": "home_warm", "prop_state": "@s1 平放地面" },
+      "selling_point": "15cm 拉长比例 -> 低角度 + 鞋尖朝画面延伸线",
+      "model_tier": "default",
+      "ref": { "mode": "img2img", "anchor": "fixed_to_hero" },
+      "grsai_body": {
+        "model": "nano-banana-pro",
+        "aspectRatio": "9:16",
+        "urls": ["{HERO_URL}"],
+        "prompt": "Keep the SAME shoe from the reference image EXACTLY — do not alter the 15cm stiletto heel, 4.5cm glitter platform, the clear PVC straps, or the single silver buckle. Low-angle shot, camera 15-25cm above the floor looking up, ~24mm wide feel, focus on the shoe at (0.5,0.62), the heel tip leading toward the frame edge to elongate the silhouette. The red heels placed on the floor of a cozy home apartment, warm everyday living-room ambience with a hint of an upcoming party. Warm key light 2700-3200K from camera-left, soft wrap shadows, lighting ratio 3:1, cream accents, no cold blue cast. Patent red intrinsic color constant, glossy specular on the patent, fine red sparkle confined to the platform. Photorealistic UGC-real commercial photography, sharp details, vertical 9:16 ratio. no product morphing, no distorted proportions, no messy reflections, no floating artifacts, no random on-screen text, no watermarks, no brand identifiers, no subtitles, no oversaturated colors, no physically impossible shadows, no ugly digital noise, no wrong heel height, no chunky wedge or platform other than 4.5cm, no extra or missing straps, no opaque straps, no gold or plastic buckle, no logo, no color shift"
+      }
+    },
+    {
+      "shot_id": "S2",
+      "shot_grammar": { "working_distance": "6-8cm", "focal_mm": 100, "focus_xy": [0.5, 0.5], "shot_type": "macro", "scene": "home_warm", "prop_state": "@s2 静物特写" },
+      "selling_point": "防水台舒适不累脚 -> 4.5cm 厚度切面 + 亮片密度 + 稳定接地实体感",
+      "model_tier": "material",
+      "ref": { "mode": "img2img", "anchor": "fixed_to_hero" },
+      "grsai_body": {
+        "model": "seedream-4.5",
+        "aspectRatio": "9:16",
+        "urls": ["{HERO_URL}"],
+        "prompt": "Keep the SAME shoe from the reference image EXACTLY — do not alter heel, platform, straps, or buckle. Extreme macro close-up, lens 6-8cm from the surface, ~100mm macro, ultra-shallow depth of field, focus at (0.5,0.5) on the front edge of the glitter platform with only the thick sole in sharp focus. Reveal the 4.5cm platform thickness cross-section and dense fine red glitter grain, a solid grounded presence. Neutral-to-warm 5000K key plus soft fill, controlled highlights. Discrete red sparkle on the platform only, glossy patent on the heel, glass-like translucent PVC. Photorealistic macro product photography, razor-sharp texture, 9:16 ratio. no product morphing, no distorted proportions, no messy reflections, no floating artifacts, no random on-screen text, no watermarks, no brand identifiers, no oversaturated colors, no physically impossible shadows, no ugly digital noise, no plastic-toy sheen, no blurry texture, no metallic flakes, no glitter on the heel or upper, no color shift"
+      }
+    },
+    {
+      "shot_id": "S3",
+      "shot_grammar": { "working_distance": "6-8cm", "focal_mm": 100, "focus_xy": [0.45, 0.55], "shot_type": "macro", "scene": "party_cool", "prop_state": "@s2 静物特写" },
+      "selling_point": "PVC 透明感 + 金属搭扣可调精致 -> 绑带边缘透光折射 + 齿扣咬合特写",
+      "model_tier": "material",
+      "ref": { "mode": "img2img", "anchor": "fixed_to_hero" },
+      "grsai_body": {
+        "model": "seedream-4.5",
+        "aspectRatio": "9:16",
+        "urls": ["{HERO_URL}"],
+        "prompt": "Keep the SAME shoe from the reference image EXACTLY — exactly 3 clear PVC straps and exactly one polished silver adjustable metal buckle. Extreme macro, 6-8cm, ~100mm, focus at (0.45,0.55) on the metal buckle teeth engagement and the tensioned edge of the clear PVC strap. Show glass-like translucency with skin and background visible THROUGH the strap, subtle specular refraction edges, the polished silver buckle reflecting environment light. Cool party tone 6500K, strong contrast acceptable. Photorealistic macro, sharp, 9:16 ratio. no product morphing, no distorted proportions, no messy reflections, no floating artifacts, no random on-screen text, no watermarks, no brand identifiers, no oversaturated colors, no ugly digital noise, no opaque or frosted straps, no extra or missing straps, no gold or plastic buckle, no extra buckle, no logo, no color shift"
+      }
+    },
+    {
+      "shot_id": "S4",
+      "shot_grammar": { "working_distance": "~0.6m", "focal_mm": 85, "focus_xy": [0.5, 0.45], "shot_type": "medium close-up", "scene": "neutral", "prop_state": "@s3 手持悬空" },
+      "selling_point": "整体魅力 360 展示",
+      "model_tier": "default",
+      "ref": { "mode": "img2img", "anchor": "fixed_to_hero" },
+      "rotation_note": "单帧模型无 3D 连续旋转能力。S4 落地为『离散多视角关键帧』：对正/侧/3-4 背各发一次 POST，全部 urls=[{HERO_URL}]，prompt 改写 <angle>；禁在单 prompt 写 spinning/motion blur 求旋转。",
+      "grsai_body": {
+        "model": "nano-banana-pro",
+        "aspectRatio": "9:16",
+        "urls": ["{HERO_URL}"],
+        "prompt": "Keep the SAME shoe from the reference image EXACTLY, identical heel/platform/straps/buckle from every angle. Medium close-up, ~0.6m, ~85mm, focus at (0.5,0.45) on the geometric center of the shoe held in mid-air; a hand pinching ONLY the top rear of the heel, not covering the platform, buckle, or patent front. The shoe rotated to a clean 3/4 view against a soft neutral studio backdrop. Photorealistic, sharp, 9:16 ratio. no product morphing, no distorted proportions, no messy reflections, no floating artifacts, no random on-screen text, no watermarks, no oversaturated colors, no ugly digital noise, no distorted fingers, no extra toes, no extra or missing straps, no gold or plastic buckle, no logo, no color shift"
+      }
+    },
+    {
+      "shot_id": "S5",
+      "shot_grammar": { "camera_height": "shelf eye-level", "focal_mm": 50, "focus_xy": [0.55, 0.55], "shot_type": "medium", "scene": "party_cool", "prop_state": "@s4 台架陈列 + [Prop_GlassStand_01]@s1" },
+      "selling_point": "精致陈列、仪式感",
+      "model_tier": "default",
+      "ref": { "mode": "img2img", "anchor": "fixed_to_hero" },
+      "grsai_body": {
+        "model": "nano-banana-pro",
+        "aspectRatio": "9:16",
+        "urls": ["{HERO_URL}"],
+        "prompt": "Keep the SAME shoe from the reference image EXACTLY. Medium shot, camera at shelf height eye-level, ~50mm, focus at (0.55,0.55), the shoe displayed on a glossy glass shelf in a party-prep room. Cool 6500K with blue-purple bokeh light spots, lighting ratio 8:1, deep violet/navy accents under 12%, glass refracting red light, a refined ritual display, NOT a white background. The shoe's intrinsic patent red MUST stay constant despite the cool ambient — only the AMBIENT light is cool; add a warm 3200K practical on the product to keep the red true. Photorealistic, sharp, 9:16 ratio. no product morphing, no distorted proportions, no messy reflections, no random on-screen text, no watermarks, no oversaturated colors, no ugly digital noise, no color cast on the shoe itself, shoe red not turning magenta or orange, no chunky wedge, no extra or missing straps, no logo"
+      }
+    },
+    {
+      "shot_id": "S6",
+      "shot_grammar": { "working_distance": "~1.1m", "focal_mm": 50, "focus_xy": [0.5, 0.6], "shot_type": "medium side 90", "scene": "transition warm->cool", "prop_state": "@s5 穿着于脚" },
+      "selling_point": "穿鞋动作 = 仪式启动、变身时刻",
+      "model_tier": "default",
+      "ref": { "mode": "img2img", "anchor": "fixed_to_hero" },
+      "grsai_body": {
+        "model": "nano-banana-pro",
+        "aspectRatio": "9:16",
+        "urls": ["{HERO_URL}"],
+        "prompt": "Keep the SAME shoe from the reference image EXACTLY — the heel stays a 15cm thin stiletto, 3 PVC straps and the silver buckle visible on the ankle. Medium side profile at 90 degrees, ~50mm, focus at (0.5,0.6) on the ankle entering the shoe; the shoe worn on a foot, a putting-on action read as a transformation ritual. Transition node: warm 2700-3200K key plus a cool 6500K rim light. Real skin tone, natural foot, no retouched plastic skin. Photorealistic, sharp, 9:16 ratio. no product morphing, no distorted proportions, no messy reflections, no random on-screen text, no watermarks, no oversaturated colors, no ugly digital noise, no extra or missing toes, no broken ankle, no foot clipping into the shoe, no extra or missing straps, no gold or plastic buckle, no logo, no color shift"
+      }
+    },
+    {
+      "shot_id": "S7",
+      "shot_grammar": { "working_distance": "~2m", "focal_mm": 35, "focus_xy": [0.5, 0.7], "shot_type": "full shot low angle", "scene": "party_cool", "prop_state": "@s5 穿着" },
+      "selling_point": "步伐自信、灯光氛围",
+      "model_tier": "default",
+      "ref": { "mode": "img2img", "anchor": "fixed_to_hero" },
+      "grsai_body": {
+        "model": "nano-banana-pro",
+        "aspectRatio": "9:16",
+        "urls": ["{HERO_URL}"],
+        "prompt": "Keep the SAME shoe from the reference image EXACTLY; both shoes a mirrored pair, identical spec, the thin 15cm heel reading correctly even at distance. Full shot, low angle, ~2m, ~35mm, focus at (0.5,0.7) on the heels at the moment of a confident stride past rotating party lights; handheld follow with very subtle micro-shake. Cool rotating-light bokeh, with a warm practical keeping the shoe red true. Real skin tone. Photorealistic UGC-real, 9:16 ratio. no product morphing, no distorted proportions, no messy reflections, no random on-screen text, no watermarks, no oversaturated colors, no ugly digital noise, no chunky sole (heel must read as a 15cm thin stiletto), no crimson-vs-cyan neon clash, no extra toes, no deformed foot, no color shift, no logo"
+      }
+    },
+    {
+      "shot_id": "S8",
+      "shot_grammar": { "working_distance": "~0.4m", "focal_mm": 85, "focus_xy": [0.5, 0.5], "shot_type": "beauty CU static", "scene": "party_cool", "prop_state": "@s6 定格静物" },
+      "selling_point": "魅力定格、漆面镜面光泽 + 闪烁收尾",
+      "model_tier": "material",
+      "ref": { "mode": "img2img", "anchor": "fixed_to_hero" },
+      "grsai_body": {
+        "model": "seedream-4.5",
+        "aspectRatio": "9:16",
+        "urls": ["{HERO_URL}"],
+        "prompt": "Keep the SAME shoe from the reference image EXACTLY. Beauty-grade close-up, ~0.4m, ~85mm, focus at (0.5,0.5) on a continuous specular highlight streak across the patent red surface freezing the moment, with fine glitter sparkle as a finishing flourish. Static shot, no handheld language. Highlights kept under R=245, no blown-out, preserve the patent gradient. Photorealistic, razor-sharp, 9:16 ratio. no product morphing, no distorted proportions, no messy reflections, no random on-screen text, no watermarks, no oversaturated colors, no ugly digital noise, no plastic look, no pink glitter mush, no glitter on the heel or upper, no color shift, no logo"
+      }
+    }
+  ],
+
+  "audit_gate": {
+    "_comment": "第三层·D5 量化审计门。过程产物，绝不进 grsai prompt 或成片画面。出图后→审计→GO/NO-GO。",
+    "baseline_profile": "[Product_RedHeel_01] @ {HERO_URL}（基线像素值须来自真出 hero 图实测，禁手写自指）",
+    "scriptable_metrics": [
+      { "metric": "patent_red_hsl", "threshold": "H ±15° / L ±10pp / S ±15pp", "source": "Pillow 主色（背景分割后测商品子区域）" },
+      { "metric": "red_coverage_pct", "threshold": ">=55%", "note": "验『红色主导』" },
+      { "metric": "white_bg_rgb_min", "threshold": ">=245", "note": "仅 S0 白底 packshot" },
+      { "metric": "cross_shot_color_temp", "threshold": "同基调跳变 <=200K", "source": "解析 prompt 色温 K，非像素" }
+    ],
+    "needs_human_metrics": [
+      "heel:platform 像素比（15:4.5=3.33，±8%）— 几何项，像素启发式不可信，须检测/人工",
+      "strap_count == 3（硬等于，无容差）",
+      "buckle_norm_xy（静态镜 Δ<=0.05；旋转/穿脚镜放宽为『数量=1 + 银 + 在踝带上』存在性）",
+      "pvc_opacity（透/不透二值）",
+      "logo_count == 0"
+    ],
+    "decision_rule": "任一 scriptable FAIL → NO-GO 回修；NEEDS_HUMAN 未签字 → 整组只能标『像素项过、几何待人工』，不得标『已验收』。",
+    "drift_report_row": "{check, verdict(PASS/FAIL/WARN/NEEDS_HUMAN), baseline, measured, drift, threshold, fix}",
+    "engine_invisible": true,
+    "honesty_note": "本仓真机标定（D5-advanced-realtest）已证伪『像素能测几何』（8头身被测成5.6）。故几何项一律 NEEDS_HUMAN，脚本绝不替它们盖 PASS——假秤比没秤更危险。"
+  }
+}

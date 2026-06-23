@@ -1,0 +1,20 @@
+{
+  "_desc": "poison：①推/拉撞色 ②标注2≠源镜头3 ③提示词缺schematic声明 ④成片含schematic/箭头/PUSH IN泄漏 → 多FAIL/NO-GO",
+  "camera_path": {
+    "moves": {
+      "推": { "color": "#E03B3B" }, "拉": { "color": "#E03B3B" }, "跟前": { "color": "#E0A23B" },
+      "跟后": { "color": "#8B3BE0" }, "环绕": { "color": "#3BE08B" }, "手持": { "color": "#E03B9B" },
+      "斯坦尼康": { "color": "#3BD7E0" }, "升降上": { "color": "#9BE03B" }, "升降下": { "color": "#E0633B" },
+      "固定": { "color": "#777777" }
+    },
+    "schematic": {
+      "group_id": "G5",
+      "blocks": ["轨迹", "图例", "逐切标注", "节奏框"],
+      "annotations": ["5-1 中近景 缓推", "5-2 近景 固定"],
+      "source_shot_count": 3,
+      "rhythm_total_s": 12, "shots_sum_s": 12,
+      "prompt": "运镜轨迹示意图，箭头标注"
+    },
+    "final_text": "镜头5-1 PUSH IN 箭头 schematic 机位图标"
+  }
+}

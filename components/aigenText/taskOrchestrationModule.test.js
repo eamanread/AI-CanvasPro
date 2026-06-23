@@ -83,6 +83,12 @@ function createStore(state, incomingEdges = []) {
 }
 
 function createPromptEl(text = "hello world") {
+  if (!globalThis.Node) {
+    globalThis.Node = {
+      TEXT_NODE: 3,
+      ELEMENT_NODE: 1,
+    };
+  }
   const TEXT_NODE = globalThis.Node?.TEXT_NODE ?? 3;
   return {
     childNodes: [
@@ -94,12 +100,94 @@ function createPromptEl(text = "hello world") {
   };
 }
 
+function createPromptElWithPreset({ title, text }) {
+  if (!globalThis.Node) {
+    globalThis.Node = {
+      TEXT_NODE: 3,
+      ELEMENT_NODE: 1,
+    };
+  }
+  const TEXT_NODE = globalThis.Node?.TEXT_NODE ?? 3;
+  const ELEMENT_NODE = globalThis.Node?.ELEMENT_NODE ?? 1;
+
+  const makeTextNode = (value) => ({
+    nodeType: TEXT_NODE,
+    textContent: value,
+    cloneNode() {
+      return makeTextNode(value);
+    },
+  });
+
+  const makePresetPill = () => ({
+    nodeType: ELEMENT_NODE,
+    tagName: "SPAN",
+    textContent: title,
+    parentNode: null,
+    classList: {
+      contains(className) {
+        return className === "prompt-preset-pill";
+      },
+    },
+    dataset: {
+      promptPresetTitle: title,
+    },
+    getAttribute(name) {
+      return name === "data-prompt-preset-title" ? title : null;
+    },
+    remove() {
+      if (!this.parentNode) {
+        return;
+      }
+      this.parentNode.childNodes = this.parentNode.childNodes.filter((child) => child !== this);
+      this.parentNode = null;
+    },
+    cloneNode() {
+      return makePresetPill();
+    },
+    childNodes: [makeTextNode(title)],
+  });
+
+  const promptEl = {
+    childNodes: [],
+    get textContent() {
+      return this.childNodes.map((child) => child.textContent || "").join("");
+    },
+    get innerHTML() {
+      return this.textContent;
+    },
+    querySelector(selector) {
+      return this.querySelectorAll(selector)[0] || null;
+    },
+    querySelectorAll(selector) {
+      if (selector !== ".prompt-preset-pill") {
+        return [];
+      }
+      return this.childNodes.filter((child) => child.classList?.contains?.("prompt-preset-pill"));
+    },
+    cloneNode(deep = false) {
+      const clone = createPromptElWithPreset({ title, text });
+      if (!deep) {
+        clone.childNodes = [];
+      }
+      return clone;
+    },
+  };
+
+  const pill = makePresetPill();
+  pill.parentNode = promptEl;
+  const textNode = makeTextNode(` ${text}`);
+  textNode.parentNode = promptEl;
+  promptEl.childNodes = [pill, textNode];
+  return promptEl;
+}
+
 function createTaskModuleContext({
   targetId,
   nodeData,
   nodes = {},
   incomingEdges = [],
   promptText = "hello world",
+  promptEl = null,
 }) {
   const state = {
     nodes: {
@@ -128,7 +216,7 @@ function createTaskModuleContext({
   const context = Object.assign(Object.create(moduleProto), {
     nodeId: targetId,
     _data: state.nodes[targetId],
-    promptEl: createPromptEl(promptText),
+    promptEl: promptEl || createPromptEl(promptText),
     previewEl: null,
     btnEl: null,
     outputEl: null,
@@ -185,6 +273,69 @@ test("aigenText task orchestration: selectedModelId 可解析时改走 registry 
   );
 });
 
+test("aigenText task orchestration: common prompt preset is resolved before legacy payload branch", async () => {
+  const targetId = "node-ai-text-common-prompt";
+  const { proto, ctx } = createTaskModuleContext({
+    targetId,
+    promptEl: createPromptElWithPreset({
+      title: "短视频标题",
+      text: "雪山咖啡馆",
+    }),
+    nodeData: {
+      id: targetId,
+      model: "gpt-test",
+      provider: "openai",
+      promptPresetSelection: {
+        title: "短视频标题",
+        template: "写一个短视频标题：{用户输入}",
+      },
+    },
+  });
+
+  const payload = await proto._buildPayload.call(ctx);
+
+  assert.equal(payload.prompt, "写一个短视频标题：雪山咖啡馆");
+});
+
+test("aigenText task orchestration: runninghub generation shows a visible stop affordance", () => {
+  const targetId = "node-ai-text-runninghub-stop";
+  const { proto, ctx } = createTaskModuleContext({
+    targetId,
+    nodeData: {
+      id: targetId,
+      model: "runninghub-model/rhart-text-g-3-flash-preview-cv/image-to-text",
+      provider: "runninghub",
+    },
+  });
+
+  const btnEl = {
+    disabled: false,
+    innerHTML: "",
+    title: "",
+    style: {},
+    dataset: {},
+    setAttribute(name, value) {
+      this.dataset[name] = value;
+    },
+    removeAttribute(name) {
+      delete this.dataset[name];
+    },
+  };
+
+  ctx.btnEl = btnEl;
+  ctx._isGenerating = true;
+  ctx._rhAbortController = new AbortController();
+  ctx._rhCancelRequested = false;
+  ctx._rhCancelInFlight = false;
+
+  proto._updateSubmitButtonState.call(ctx);
+
+  assert.equal(btnEl.disabled, false);
+  assert.equal(btnEl.title, "停止生成");
+  assert.match(btnEl.innerHTML, /<rect[^>]+width="10"[^>]+height="10"/);
+  assert.equal(btnEl.dataset["data-tooltip"], "点击即可停止当前生成");
+});
+
 test("aigenText task orchestration: 模型缺失时拦截并标记 deleted", async () => {
   if (!globalThis.window) {
     globalThis.window = {};
@@ -224,7 +375,7 @@ test("aigenText task orchestration: 模型缺失时拦截并标记 deleted", asy
   );
 });
 
-test("aigenText task orchestration: 模型未配置时拦截并提示", async () => {
+test("aigenText task orchestration: unconfigured model is blocked", async () => {
   if (!globalThis.window) {
     globalThis.window = {};
   }
@@ -271,4 +422,51 @@ test("aigenText task orchestration: 模型未配置时拦截并提示", async ()
       );
     }
   );
+});
+
+test("aigenText task orchestration: agent submit starts generation without awaiting completion", () => {
+  const targetId = "node-ai-text-agent-submit";
+  const { proto, ctx } = createTaskModuleContext({
+    targetId,
+    nodeData: {
+      id: targetId,
+      model: "test-model",
+      provider: "openai",
+    },
+  });
+  const calls = [];
+  ctx._onGenerate = (prompt) => {
+    calls.push(prompt);
+    return new Promise(() => {});
+  };
+
+  const result = proto.submitGenerationFromAgent.call(ctx, "write a flying pig", { nodeType: "ai-text" });
+
+  assert.deepEqual(calls, ["write a flying pig"]);
+  assert.equal(result.started, true);
+  assert.equal(result.nodeId, targetId);
+  assert.equal(result.source, "assistant");
+});
+
+test("aigenText task orchestration: agent submit does not cancel an already running node", () => {
+  const targetId = "node-ai-text-agent-running";
+  const { proto, ctx } = createTaskModuleContext({
+    targetId,
+    nodeData: {
+      id: targetId,
+      model: "test-model",
+      provider: "openai",
+    },
+  });
+  const calls = [];
+  ctx._isGenerating = true;
+  ctx._onGenerate = (prompt) => {
+    calls.push(prompt);
+  };
+
+  const result = proto.submitGenerationFromAgent.call(ctx, "write a flying pig", { nodeType: "ai-text" });
+
+  assert.deepEqual(calls, []);
+  assert.equal(result.started, true);
+  assert.equal(result.alreadyRunning, true);
 });

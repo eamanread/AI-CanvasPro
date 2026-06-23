@@ -3,12 +3,14 @@ __pycache__/
 *.pyo
 
 user/
+user_data/
 output/
 data/
 release/
 
 venv/
 venv-clean/
+venv*/
 
 .DS_Store
 Thumbs.db
@@ -17,6 +19,10 @@ demo123/
 
 node_modules/
 npm-debug.log*
+server-run*.log
+server-run*.err.log
+server-sleeper*.log
+server-sleeper*.err.log
 package-lock.json
 playwright-report/
 test-results/
@@ -49,3 +55,35 @@ dreamina-login-qr.png
 # Ignore Advanced directory only
 .Advanced/
 .gstack/
+
+# Local agent and index runtime state
+.codegraph/
+.superpowers/brainstorm/
+.superpowers/brainstorm-*.log
+
+# Local scratch files
+tmp/
+tmp_*.js
+tmp_*.cjs
+*.db-journal
+*.pid
+
+# Local dev/run artifacts (server logs, smoke/probe outputs, decode temps, editor backups)
+.server_*.log
+.c43_server_*.log
+.dec_tmp.txt
+.golden_a3_report.json
+.native_shotplan_smoke.json
+.vimax_live_job.json
+.vimax_roundtrip.json
+*.decoded.tmp.js
+*.bak-*
+
+# Local scratch / one-off debug scripts (never ship)
+verify-set.js
+*_scratch_*.py
+*_scratch_validate_*.py
+
+# Personal storyboard content (not app source — keep out of the app repo/EXE)
+水浒万国杯反诈*/
+水浒万国杯反诈*.md

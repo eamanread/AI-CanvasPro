@@ -1,0 +1,4 @@
+{
+  "id": "config-megaprompt-sync", "kind": "megaprompt", "final_text": "",
+  "_desc": "D13 mega 覆盖 case：扫真 _megaprompts/，校验 4 个单产物成员 mega 齐全。"
+}

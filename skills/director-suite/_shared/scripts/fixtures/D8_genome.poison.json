@@ -1,0 +1,11 @@
+{
+  "_desc": "poison：①缺Texture_Simulation维 ②色板配比和1.2≠1.0 ③成片残留HEX+视觉基因/解构/Subject_Structure泄漏 → 多FAIL/NO-GO",
+  "genome_card": {
+    "genome": {
+      "Subject_Structure": "中心主体",
+      "Color_Palette_Ratio": { "main": "#3A5A78", "aux": "#8899AA", "accent": "#C3622A", "ratio": [0.6, 0.3, 0.3] },
+      "Lighting_Environment": "侧光"
+    },
+    "final_text": "主色 #3A5A78，视觉基因解构 Subject_Structure：HSL 钢蓝。"
+  }
+}

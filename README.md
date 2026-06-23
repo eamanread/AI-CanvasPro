@@ -72,8 +72,16 @@
    # 启动服务
    python server.py
    ```
+   或者在 Windows 上直接双击项目根目录的 `start_windows_dev.bat`，自动完成首次源码启动。
 4. **打开浏览器**
    访问 <http://localhost:8777> 即可使用。
+
+5. **二次开发（可选）**
+   如果你要跑前端测试工具链，再安装 Node.js 20+ 并执行：
+   ```bash
+   npm install
+   npm test
+   ```
 
 ### 方法 2：Windows系统 一键整合包（推荐普通用户）
 
@@ -91,7 +99,8 @@
 # 🖱️ 使用说明
 
 右新功能和BUG反馈可以在这里提出：<https://i1etb6xynr.feishu.cn/wiki/N2C3wD6SgisOpek11mfcfJCinkr?from=from_copylink>
-更完整的用户手册请直接看：[使用说明.md](file:///h:/AI/Al%20Canvas%E7%BC%96%E7%A8%8B/%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E.md)
+更完整的用户手册请直接看：[使用说明.md](./使用说明.md)
+如果你拿到的是源码压缩包，Windows 环境的启动与开发说明见：[WINDOWS_SOURCE_SETUP.md](./WINDOWS_SOURCE_SETUP.md)
 
 ## ⚙️ 配置 API Key
 

@@ -1,0 +1,35 @@
+{
+  "id": "config-execution-jadepavilion",
+  "kind": "execution",
+  "_desc": "D1 执行契约 case：审计校验翡翠楼执行契约实例（结构断言，无 final_text）。真机 ViMax 消费另由宿主+用户验。",
+  "final_text": "",
+  "contract": {
+    "contract_version": "1.0",
+    "final_video_spec": { "title": "翡翠楼夜宴", "aspect": "16:9", "style": "冷峻写实商战悬疑", "language": "zh" },
+    "key_elements": [
+      { "id": "[Element_ZhaoShanhe]", "category": "character" },
+      { "id": "[Element_LinChen]", "category": "character" },
+      { "id": "[Element_PrivateRoom_BanquetWarm]", "category": "scene" },
+      { "id": "[Prop_Candle_Banquet_01]", "category": "prop" }
+    ],
+    "shots": [
+      { "id": "G5", "order": 1, "est_duration": 12,
+        "refs": ["[Element_ZhaoShanhe]", "[Element_PrivateRoom_BanquetWarm]", "[Prop_Candle_Banquet_01]"],
+        "final_prompt": "开始于中近景缓推，赵山河抬手敬酒，笑纹堆起而眼底不动。硬切到近景，桌烛暖金将尽。{普通话:今晚，赏个脸。} no subtitles, no music" },
+      { "id": "G6", "order": 2, "est_duration": 10,
+        "refs": ["[Element_LinChen]", "[Element_PrivateRoom_BanquetWarm]"],
+        "final_prompt": "开始于近景，林辰指节叩桌两下后停住，目光落桌面虚处，呼吸一滞。叠化收束。 no subtitles" }
+    ],
+    "audio_layers": [ { "audio_id": "[Audio_BGM_Banquet]", "type": "bgm", "range": "G5-G6" } ],
+    "dependencies": [
+      { "from": "G5", "to": "assemble" },
+      { "from": "G6", "to": "assemble" },
+      { "from": "assemble", "to": "export" }
+    ],
+    "pause_gates": [
+      { "gate_id": "storyboard_review", "mandatory": true, "escalate": "stop_and_ask" },
+      { "gate_id": "element_render_review", "mandatory": false, "escalate": "reply_to_user" }
+    ],
+    "degrade_chain": ["seedance-2.0", "seedance-2.0-fast"]
+  }
+}

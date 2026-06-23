@@ -1,0 +1,16 @@
+{
+  "_desc": "clean 正例：合法 registry（7能力位全声明/默认∈适配器/降级同族/图像音色音乐齐全）→ PASS / exit0",
+  "capability_keys": ["dialogue", "sfx", "bgm", "title_card", "reference_image", "first_last_frame", "multi_shot_incut"],
+  "video": {
+    "default": "seedance-2.0",
+    "adapters": {
+      "seedance-2.0": { "status": "live", "duration_window_s": [4, 15], "capabilities": { "dialogue": true, "sfx": true, "bgm": true, "title_card": true, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true } },
+      "seedance-2.0-fast": { "status": "live", "duration_window_s": [4, 15], "capabilities": { "dialogue": true, "sfx": true, "bgm": true, "title_card": true, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true } },
+      "kling-3": { "status": "live", "duration_window_s": [5, 10], "capabilities": { "dialogue": true, "sfx": true, "bgm": false, "title_card": false, "reference_image": true, "first_last_frame": true, "multi_shot_incut": true } }
+    },
+    "fallback": [{ "from": "seedance-2.0", "to": "seedance-2.0-fast", "trigger": "timeout|overload" }]
+  },
+  "image": { "default": "nano-banana-pro", "tier": { "material": "seedream-4.5" } },
+  "voice": { "zh": "doubao", "en": "elevenlabs" },
+  "music": { "default": "suno-5", "ban_named_artist": true }
+}
