@@ -63,7 +63,10 @@ function _getData(el, names) {
 function _getNodeFromStore(sourceId) {
   if (!sourceId) return null;
   try {
-    return store.getState?.().nodes?.[sourceId] || null;
+    // getState() deep-clones the entire store on every call; for a single-node
+    // read-only lookup prefer the live (uncloned) state. Do not mutate the result.
+    const state = store.getStateRaw?.() ?? store.getState?.();
+    return state?.nodes?.[sourceId] || null;
   } catch {
     return null;
   }
